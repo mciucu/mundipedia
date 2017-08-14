@@ -1,0 +1,8 @@
+.DS_Store
+/mundipedia/local_settings.py
+/static
+*.pid
+mundipediaapp/static/js/PublicState.js
+mundipediaapp/static/js/bundle.js.map
+/node_modules
+*.pyc

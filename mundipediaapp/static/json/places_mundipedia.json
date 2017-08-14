@@ -1,0 +1,3 @@
+{"type": "FeatureCollection","features": [
+{ "type": "Feature", "properties": { "scalerank": 0, "labelrank": 0, "featurecla": "Admin-0 region capital", "name": "Mundipedia Headquarters", "nameascii": "Mundipedia Headquarters", "adm0name": "Mundipedia Headquarters", "adm0_a3": "MUN", "adm1name": null, "iso_a2": "MN", "note": null, "latitude": 44.429, "longitude": 26.103889, "changed": 0.0, "namediff": 0, "diffnote": null, "pop_max": 8, "pop_min": 4, "pop_other": 6, "rank_max": 13, "rank_min": 12, "geonameid": 1819729.0, "meganame": "Mundipedia Headquarters", "ls_name": "Mundipedia Headquarters", "ls_match": 1, "checkme": 0 }, "geometry": { "type": "Point", "coordinates": [ 26.103889, 44.429 ] } }
+]}

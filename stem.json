@@ -1,0 +1,15 @@
+{
+  "build": {
+    "configPath": "mundipediaapp/js",
+    "type": "rollup"
+  },
+  "project": {
+    "author": "Mihai",
+    "description": "Mapping a changing world",
+    "name": "mundipedia"
+  },
+  "sourceControl": {
+    "link": "https://github.com/mciucu/mundipedia",
+    "type": "git"
+  }
+}
