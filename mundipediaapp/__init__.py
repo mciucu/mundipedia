@@ -1,1 +1,1 @@
-default_app_config = "mundipediaapp.apps.DemoAppConfig"
+default_app_config = "mundipediaapp.apps.MainAppConfig"

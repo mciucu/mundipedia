@@ -1,8 +1,10 @@
 from django.apps import AppConfig
+from django.conf import settings
 
 
-class DemoAppConfig(AppConfig):
+class MainAppConfig(AppConfig):
     name = "mundipediaapp"
 
     def ready(self):
-        pass
+        from mundipediaapp.utils import gather_public_state
+        settings.PUBLIC_STATE_COLLECTORS.append(gather_public_state)

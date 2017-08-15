@@ -97,36 +97,14 @@ TEMPLATES = [
     },
 ]
 
+PUBLIC_STATE_COLLECTORS = ["establishment.baseconfig.utils.export_to_public_state"]
 
-def gather_public_state(state, context_dict):
-    from establishment.localization.models import Language
-    from establishment.localization.models import Country
-    import glob
-
-    state.add_all(Language.objects.all())
-    state.add_all(Country.objects.all())
-
-    context_dict["public_constants"] = "{}"
-
-    world_map_years = set()
-
-    prefix = "mundipediaapp/static/json/world/"
-    suffix = ".json"
-    for file_name in glob.glob(prefix + "*" + suffix):
-        print(file_name)
-        file_name = file_name.replace(prefix, "")
-        file_name = file_name.replace(suffix, "")
-        try:
-            world_map_years.add(int(file_name))
-        except:
-            pass
-
-    context_dict["world_map_years"] = sorted(list(world_map_years))
-
-
-PUBLIC_STATE_ACCUMULATORS = [gather_public_state]
-PUBLIC_STATE_TEMPLATE = os.path.join(PROJECT_ROOT, "mundipediaapp/templates/mundipediaapp/PublicState.jstemplate")
-PUBLIC_STATE_PATH = os.path.join(PROJECT_ROOT, "mundipediaapp/static/js/PublicState.js")
+PUBLIC_STATE_PATHS = [
+    (
+        os.path.join(PROJECT_ROOT, "mundipediaapp/templates/PublicState.jstemplate"),
+        os.path.join(PROJECT_ROOT, "mundipediaapp/static/js/PublicState.js")
+    ),
+]
 
 AUTHENTICATION_BACKENDS = (
     # Needed to login by username in Django admin, regardless of `accounts`
