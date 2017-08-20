@@ -32,23 +32,3 @@ export class IndexPageStyle extends StyleSheet {
     };
 }
 
-export class QuoteStyle extends StyleSheet {
-    @styleRule
-    quote = {
-        color: "#aaa",
-        fontStyle: "italic",
-        fontSize: "17px",
-        marginTop: "10px",
-    };
-}
-
-export class CodeStyle extends StyleSheet {
-    @styleRule
-    code = {
-        backgroundColor: "#eee",
-        fontSize: "15px",
-        padding: "2px 8px",
-        borderRadius: "5px",
-        fontFamily: '"Fira Mono", "DejaVu Sans Mono", Menlo, Consolas, "Liberation Mono", Monaco, "Lucida Console", monospace',
-    };
-}

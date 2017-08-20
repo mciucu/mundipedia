@@ -181,17 +181,10 @@ function eulerAngles(v0, v1, o0) {
 /**************end of math functions**********************/
 
 
-export class SVGMap extends SVG.SVGRoot {
-    getProjection() {
-        return this.options.projection;
-    }
-}
-
-
 D3PathString.prototype.point = function (x, y) {
     switch (this._point) {
         case 0: {
-            this._string.push("M", x, ",", y);
+            this._string.push("M" + x.toFixed(3) + "," + y.toFixed(3));
             this._point = 1;
             break;
         }
@@ -214,20 +207,27 @@ class Entity extends Dispatchable {
     }
 }
 
-export class HistoricalMap extends Draggable(SVGMap) {
-    extraNodeAttributes(attr) {
-        super.extraNodeAttributes(attr);
-        attr.setAttribute("height", 900);
-        attr.setAttribute("width", 1200);
+export class SVGMap extends SVG.SVGRoot {
+    getDefaultOptions() {
+        return {
+            height: 480,
+            width: 800
+        }
     }
 
+    getProjection() {
+        return this.options.projection;
+    }
+}
+
+export class HistoricalMap extends Draggable(SVGMap) {
     setData(data) {
         this.data = data;
         this.redraw();
     }
 
     getCurrentYear() {
-        return this.options.currentYear || 1922;
+        return this.options.currentYear || 1899;
     }
 
     setCurrentYear(currentYear) {
@@ -242,7 +242,7 @@ export class HistoricalMap extends Draggable(SVGMap) {
 
     getProjection() {
         if (!this.options.projection) {
-            const VIEW_BOX_SIZE = 900;
+            const VIEW_BOX_SIZE = 600;
             this.options.projection = geoOrthographic().scale(0.5 * VIEW_BOX_SIZE).clipAngle(90).translate([VIEW_BOX_SIZE / 2, VIEW_BOX_SIZE / 2]);
         }
         return this.options.projection;

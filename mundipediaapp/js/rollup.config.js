@@ -55,10 +55,7 @@ const generateSourceMap = argv.sourceMap || isProductionBuild || true; // TODO
 
 export default {
     entry: "Bundle.js",
-    format: "umd",
-    amd: {
-        id: "Bundle"
-    },
+    format: "iife",
     moduleName: "Bundle",
     plugins: [
         includePaths(includePathOptions),
@@ -66,5 +63,5 @@ export default {
         // uglify(),
     ],
     dest: "../static/js/bundle.js",
-    // sourceMap: generateSourceMap,
+    sourceMap: generateSourceMap,
 };
