@@ -22,12 +22,8 @@ import {FAIcon} from "ui/FontAwesome";
  */
 
 class AppNavManager extends NavManager {
-    constructor(props) {
-        super(props);
-
-        this.leftSidePanel = null;
-        this.rightSidePanel = null;
-    }
+    leftSidePanel = null;
+    rightSidePanel = null;
 
     getLeftFixed() {
         return [
