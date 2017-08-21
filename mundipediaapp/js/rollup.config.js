@@ -54,14 +54,16 @@ const isProductionBuild = argv.production;
 const generateSourceMap = argv.sourceMap || isProductionBuild || true; // TODO
 
 export default {
-    entry: "Bundle.js",
-    format: "iife",
-    moduleName: "Bundle",
+    input: "Bundle.js",
+    name: "Bundle",
     plugins: [
         includePaths(includePathOptions),
         babel(),
         // uglify(),
     ],
-    dest: "../static/js/bundle.js",
-    sourceMap: generateSourceMap,
+    output: {
+        file: "../static/js/bundle.js",
+        format: "iife"
+    },
+    sourcemap: generateSourceMap,
 };
