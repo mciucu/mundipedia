@@ -11,5 +11,28 @@
   "sourceControl": {
     "link": "https://github.com/mciucu/mundipedia",
     "type": "git"
+  },
+  "django_run": {
+    "isCommand": true,
+    "command": [{
+        "type": "django",
+        "command": "migrate"
+      }, {
+        "type": "django",
+        "command": "generate_public_state"
+      }, {
+      "type": "django",
+      "command": "runserver"
+    }
+    ]
+  },
+  "run": {
+    "isCommand": true,
+    "command": [{
+      "newProcess": true,
+      "type": "stem",
+      "command": "build"
+    }
+    ]
   }
 }

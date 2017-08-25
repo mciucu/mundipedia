@@ -16,7 +16,8 @@ while (!fs.existsSync(rootDir + "/stem.json")) {
 
 rootDir = path.normalize(rootDir + "/");
 
-let establishmentModules = ["accounts", "blog", "chat", "content", "funnel", "documentation", "errors", "forum", "localization"];
+let establishmentModules = ["accounts", "blog", "chat", "content", "funnel", "documentation", "errors", "forum", "localization",
+                            "webapp", "socialaccount"];
 let modules = ["analytics", "mundipediaapp"];
 for (let module of establishmentModules) {
     modules.push("establishment/" + module);

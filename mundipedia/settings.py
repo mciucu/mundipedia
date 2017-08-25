@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "establishment.blog",
     "establishment.forum",
     "establishment.misc",
+    "establishment.webapp",
 
     "mundipediaapp",
 ]
@@ -73,6 +74,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     "establishment.funnel.middleware.VisitorMiddleware",
+    "establishment.webapp.middleware.ProcessResponseMiddleware",
     "establishment.errors.middleware.ErrorMessageProcessingMiddleware",
 ]
 
@@ -89,15 +91,17 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                "establishment.misc.context_processors.websocket_url",
-                "establishment.misc.context_processors.user_json",
+                "establishment.webapp.context_processors.websocket_url",
+                "establishment.webapp.context_processors.user_json",
                 "mundipediaapp.context_processor.default",
             ],
         },
     },
 ]
 
-PUBLIC_STATE_COLLECTORS = ["establishment.baseconfig.utils.export_to_public_state"]
+PUBLIC_STATE_COLLECTORS = [
+    "establishment.baseconfig.utils.export_to_public_state"
+]
 
 PUBLIC_STATE_PATHS = [
     (
