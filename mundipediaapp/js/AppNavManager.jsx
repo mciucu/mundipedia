@@ -30,6 +30,7 @@ class AppNavManager extends NavManager {
             <NavSection anchor={Direction.LEFT} style={{margin: 0}}>
                 <NavLinkElement value="Home" href="/" />
                 <NavLinkElement value="Blog" href="/blog" />
+                <NavLinkElement value="Forum" href="/forum" />
             </NavSection>
         ];
     }
