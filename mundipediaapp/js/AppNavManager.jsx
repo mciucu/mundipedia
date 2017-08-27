@@ -50,6 +50,7 @@ class AppNavManager extends NavManager {
         return [
             <NavSection anchor={Direction.RIGHT} style={{margin: 0}}>
                 {this.getUserElement()}
+                <NavLinkElement value={UI.T("About")} href="/about/" />
             </NavSection>
         ];
     }
