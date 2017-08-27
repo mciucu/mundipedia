@@ -447,7 +447,10 @@ export class MundipediaLogo extends UI.Element {
     }
 
     onMount() {
-        let redrawMe = () => {
+        let redrawMe = (timestamp) => {
+            if (!this.isInDocument()) {
+                return;
+            }
             this.redraw();
             requestAnimationFrame(redrawMe);
         };
