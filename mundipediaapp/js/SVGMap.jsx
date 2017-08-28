@@ -3,7 +3,6 @@ import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, regist
 import {Ajax} from "base/Ajax";
 import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
 import D3PathString from "d3-geo/src/path/string";
-import {TeamSection} from "./Team";
 import {FAIcon} from "FontAwesome";
 
 import {Draggable} from "ui/Draggable";
@@ -459,8 +458,6 @@ export class HistoricalWorldMap extends UI.Element {
 
     render() {
         return [
-            <div style={{width: "100%", height: "5px", marginTop: "800px"}} />,
-            <TeamSection />,
             <div style={{
                 width: "100%",
                 height: "50px",
