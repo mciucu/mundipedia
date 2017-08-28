@@ -73,7 +73,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
-    "establishment.funnel.middleware.VisitorMiddleware",
+    "establishment.webapp.middleware.VisitorMiddleware",
     "establishment.webapp.middleware.ProcessResponseMiddleware",
     "establishment.errors.middleware.ErrorMessageProcessingMiddleware",
 ]
