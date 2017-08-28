@@ -1,8 +1,10 @@
 import {Dispatchable} from "../../stemjs/src/base/Dispatcher";
-import {UI, SVG, Select} from "ui/UI";
+import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, registerStyle} from "ui/UI";
 import {Ajax} from "base/Ajax";
 import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
 import D3PathString from "d3-geo/src/path/string";
+import {TeamSection} from "./Team";
+import {FAIcon} from "FontAwesome";
 
 import {Draggable} from "ui/Draggable";
 
@@ -264,6 +266,10 @@ export class HistoricalMap extends Draggable(SVGMap) {
         return <SVG.Path fill="none" stroke="cornflowerblue" strokeWidth={1} strokeDasharray="1,1" d={this.makePath(graticule)} />
     }
 
+    setProjection(projection) {
+        console.log("Set projection to ", projection);
+    }
+
     render() {
         if (!this.data) {
             return [];
@@ -320,17 +326,162 @@ export class HistoricalMap extends Draggable(SVGMap) {
     }
 }
 
-export class HistoricalWorldMap extends UI.Element {
+class FlatSelectStyle extends StyleSheet {
+    height = 40;
+    width = 160;
+
+    @styleRule
+    flatSelect = {
+        width: this.width,
+        height: this.height,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "row",
+    };
+
+    @styleRule
+    button = {
+        height: this.height,
+        width: this.width / 4,
+        backgroundColor: "#fff",
+        border: "0",
+        ":hover": {
+            backgroundColor: "#fff",
+            color: Theme.Global.properties.COLOR_PRIMARY,
+        },
+        ":active": {
+            backgroundColor: "#fff",
+        },
+        ":focus": {
+            backgroundColor: "#fff",
+        },
+        ":active:focus": {
+            backgroundColor: "#fff",
+        }
+    };
+
+    @styleRule
+    textInput = {
+        height: this.height,
+        width: this.width / 2,
+        fontSize: "18px",
+        textAlign: "center",
+        border: "0",
+        outline: "none",
+        borderBottom: "2px solid #000",
+        ":active": {
+            borderBottom: "2px solid " + Theme.Global.properties.COLOR_PRIMARY,
+            color: Theme.Global.properties.COLOR_PRIMARY,
+        },
+        ":focus": {
+            borderBottom: "2px solid " + Theme.Global.properties.COLOR_PRIMARY,
+            color: Theme.Global.properties.COLOR_PRIMARY,
+        },
+    };
+}
+
+
+@registerStyle(FlatSelectStyle)
+class FlatSelect extends UI.Element {
+    setOptions(options) {
+        this.currentValue = options.values[0];
+        super.setOptions(options);
+    }
+
+    extraNodeAttributes(attr) {
+        attr.addClass(this.styleSheet.flatSelect);
+    }
+
+    addChangeListener(callback) {
+        return this.addListener("change", callback);
+    }
+
+    getCurrentValue() {
+        return this.currentValue;
+    }
+
+    setCurrentValue(value) {
+        this.currentValue = value;
+        this.redraw();
+        this.dispatch("change");
+    }
+
+    getFromArrow(direction) {
+        let {values} = this.options;
+
+        let currentIndex = values.indexOf(this.getCurrentValue());
+        let nextIndex = currentIndex + direction;
+        if (!(nextIndex >= 0 && nextIndex < values.length)) {
+            return;
+        }
+
+        this.setCurrentValue(values[nextIndex]);
+    }
+
+    getFromInput(enteredValue) {
+        let {values} = this.options;
+        let valuesFiltered;
+
+        valuesFiltered = values.filter((value) => {
+            return value <= enteredValue;
+        });
+        this.setCurrentValue(valuesFiltered[valuesFiltered.length - 1] || values[0]);
+    }
+
     render() {
         return [
-            <Select options={self.WORLD_MAP_YEARS} ref="yearSelect"/>,
+            <Button className={this.styleSheet.button} onClick={() => this.getFromArrow(-1)}>
+                <FAIcon icon="arrow-left"/>
+            </Button>,
+            <TextInput ref="textInput" className={this.styleSheet.textInput} value={this.getCurrentValue()} />,
+            <Button className={this.styleSheet.button} onClick={() => this.getFromArrow(1)}>
+                <FAIcon icon="arrow-right"/>
+            </Button>,
+        ];
+    }
+
+    onMount() {
+        this.textInput.addNodeListener("keypress", (event) => {
+            if (event.keyCode === 13) { // 'Enter' was pressed
+                this.getFromInput(this.textInput.getValue());
+                this.redraw();
+            }
+        });
+    }
+}
+
+
+export class HistoricalWorldMap extends UI.Element {
+    getAvailableProjections() {
+        return ["Mercator", "Echart", "Spherical"];
+    }
+
+    render() {
+        return [
+            <div style={{width: "100%", height: "5px", marginTop: "800px"}} />,
+            <TeamSection />,
+            <div style={{
+                width: "100%",
+                height: "50px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: "50px",
+            }}>
+                <FlatSelect values={self.WORLD_MAP_YEARS} ref="yearSelect"/>
+            </div>,
             <HistoricalMap ref="map" />
         ]
     }
 
+    setProjection(projection) {
+        this.map.setProjection(projection);
+    }
+
     onMount() {
         this.yearSelect.addChangeListener(() => {
-            this.map.setCurrentYear(this.yearSelect.get());
-        })
+            this.map.setCurrentYear(this.yearSelect.getCurrentValue());
+        });
     }
 }
