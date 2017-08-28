@@ -2384,9 +2384,6 @@ function changeParent(element, newParent) {
     newParent.appendChild(element);
 }
 
-// TODO: should this be actually better done throught the dynamic CSS API, without doing through the DOM?
-// So far it's actually better like this, since browsers like Chrome allow users to edit classes
-
 var StyleInstance = function (_UI$TextElement) {
     inherits(StyleInstance, _UI$TextElement);
 
@@ -2883,9 +2880,6 @@ var keyframesRuleInherit = styleRuleWithOptions({
     getKey: getKeyframesRuleKey,
     inherit: true
 });
-
-// Class meant to group multiple classes inside a single <style> element, for convenience
-// TODO: pattern should be more robust, to be able to only update classes
 
 var StyleSheet = function (_Dispatchable) {
     inherits(StyleSheet, _Dispatchable);
@@ -3507,8 +3501,6 @@ var Draggable = function Draggable(BaseClass) {
 };
 
 // TODO: this file existed to hold generic classes in a period of fast prototyping, has a lot of old code
-// A very simple class, all this does is implement the `getTitle()` method
-
 var Panel = function (_UI$Element) {
     inherits(Panel, _UI$Element);
 
@@ -5210,10 +5202,6 @@ var FormField = function (_FormGroup) {
     return FormField;
 }(FormGroup);
 
-// Setting these attributes as styles in mozilla has no effect.
-// To maintain compatibility between moz and webkit, whenever
-// one of these attributes is set as a style, it is also set as a
-// node attribute.
 var MozStyleElements = new Set(["width", "height", "rx", "ry", "cx", "cy", "x", "y"]);
 
 var SVGNodeAttributes = function (_NodeAttributes) {
@@ -7186,7 +7174,6 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
     return desc;
 }
 
-// TODO: export these properly, don't use a namespace here
 var GlobalStyle = {};
 
 Theme.Global.setProperties({
@@ -8751,7 +8738,6 @@ var TerminalRoute = function (_Route) {
     return TerminalRoute;
 }(Route);
 
-// This is the object that will be used to translate text
 var translationMap = null;
 
 // Keep a set of all UI Element that need to be updated when the language changes
@@ -8848,6 +8834,11 @@ UI.TranslationTextElement = function (_UI$TextElement) {
 UI.T = function (str) {
     return new UI.TranslationTextElement(str);
 };
+
+// TODO @mciucu this should be wrapped in a way that previous requests that arrive later don't get processed
+// TODO: should this be done with promises?
+// Function to be called with a translation map
+// The translationMap object needs to implement .get(value) to return the translation for value
 
 var _class$9;
 var _descriptor$4;
@@ -9333,8 +9324,6 @@ var TabArea = (_dec$4 = registerStyle(DefaultTabAreaStyle), _dec$4(_class$8 = fu
     return TabArea;
 }(UI.Element)) || _class$8);
 
-// A map that supports multiple values to the same key
-
 var MultiMap = function () {
     function MultiMap() {
         classCallCheck(this, MultiMap);
@@ -9584,8 +9573,6 @@ var MultiMap = function () {
 var _class$12;
 var _temp$3;
 
-// This class currently mirrors the functionality of Headers on Chrome at the time of implementation
-// TODO: It is specified that the function get() should return the result of getAll() and getAll() deprecated
 var Headers$1 = (_temp$3 = _class$12 = function (_MultiMap) {
     inherits(Headers, _MultiMap);
 
@@ -10152,8 +10139,6 @@ function polyfillResponse(global) {
 // Tries to be a more flexible implementation of fetch()
 // Still work in progress
 
-// May need to polyfill Headers, Request, Response, Body, URLSearchParams classes, so import them
-// TODO: should only call this in the first call to fetch, to not create unneeded dependencies?
 if (window) {
     polyfillRequest(window);
     polyfillResponse(window);
@@ -13210,7 +13195,6 @@ var _dec2$3;
 var _class2$2;
 
 // TODO: Too much "hidden"
-// options.orientation is the orientation of the divided elements
 var DividerBar = (_dec$13 = registerStyle(SectionDividerStyle), _dec$13(_class$26 = function (_Divider) {
     inherits(DividerBar, _Divider);
 
@@ -14679,6 +14663,9 @@ var EntriesManager = function (_Dispatchable) {
     return EntriesManager;
 }(Dispatchable);
 
+// A wrapper for tables which optimizes rendering when many entries / updates are involved. It currently has hardcoded
+// row height for functionality reasons.
+
 var _class$32;
 var _descriptor$14;
 var _descriptor2$12;
@@ -14819,8 +14806,6 @@ var SortableTableStyle = (_class3$10 = function (_TableStyle) {
 
 var _dec$16;
 var _class$31;
-
-// TODO: the whole table architecture probably needs a rethinking
 
 var TableRow = function (_UI$Primitive) {
     inherits(TableRow, _UI$Primitive);
@@ -15800,10 +15785,6 @@ addCanonicalTimeUnits();
 
 var _class$34;
 
-// MAX_UNIX_TIME is either ~Feb 2106 in unix seconds or ~Feb 1970 in unix milliseconds
-// Any value less than this is interpreted as a unix time in seconds
-// If you want to go around this behavious, you can use the static method .fromUnixMilliseconds()
-// To disable, set this value to 0
 var MAX_AUTO_UNIX_TIME = Math.pow(2, 32);
 
 var BaseDate = self.Date;
@@ -16320,7 +16301,6 @@ StemDate.tokenFormattersMap = new Map([["ISO", function (date) {
     return date.format("MMMM Do, YYYY");
 }]]);
 
-// File meant to handle server time/client time differences
 var ServerTime = {
     now: function now() {
         return StemDate().subtract(this.getOffset());
@@ -16352,8 +16332,6 @@ function isDifferentDay(timeA, timeB) {
     // Check if different day of the month, when difference is less than a day
     return timeA.getDate() !== timeB.getDate();
 }
-
-// import {Button} from "./button/Button";
 
 var DatePickerTable = function (_UI$Element) {
     inherits(DatePickerTable, _UI$Element);
@@ -17662,7 +17640,6 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
   return rotation;
 }
 
-// Generates a circle centered at [0°, 0°], with a given radius and precision.
 function circleStream(stream, radius, delta, direction, t0, t1) {
   if (!delta) return;
   var cosRadius = cos(radius),
@@ -18727,8 +18704,6 @@ function boundsPoint$1(x, y) {
   if (y > y1) y1 = y;
 }
 
-// TODO Enforce positive area for exterior, negative area for interior?
-
 var X0$1 = 0;
 var Y0$1 = 0;
 var Z0$1 = 0;
@@ -19783,10 +19758,6 @@ function _applyDecoratedDescriptor$19(target, property, decorators, descriptor, 
     return desc;
 }
 
-/***** ALL MATH FUNCTIONS ****/
-
-// The following code is from ivyywang
-
 var to_radians = Math.PI / 180;
 var to_degrees = 180 / Math.PI;
 
@@ -20554,7 +20525,6 @@ var DefaultState = GlobalState;
 
 self.GlobalState = GlobalState;
 
-// The store information is kept in a symbol, to not interfere with serialization/deserialization
 var StoreSymbol = Symbol("Store");
 
 var StoreObject = function (_Dispatchable) {
@@ -23484,10 +23454,6 @@ MarkupParser.parseJSON5 = function () {
     };
 }();
 
-// TODO: these should be in a unit test file, not here
-
-// Class that for every markup tag returns the UI class to instantiate for that element
-
 var MarkupClassMap = function () {
     function MarkupClassMap(fallback) {
         classCallCheck(this, MarkupClassMap);
@@ -26393,9 +26359,6 @@ PrivateChatStore.addListener("update", function (obj, event) {
         GlobalState.importState(event.state);
     }
 });
-
-// import {Emoji as EmojiMini} from "EmojiMini";
-// import "EmojiUI";
 
 UI.Emoji = UI.Emoji || UI.Element;
 
@@ -30966,14 +30929,6 @@ var DelayedElement = function DelayedElement(BaseClass) {
     }(BaseClass);
 };
 
-// You can configure the loading/error states by defining the "renderLoading" and "renderError" attributes of the
-// function somewhere globally in your app.
-// Example:
-// StateDependentElement.renderLoading = "Loading...";
-// or
-// StateDependentElement.renderLoading = () => <MyCustomLoadingAnimation />
-// StateDependentElement.renderError = (error) => <MyCustomErrorMessageClass error={error} />
-
 var StateDependentElement = function StateDependentElement(BaseClass) {
     return function (_DelayedElement) {
         inherits(StateDependentElementClass, _DelayedElement);
@@ -32094,8 +32049,6 @@ function _applyDecoratedDescriptor$26(target, property, decorators, descriptor, 
 
     return desc;
 }
-
-//import {CSAStyle} from "CSAStyle";
 
 var colors = {
     // BLUE: "#20232d",
@@ -34687,7 +34640,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerHeight = 142, _this.headerCircleDimensions = _this.headerHeight * 7 / 10, _this.borderRadius = "15%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _this.elementBackgroundColor = Theme.Global.properties.COLOR_PALE_BRIGHT_BLUE, _this.elementColor = Theme.Global.properties.COLOR_DARK, _initDefineProp$26(_this, "container", _descriptor$25, _this), _initDefineProp$26(_this, "header", _descriptor2$23, _this), _initDefineProp$26(_this, "circleImage", _descriptor3$21, _this), _initDefineProp$26(_this, "image", _descriptor4$17, _this), _initDefineProp$26(_this, "hr", _descriptor5$15, _this), _initDefineProp$26(_this, "padding", _descriptor6$12, _this), _initDefineProp$26(_this, "body", _descriptor7$10, _this), _initDefineProp$26(_this, "description", _descriptor8$9, _this), _initDefineProp$26(_this, "titleName", _descriptor9$8, _this), _initDefineProp$26(_this, "titleJob", _descriptor10$6, _this), _initDefineProp$26(_this, "footer", _descriptor11$6, _this), _initDefineProp$26(_this, "url", _descriptor12$4, _this), _initDefineProp$26(_this, "socialAccount", _descriptor13$4, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerHeight = 142, _this.headerCircleDimensions = _this.headerHeight * 7 / 10, _this.borderRadius = "20%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _this.elementBackgroundColor = Theme.Global.properties.COLOR_PALE_BRIGHT_BLUE, _this.elementColor = Theme.Global.properties.COLOR_DARK, _initDefineProp$26(_this, "container", _descriptor$25, _this), _initDefineProp$26(_this, "header", _descriptor2$23, _this), _initDefineProp$26(_this, "circleImage", _descriptor3$21, _this), _initDefineProp$26(_this, "image", _descriptor4$17, _this), _initDefineProp$26(_this, "hr", _descriptor5$15, _this), _initDefineProp$26(_this, "padding", _descriptor6$12, _this), _initDefineProp$26(_this, "body", _descriptor7$10, _this), _initDefineProp$26(_this, "description", _descriptor8$9, _this), _initDefineProp$26(_this, "titleName", _descriptor9$8, _this), _initDefineProp$26(_this, "titleJob", _descriptor10$6, _this), _initDefineProp$26(_this, "footer", _descriptor11$6, _this), _initDefineProp$26(_this, "url", _descriptor12$4, _this), _initDefineProp$26(_this, "socialAccount", _descriptor13$4, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return TeamCardStyle;
@@ -34697,7 +34650,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
         return {
             // minHeight: this.Height,
             width: this.width,
-            border: "1px solid " + Theme.Global.properties.COLOR_ALTERNATIVE_WHITE,
+            border: "1px solid rgba(0,0,0,0)",
             display: "flex",
             flexDirection: "column",
             ":hover": {
@@ -34724,8 +34677,8 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
         return {
             height: this.headerCircleDimensions,
             width: this.headerCircleDimensions,
-            borderRadius: this.borderRadius,
-            backgroundColor: this.elementBackgroundColor
+            borderRadius: this.borderRadius
+            // backgroundColor: this.elementBackgroundColor,
         };
     }
 }), _descriptor4$17 = _applyDecoratedDescriptor$27(_class$55.prototype, "image", [styleRule], {
@@ -34969,34 +34922,61 @@ var TeamSection = (_dec2$11 = registerStyle(TeamSectionStyle), _dec2$11(_class6$
     }, {
         key: "render",
         value: function render() {
-            var cards = [];
-            for (var i = 0; i < 6; i += 1) {
-                cards.push(UI.createElement(
-                    "div",
-                    { className: this.styleSheet.teamSectionContainer },
-                    UI.createElement(TeamCard, {
-                        image: "https://pbs.twimg.com/profile_images/665837433217540096/r7N4Vjv0_400x400.jpg",
-                        description: "If you're blue and you don't know where to go to\n" + "Why don't you go where fashion sits\n" + "Puttin' on the Ritz",
-                        name: "Vlad Tarniceru - @saintandy",
-                        job: "UI/UX designer, frontend engineer",
-                        socialAccounts: [{
-                            name: "twitter",
-                            url: "https://twitter.com/vladtarniceru"
-                        }, {
-                            name: "github",
-                            url: "https://github.com/saintandy"
-                        }, {
-                            name: "linkedin",
-                            url: "https://github.com/saintandy"
-                        }, {
-                            name: "google",
-                            url: "https://github.com/saintandy"
-                        }]
-                    })
-                ));
-            }
+            var _this5 = this;
 
-            return cards;
+            var people = [{
+                name: "Mihai Ciucu",
+                image: UI.createElement(MundipediaLogo, { size: 100 }),
+                job: "Founder",
+                description: "I don't have time for thinking about a description, I'm busy!",
+                socialAccounts: [{
+                    name: "github",
+                    url: "https://github.com/mciucu"
+                }]
+            }, {
+                name: "Andra Geangu",
+                image: "https://media.licdn.com/mpr/mpr/shrinknp_200_200/p/4/005/027/1b1/24f3e57.jpg",
+                job: "Co-Founder"
+            }, {
+                name: "Vlad Tarniceru",
+                image: "https://pbs.twimg.com/profile_images/665837433217540096/r7N4Vjv0_400x400.jpg",
+                job: "UI/UX designer, frontend engineer",
+                description: "Listening to dark jazz",
+                socialAccounts: [{
+                    name: "twitter",
+                    url: "https://twitter.com/vladtarniceru"
+                }, {
+                    name: "github",
+                    url: "https://github.com/saintandy"
+                }]
+            }, {
+                name: "Catalin Orzanescu",
+                image: "https://media.licdn.com/mpr/mpr/shrinknp_200_200/AAEAAQAAAAAAAApKAAAAJDMxMjFmMmQ2LThiMzMtNGE4Ni1hM2UwLWIyNWRiNzllNTFkZg.jpg",
+                job: "Research Collaborator"
+            }, {
+                name: "Loredana Branzei",
+                job: "Research Collaborator"
+            }, {
+                name: "Anamaria Balsadiu",
+                job: "Research Collaborator"
+            }, {
+                name: "Mircea Pavel",
+                job: "Research Collaborator"
+            }, {
+                name: "Marian Iancu",
+                job: "Research Collaborator"
+            }, {
+                name: "Micu Adelina",
+                job: "Research Collaborator"
+            }];
+
+            return people.map(function (person) {
+                return UI.createElement(
+                    "div",
+                    { className: _this5.styleSheet.teamSectionContainer },
+                    UI.createElement(TeamCard, person)
+                );
+            });
         }
     }]);
     return TeamSection;
@@ -35008,7 +34988,7 @@ var AboutPageStyle = (_class7$4 = function (_StyleSheet3) {
     function AboutPageStyle() {
         var _ref3;
 
-        var _temp3, _this5, _ret3;
+        var _temp3, _this6, _ret3;
 
         classCallCheck(this, AboutPageStyle);
 
@@ -35016,7 +34996,7 @@ var AboutPageStyle = (_class7$4 = function (_StyleSheet3) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this5 = possibleConstructorReturn(this, (_ref3 = AboutPageStyle.__proto__ || Object.getPrototypeOf(AboutPageStyle)).call.apply(_ref3, [this].concat(args))), _this5), _initDefineProp$26(_this5, "container", _descriptor16$4, _this5), _temp3), possibleConstructorReturn(_this5, _ret3);
+        return _ret3 = (_temp3 = (_this6 = possibleConstructorReturn(this, (_ref3 = AboutPageStyle.__proto__ || Object.getPrototypeOf(AboutPageStyle)).call.apply(_ref3, [this].concat(args))), _this6), _initDefineProp$26(_this6, "container", _descriptor16$4, _this6), _temp3), possibleConstructorReturn(_this6, _ret3);
     }
 
     return AboutPageStyle;
@@ -35050,7 +35030,11 @@ var AboutPage = (_dec3$3 = registerStyle(AboutPageStyle), _dec3$3(_class9$2 = fu
     }, {
         key: "render",
         value: function render() {
-            return [UI.createElement(TeamSection, null)];
+            return [UI.createElement(MundipediaLogo, { size: 150 }), UI.createElement(
+                "span",
+                { style: { fontSize: "36px" } },
+                "Mundipedia"
+            ), UI.createElement(TeamSection, null)];
         }
     }]);
     return AboutPage;
@@ -35447,10 +35431,6 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
 var _class$59;
 var _temp$8;
 
-// Class for working with the Window.localStorage and Window.sessionStorage objects
-// All keys are prefixed with our custom name, so we don't have to worry about polluting the global storage namespace
-// Keys must be strings, and values are modified by the serialize/deserialize methods,
-// which by default involve JSON conversion
 var StorageMap = (_temp$8 = _class$59 = function (_Dispatchable) {
     inherits(StorageMap, _Dispatchable);
 
@@ -36774,13 +36754,6 @@ function logout() {
 }
 
 // UI components
-/*
- * This is the NavManager file of your app.
- *
- * Note that the whole app is a single page app.
- * Follow the instructions below in order to customize your application.
- */
-
 var AppNavManager = function (_NavManager) {
     inherits(AppNavManager, _NavManager);
 
@@ -37465,7 +37438,7 @@ var _dec6$1;
 var _dec7$1;
 var _dec8;
 var _dec9;
-var _class$60;
+var _class$61;
 var _descriptor$27;
 var _descriptor2$25;
 var _descriptor3$23;
@@ -37515,7 +37488,7 @@ function _applyDecoratedDescriptor$29(target, property, decorators, descriptor, 
     return desc;
 }
 
-var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$13 = styleRuleCustom({ selector: ".hidden" }), _dec3$4 = styleRuleCustom({ selector: "*" }), _dec4$2 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$60 = function (_StyleSheet) {
+var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$13 = styleRuleCustom({ selector: ".hidden" }), _dec3$4 = styleRuleCustom({ selector: "*" }), _dec4$2 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$61 = function (_StyleSheet) {
     inherits(GlobalStyleSheet, _StyleSheet);
 
     function GlobalStyleSheet() {
@@ -37533,7 +37506,7 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
     }
 
     return GlobalStyleSheet;
-}(StyleSheet), (_descriptor$27 = _applyDecoratedDescriptor$29(_class$60.prototype, "body", [_dec$30], {
+}(StyleSheet), (_descriptor$27 = _applyDecoratedDescriptor$29(_class$61.prototype, "body", [_dec$30], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37541,21 +37514,21 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             fontFamily: this.themeProperties.FONT_FAMILY_SANS_SERIF
         };
     }
-}), _descriptor2$25 = _applyDecoratedDescriptor$29(_class$60.prototype, "hidden", [_dec2$13], {
+}), _descriptor2$25 = _applyDecoratedDescriptor$29(_class$61.prototype, "hidden", [_dec2$13], {
     enumerable: true,
     initializer: function initializer() {
         return {
             display: "none !important"
         };
     }
-}), _descriptor3$23 = _applyDecoratedDescriptor$29(_class$60.prototype, "everything", [_dec3$4], {
+}), _descriptor3$23 = _applyDecoratedDescriptor$29(_class$61.prototype, "everything", [_dec3$4], {
     enumerable: true,
     initializer: function initializer() {
         return {
             boxSizing: "border-box"
         };
     }
-}), _descriptor4$19 = _applyDecoratedDescriptor$29(_class$60.prototype, "a", [_dec4$2], {
+}), _descriptor4$19 = _applyDecoratedDescriptor$29(_class$61.prototype, "a", [_dec4$2], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37563,7 +37536,7 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             color: this.themeProperties.COLOR_LINK || "#337ab7"
         };
     }
-}), _descriptor5$17 = _applyDecoratedDescriptor$29(_class$60.prototype, "hr", [_dec5$1], {
+}), _descriptor5$17 = _applyDecoratedDescriptor$29(_class$61.prototype, "hr", [_dec5$1], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37575,14 +37548,14 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             boxSizing: "content-box"
         };
     }
-}), _descriptor6$14 = _applyDecoratedDescriptor$29(_class$60.prototype, "codeAndPre", [_dec6$1], {
+}), _descriptor6$14 = _applyDecoratedDescriptor$29(_class$61.prototype, "codeAndPre", [_dec6$1], {
     enumerable: true,
     initializer: function initializer() {
         return {
             fontFamily: this.themeProperties.FONT_FAMILY_MONOSPACE
         };
     }
-}), _descriptor7$12 = _applyDecoratedDescriptor$29(_class$60.prototype, "code", [_dec7$1], {
+}), _descriptor7$12 = _applyDecoratedDescriptor$29(_class$61.prototype, "code", [_dec7$1], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37593,7 +37566,7 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             borderRadius: this.themeProperties.BUTTON_BORDER_RADIUS
         };
     }
-}), _descriptor8$11 = _applyDecoratedDescriptor$29(_class$60.prototype, "pre", [_dec8], {
+}), _descriptor8$11 = _applyDecoratedDescriptor$29(_class$61.prototype, "pre", [_dec8], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37610,7 +37583,7 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             border: "1px solid #ccc"
         };
     }
-}), _descriptor9$10 = _applyDecoratedDescriptor$29(_class$60.prototype, "preInCode", [_dec9], {
+}), _descriptor9$10 = _applyDecoratedDescriptor$29(_class$61.prototype, "preInCode", [_dec9], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37622,9 +37595,12 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             borderRadius: 0
         };
     }
-})), _class$60));
+})), _class$61));
 
-var EstablishmentApp = function (_StemApp) {
+var _class$60;
+var _temp$9;
+
+var EstablishmentApp = (_temp$9 = _class$60 = function (_StemApp) {
     inherits(EstablishmentApp, _StemApp);
 
     function EstablishmentApp() {
@@ -37634,10 +37610,13 @@ var EstablishmentApp = function (_StemApp) {
 
     createClass(EstablishmentApp, null, [{
         key: "init",
+        // Iphone 6
+
         value: function init() {
             this.loadPublicState();
             this.addAjaxProcessors();
             this.registerWebsocketStreams();
+            this.initializeViewportMeta();
             this.configureTheme();
             this.initializeGlobalStyle();
             return get(EstablishmentApp.__proto__ || Object.getPrototypeOf(EstablishmentApp), "init", this).call(this);
@@ -37646,30 +37625,6 @@ var EstablishmentApp = function (_StemApp) {
         key: "loadPublicState",
         value: function loadPublicState() {
             GlobalState.importState(self.PUBLIC_STATE || {});
-        }
-    }, {
-        key: "configureTheme",
-        value: function configureTheme() {}
-    }, {
-        key: "initializeGlobalStyle",
-        value: function initializeGlobalStyle() {
-            GlobalStyleSheet.initialize();
-        }
-    }, {
-        key: "registerWebsocketStreams",
-        value: function registerWebsocketStreams() {
-            // TODO: first check if websockets are enabled
-            GlobalState.registerStream = function (streamName) {
-                WebsocketSubscriber.addListener(streamName, GlobalState.applyEventWrapper);
-            };
-
-            //Register on the global event stream
-            GlobalState.registerStream("global-events");
-
-            //Register on the user event stream
-            if (self.USER && self.USER.id) {
-                GlobalState.registerStream("user-" + self.USER.id + "-events");
-            }
         }
     }, {
         key: "addAjaxProcessors",
@@ -37702,11 +37657,41 @@ var EstablishmentApp = function (_StemApp) {
                 return ErrorHandlers.showErrorAlert(error);
             };
         }
+    }, {
+        key: "registerWebsocketStreams",
+        value: function registerWebsocketStreams() {
+            // TODO: first check if websockets are enabled
+            GlobalState.registerStream = function (streamName) {
+                WebsocketSubscriber.addListener(streamName, GlobalState.applyEventWrapper);
+            };
+
+            //Register on the global event stream
+            GlobalState.registerStream("global-events");
+
+            //Register on the user event stream
+            if (self.USER && self.USER.id) {
+                GlobalState.registerStream("user-" + self.USER.id + "-events");
+            }
+        }
+    }, {
+        key: "initializeViewportMeta",
+        value: function initializeViewportMeta() {
+            return this.viewportMeta = ViewportMeta.create(document.head);
+        }
+    }, {
+        key: "configureTheme",
+        value: function configureTheme() {
+            // Nothing to do by default
+        }
+    }, {
+        key: "initializeGlobalStyle",
+        value: function initializeGlobalStyle() {
+            GlobalStyleSheet.initialize();
+        }
     }]);
     return EstablishmentApp;
-}(StemApp);
+}(StemApp), _class$60.MIN_VIEWPORT_META_WIDTH = 375, _temp$9);
 
-// The default page title
 PageTitleManager.setDefaultTitle("Mundipedia");
 
 var oldThemeProperties = Theme.Global.getProperties();

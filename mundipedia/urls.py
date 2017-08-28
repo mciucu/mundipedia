@@ -38,5 +38,6 @@ urlpatterns = [
     url(r"^", include("mundipediaapp.urls")),
 
     # Any other url is automatically treated as a single page app call
+    # Ends with a / since settings.APPEND_SLASH is enabled by default
     url(r"^.*/$", global_renderer.render_single_page_app)
 ]

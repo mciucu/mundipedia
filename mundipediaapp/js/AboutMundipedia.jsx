@@ -11,7 +11,7 @@ class TeamCardStyle extends StyleSheet {
 
     headerHeight = 142;
     headerCircleDimensions = this.headerHeight * 7 / 10;
-    borderRadius = "15%";
+    borderRadius = "20%";
 
     bodyDescriptionPadding = 20;
 
@@ -25,7 +25,7 @@ class TeamCardStyle extends StyleSheet {
     container = {
         // minHeight: this.Height,
         width: this.width,
-        border: `1px solid ${Theme.Global.properties.COLOR_ALTERNATIVE_WHITE}`,
+        border: `1px solid rgba(0,0,0,0)`,
         display: "flex",
         flexDirection: "column",
         ":hover": {
@@ -49,7 +49,7 @@ class TeamCardStyle extends StyleSheet {
         height: this.headerCircleDimensions,
         width: this.headerCircleDimensions,
         borderRadius: this.borderRadius,
-        backgroundColor: this.elementBackgroundColor,
+        // backgroundColor: this.elementBackgroundColor,
     };
 
     @styleRule
@@ -237,43 +237,55 @@ export class TeamSection extends UI.Element {
     }
 
     render() {
-        let cards = [];
-        for (let i = 0; i < 6; i += 1) {
-            cards.push(
-                <div className={this.styleSheet.teamSectionContainer}>
-                    <TeamCard
-                        image="https://pbs.twimg.com/profile_images/665837433217540096/r7N4Vjv0_400x400.jpg"
-                        description={
-                            "If you're blue and you don't know where to go to\n" +
-                            "Why don't you go where fashion sits\n" +
-                            "Puttin' on the Ritz"
-                        }
-                        name="Vlad Tarniceru - @saintandy"
-                        job="UI/UX designer, frontend engineer"
-                        socialAccounts={[
-                            {
-                                name: "twitter",
-                                url: "https://twitter.com/vladtarniceru"
-                            },
-                            {
-                                name: "github",
-                                url: "https://github.com/saintandy"
-                            },
-                            {
-                                name: "linkedin",
-                                url: "https://github.com/saintandy"
-                            },
-                            {
-                                name: "google",
-                                url: "https://github.com/saintandy"
-                            },
-                        ]}
-                    />
-                </div>
-            );
-        }
+        const people = [{
+            name: "Mihai Ciucu",
+            image: <MundipediaLogo size={100}/>,
+            job: "Founder",
+            description: "I don't have time for thinking about a description, I'm busy!",
+            socialAccounts: [{
+                name: "github",
+                url: "https://github.com/mciucu"
+            }]
+        }, {
+            name: "Andra Geangu",
+            image: "https://media.licdn.com/mpr/mpr/shrinknp_200_200/p/4/005/027/1b1/24f3e57.jpg",
+            job: "Co-Founder",
+        }, {
+            name: "Vlad Tarniceru",
+            image:"https://pbs.twimg.com/profile_images/665837433217540096/r7N4Vjv0_400x400.jpg",
+            job: "UI/UX designer, frontend engineer",
+            description: "Listening to dark jazz",
+            socialAccounts: [{
+                name: "twitter",
+                url: "https://twitter.com/vladtarniceru"
+            }, {
+                name: "github",
+                url: "https://github.com/saintandy"
+            }]
+        }, {
+            name: "Catalin Orzanescu",
+            image: "https://media.licdn.com/mpr/mpr/shrinknp_200_200/AAEAAQAAAAAAAApKAAAAJDMxMjFmMmQ2LThiMzMtNGE4Ni1hM2UwLWIyNWRiNzllNTFkZg.jpg",
+            job: "Research Collaborator",
+        }, {
+            name: "Loredana Branzei",
+            job: "Research Collaborator",
+        }, {
+            name: "Anamaria Balsadiu",
+            job: "Research Collaborator",
+        }, {
+            name: "Mircea Pavel",
+            job: "Research Collaborator",
+        }, {
+            name: "Marian Iancu",
+            job: "Research Collaborator",
+        }, {
+            name: "Micu Adelina",
+            job: "Research Collaborator",
+        }];
 
-        return cards;
+        return people.map(person => <div className={this.styleSheet.teamSectionContainer}>
+                    <TeamCard {...person}/>
+                </div>);
     }
 }
 
@@ -297,6 +309,8 @@ export class AboutPage extends UI.Element {
 
     render() {
         return [
+            <MundipediaLogo size={150}/>,
+            <span style={{fontSize: "36px"}}>Mundipedia</span>,
             <TeamSection />
         ]
     }
