@@ -66,5 +66,5 @@ export default {
         file: "../static/js/bundle.js",
         format: "iife"
     },
-    sourcemap: generateSourceMap,
+    //sourcemap: generateSourceMap,
 };

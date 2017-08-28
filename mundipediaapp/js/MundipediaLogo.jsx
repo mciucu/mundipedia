@@ -1,4 +1,5 @@
 import {UI, SVG} from "ui/UI";
+import {StemDate} from "time/Date";
 import {geoPath, geoOrthographic, geoCircle, geoInterpolate} from "d3-geo/index";
 import {shuffle as d3Shuffle} from "d3-array";
 
@@ -402,58 +403,87 @@ function neighbors(a, b) {
 })();
 
 
-export function getPoints(nrPoints=42, timeSeed=Date.now() / 333) {
-    let increm = [];
+export function getPoints(seed, nrPoints=42) {
+    let vectors = [];
+    seed = seed / 333;
     for (let i = 0; i < nrPoints; i++) {
-        increm.push([(Math.PI * i) % 1, (Math.E * i) % 1]);
-        increm[i][0] = 2.0 * (increm[i][0] - 0.5);
-        increm[i][1] = (2.0 * (increm[i][1] - 0.5)) / 2.0;
+        vectors.push([(Math.PI * i) % 1, (Math.E * i) % 1]);
+        vectors[i][0] = 2.0 * (vectors[i][0] - 0.5);
+        vectors[i][1] = (2.0 * (vectors[i][1] - 0.5)) / 2.0;
     }
 
     function randomPoint(speedU, speedV) {
-        const u = Math.abs(timeSeed * speedU) % 360;
-        const v = Math.abs(timeSeed * speedV / 180) % 1;
+        const u = Math.abs(seed * speedU) % 360;
+        const v = Math.abs(seed * speedV / 180) % 1;
         return [u, 180 * Math.asin(2.0 * v - 1.0)];
     }
 
-    return increm.map(deltas => randomPoint(deltas[0], deltas[1]));
+    return vectors.map(deltas => randomPoint(deltas[0], deltas[1]));
 }
 
 export class MundipediaLogo extends UI.Element {
     static VIEW_BOX_SIZE = 500;
 
-    render() {
-        const points = getPoints();
+    getDefaultOptions() {
+        return {
+            framerate: 60,
+            stroke: "white",
+            fill: "cornflowerblue",
+        }
+    }
+
+    static getPaths(timestamp) {
+        timestamp = timestamp || Date.now();
+        if (timestamp == this.prevTimestamp) {
+            return this.cachedPaths;
+        }
+        this.prevTimestamp = timestamp;
+
+        const points = getPoints(timestamp);
         const voronoiFeatures = d3.geo.voronoi(points).geometries;
 
-        const VIEW_BOX_SIZE = this.constructor.VIEW_BOX_SIZE;
-        const size = this.options.size || 300;
+        const VIEW_BOX_SIZE = this.VIEW_BOX_SIZE;
+
         const projection = geoOrthographic().scale(0.5 * VIEW_BOX_SIZE).clipAngle(90).translate([VIEW_BOX_SIZE / 2, VIEW_BOX_SIZE / 2]);
         const pathMaker = geoPath().projection(projection);
 
-        let paths = voronoiFeatures.map((feature) => {
-            const path = pathMaker(feature);
-            if (!path) {
-                return null;
-            }
-            return <SVG.Path strokeWidth={12} stroke="white" fill="cornflowerblue" d={path} />
-        });
+        return this.cachedPaths = voronoiFeatures.map(feature => pathMaker(feature));
+    }
+
+    render() {
+        const size = this.options.size || 300;
+        const VIEW_BOX_SIZE = this.constructor.VIEW_BOX_SIZE;
+
+        const paths = this.constructor.getPaths(this.options.timestamp || Date.now());
 
         return [
             <SVG.SVGRoot height={size} width={size} viewBox={`0 0 ${VIEW_BOX_SIZE} ${VIEW_BOX_SIZE}`}>
-                {paths}
+                {paths.map(path => path && <SVG.Path strokeWidth={12} stroke={this.options.stroke} fill={this.options.fill} d={path} />)}
             </SVG.SVGRoot>
         ]
     }
 
+    setTimestamp(timestamp) {
+        if (!this.isInDocument()) {
+            return;
+        }
+        this.updateOptions({timestamp});
+    }
+
     onMount() {
-        let redrawMe = (timestamp) => {
-            if (!this.isInDocument()) {
-                return;
-            }
-            this.redraw();
-            requestAnimationFrame(redrawMe);
-        };
-        requestAnimationFrame(redrawMe);
+        if (this.options.framerate >= 60) {
+            let redrawMe = (highResTimestamp) => {
+                this.setTimestamp(+StemDate.fromHighResTimestamp(highResTimestamp));
+                this.animationFrame = requestAnimationFrame(redrawMe);
+            };
+            this.animationFrame = requestAnimationFrame(redrawMe);
+        } else {
+            this.interval = setInterval(() => this.setTimestamp(Date.now()), 1000 / this.options.framerate);
+        }
+    }
+
+    onUnmount() {
+        this.interval && clearInterval(this.interval);
+        this.animationFrame && cancelAnimationFrame(this.animationFrame);
     }
 }
