@@ -7,7 +7,7 @@ export class IndexPageStyle extends StyleSheet {
         height: "100%",
         width: "100%",
         display: "flex",
-        justifyContent: "center",
+        // justifyContent: "center",
         alignItems: "center",
         flexDirection: "column",
     };

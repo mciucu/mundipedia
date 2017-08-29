@@ -18,8 +18,8 @@ class TeamCardStyle extends StyleSheet {
     footerHeight = 40;
     footerSocialAccountDimensions = 25;
 
-    elementBackgroundColor = Theme.Global.properties.COLOR_PALE_BRIGHT_BLUE;
-    elementColor = Theme.Global.properties.COLOR_DARK;
+    elementBackgroundColor = this.themeProperties.COLOR_PALE_BRIGHT_BLUE;
+    elementColor = this.themeProperties.COLOR_TEXT;
 
     @styleRule
     container = {
@@ -29,7 +29,7 @@ class TeamCardStyle extends StyleSheet {
         display: "flex",
         flexDirection: "column",
         ":hover": {
-            border: `1px solid ${enhance(Theme.Global.properties.COLOR_ALTERNATIVE_WHITE, 0.1)}`,
+            border: `1px solid ${enhance(this.themeProperties.COLOR_ALTERNATIVE_WHITE, 0.1)}`,
         },
     };
 
@@ -41,7 +41,7 @@ class TeamCardStyle extends StyleSheet {
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "column",
-        // backgroundColor: Theme.Global.properties.COLOR_ALTERNATIVE_WHITE,
+        // backgroundColor: this.themeProperties.COLOR_ALTERNATIVE_WHITE,
     };
 
     @styleRule
@@ -64,7 +64,7 @@ class TeamCardStyle extends StyleSheet {
         width: "80%",
         margin: "0 10%",
         height: "1px",
-        backgroundColor: Theme.Global.properties.COLOR_ALTERNATIVE_WHITE,
+        backgroundColor: this.themeProperties.COLOR_ALTERNATIVE_WHITE,
     };
 
     @styleRule

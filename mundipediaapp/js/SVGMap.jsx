@@ -342,7 +342,8 @@ export class HistoricalMap extends Draggable(SVGMap) {
 
         paths.push(this.getGraticule());
 
-        return [<SVG.Group>
+        return [
+            <SVG.Group>
                 {paths}
             </SVG.Group>,
             this.getGraticule(),
@@ -408,18 +409,23 @@ class FlatSelectStyle extends StyleSheet {
         width: this.width / 4,
         backgroundColor: "#fff",
         border: "0",
+        transition: "0.15s",
         ":hover": {
             backgroundColor: "#fff",
-            color: Theme.Global.properties.COLOR_PRIMARY,
+            color: this.themeProperties.COLOR_PRIMARY,
+            transition: "0.15s",
         },
         ":active": {
             backgroundColor: "#fff",
+            transition: "0.15s",
         },
         ":focus": {
             backgroundColor: "#fff",
+            transition: "0.15s",
         },
         ":active:focus": {
             backgroundColor: "#fff",
+            transition: "0.15s",
         }
     };
 
@@ -432,17 +438,24 @@ class FlatSelectStyle extends StyleSheet {
         border: "0",
         outline: "none",
         borderBottom: "2px solid #000",
+        transition: "0.15s",
+        ":hover": {
+            borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
+            color: this.themeProperties.COLOR_PRIMARY,
+            transition: "0.15s",
+        },
         ":active": {
-            borderBottom: "2px solid " + Theme.Global.properties.COLOR_PRIMARY,
-            color: Theme.Global.properties.COLOR_PRIMARY,
+            borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
+            color: this.themeProperties.COLOR_PRIMARY,
+            transition: "0.15s",
         },
         ":focus": {
-            borderBottom: "2px solid " + Theme.Global.properties.COLOR_PRIMARY,
-            color: Theme.Global.properties.COLOR_PRIMARY,
+            borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
+            color: this.themeProperties.COLOR_PRIMARY,
+            transition: "0.15s",
         },
     };
 }
-
 
 @registerStyle(FlatSelectStyle)
 class FlatSelect extends UI.Element {
@@ -514,47 +527,118 @@ class FlatSelect extends UI.Element {
 }
 
 class HistoricalWorldMapTitle extends UI.Element {
+    setCurrentYear(currentYear) {
+        this.options.currentYear = currentYear;
+        this.redraw();
+    }
+
     getYearsInterval(currentYear) {
         const {years} = this.options;
         const yearsFiltered = years.filter((value) => {
-            return value <= currentYear;
+            return value < currentYear;
         });
-        const previousYearWithData = (yearsFiltered[yearsFiltered.length - 1] || years[0]);
+        const previousYearWithData = (yearsFiltered[yearsFiltered.length - 1] || years[0] - 1);
 
-        if (previousYearWithData === currentYear) {
+        if (previousYearWithData + 1 === currentYear) {
             return ` in ${currentYear}`;
         } else {
-            return `between ${previousYearWithData}-${currentYear}`;
+            return `between ${previousYearWithData + 1}-${currentYear}`;
         }
     }
 
     render() {
         return (
             <div>
-                Geopolitical map of the world {this.getYearsInterval(this.currentYear)}
+                Geopolitical map of the world {this.getYearsInterval(this.options.currentYear)}
             </div>
         );
     }
 }
 
 class HistoricalWorldMapStyle extends StyleSheet {
+    menuWidth = 200;
+
+    @styleRule
+    container = {
+        width: "1200px",
+        maxWidth: "100%",
+        paddingLeft: "20px",
+        paddingRight: "20px",
+    };
+
     @styleRule
     yearSelectContainer = {
         width: "100%",
-        height: "50px",
         display: "flex",
         justifyContent: "center",
-        alignItems: "flex-end",
-        marginBottom: "50px",
+        alignItems: "center",
+        marginTop: "10px",
+        marginBottom: "10px",
+        flexDirection: "column",
+        paddingTop: "30px",
+    };
+
+    @styleRule
+    historyWorldMapTitle = {
+        textAlign: "center",
+        fontSize: "22px",
+        marginBottom: "30px",
+    };
+
+    @styleRule
+    menuContainer = {
+        paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
+        backgroundColor: "#ddd",
+        width: this.menuWidth,
+        height: "100%",
+        position: "absolute",
+        left: "0",
+    };
+
+    @styleRule
+    menuToggled = {
+        left: "0",
+        transitionDuration: "0.15s",
+    };
+
+    @styleRule
+    menuUntoggled = {
+        left: `-${this.menuWidth}px`,
+        transitionDuration: "0.15s",
+    };
+
+    @styleRule
+    toggleOptions = {
+        padding: "5px 10px",
+        color: this.themeProperties.COLOR_TEXT,
+        border: `2px solid ${this.themeProperties.COLOR_TEXT}`,
+        fontSize: "28px !important",
+        transition: "0.2s",
+        cursor: "pointer",
+
+        ":hover": {
+            backgroundColor: this.themeProperties.COLOR_TEXT,
+            color: "#fff",
+            transition: "0.15s",
+        },
     };
 }
 
 @registerStyle(HistoricalWorldMapStyle)
 export class HistoricalWorldMap extends UI.Element {
+    constructor(options) {
+        super(options);
+        this.menuIsToggled = true;
+    }
+
     getDefaultOptions() {
         return {
             currentYear: self.WORLD_MAP_YEARS[0],
         }
+    }
+
+    extraNodeAttributes(attr) {
+        attr.addClass(this.styleSheet.container);
     }
 
     getAvailableProjections() {
@@ -572,24 +656,41 @@ export class HistoricalWorldMap extends UI.Element {
         ];
     }
 
+    toggleMenu() {
+        if (this.menuIsToggled) {
+            this.menu.removeClass(this.styleSheet.menuToggled);
+            this.menu.addClass(this.styleSheet.menuUntoggled);
+        } else {
+            this.menu.removeClass(this.styleSheet.menuUntoggled);
+            this.menu.addClass(this.styleSheet.menuToggled);
+        }
+        this.menuIsToggled = !this.menuIsToggled;
+    }
+
+
     render() {
         const {currentYear} = this.options;
-        return [<HistoricalWorldMapTitle ref="title"
-                                     years={self.WORLD_MAP_YEARS}
-                                     currentYear={currentYear} />,
-            <div style={{
-                width: "100%",
-                height: "50px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: "50px",
-            }}>
-                <Select options={this.getAvailableProjections()} ref="projectionSelect"
-                onChange={(obj) => this.setProjection(obj.get())}/>
+
+        return [
+            <div ref="menu" className={this.styleSheet.menuContainer}>
+                <Select options={this.getAvailableProjections()}
+                        ref="projectionSelect"
+                        onChange={(obj) => this.setProjection(obj.get())}
+                />
+            </div>,
+            <div className={this.styleSheet.yearSelectContainer}>
+                {/*<FAIcon ref="menuIcon" icon="bars" className={this.styleSheet.menuIcon} />,*/}
+                <div ref="menuIcon" className={this.styleSheet.toggleOptions}>
+                    Toggle options
+                </div>
                 <FlatSelect values={self.WORLD_MAP_YEARS} value={currentYear} ref="yearSelect"/>
             </div>,
-            <HistoricalMap ref="map" />
+            <HistoricalWorldMapTitle ref="title"
+                                     years={self.WORLD_MAP_YEARS}
+                                     currentYear={currentYear}
+                                     className={this.styleSheet.historyWorldMapTitle}
+            />,
+            <HistoricalMap ref="map" />,
         ]
     }
 
@@ -600,9 +701,13 @@ export class HistoricalWorldMap extends UI.Element {
     setCurrentYear(currentYear) {
         this.options.currentYear = currentYear;
         this.map.setCurrentYear(currentYear);
+        this.title.setCurrentYear(currentYear);
     }
 
     onMount() {
+        this.menuIcon.addClickListener(() => {
+            this.toggleMenu();
+        });
         this.yearSelect.addChangeListener(() => {
             this.setCurrentYear(this.yearSelect.getCurrentValue());
         });
