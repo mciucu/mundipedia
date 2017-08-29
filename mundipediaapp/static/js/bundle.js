@@ -21336,7 +21336,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this16 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this16), _this16.menuWidth = 200, _initDefineProp$18(_this16, "container", _descriptor5$10, _this16), _initDefineProp$18(_this16, "yearSelectContainer", _descriptor6$8, _this16), _initDefineProp$18(_this16, "historyWorldMapTitle", _descriptor7$6, _this16), _initDefineProp$18(_this16, "menuContainer", _descriptor8$5, _this16), _initDefineProp$18(_this16, "menuToggled", _descriptor9$5, _this16), _initDefineProp$18(_this16, "menuUntoggled", _descriptor10$3, _this16), _initDefineProp$18(_this16, "toggleOptions", _descriptor11$3, _this16), _temp3), possibleConstructorReturn(_this16, _ret3);
+        return _ret3 = (_temp3 = (_this16 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this16), _this16.menuWidth = 240, _initDefineProp$18(_this16, "container", _descriptor5$10, _this16), _initDefineProp$18(_this16, "yearSelectContainer", _descriptor6$8, _this16), _initDefineProp$18(_this16, "historyWorldMapTitle", _descriptor7$6, _this16), _initDefineProp$18(_this16, "menuContainer", _descriptor8$5, _this16), _initDefineProp$18(_this16, "menuToggled", _descriptor9$5, _this16), _initDefineProp$18(_this16, "menuUntoggled", _descriptor10$3, _this16), _initDefineProp$18(_this16, "toggleOptions", _descriptor11$3, _this16), _temp3), possibleConstructorReturn(_this16, _ret3);
     }
 
     return HistoricalWorldMapStyle;
@@ -21378,11 +21378,15 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
     initializer: function initializer() {
         return {
             paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
-            backgroundColor: "#ddd",
+            backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+            boxShadow: this.themeProperties.BASE_BOX_SHADOW,
             width: this.menuWidth,
             height: "100%",
             position: "absolute",
-            left: "0"
+            left: "0",
+            display: "flex",
+            justifyContent: "center"
+
         };
     }
 }), _descriptor9$5 = _applyDecoratedDescriptor$19(_class7$2.prototype, "menuToggled", [styleRule], {
@@ -21404,20 +21408,20 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
 }), _descriptor11$3 = _applyDecoratedDescriptor$19(_class7$2.prototype, "toggleOptions", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
-        return {
+        var _ref4;
+
+        return _ref4 = {
             padding: "5px 10px",
             color: this.themeProperties.COLOR_TEXT,
-            border: "2px solid " + this.themeProperties.COLOR_TEXT,
-            fontSize: "28px !important",
+            backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+            fontSize: "22px !important",
             transition: "0.2s",
-            cursor: "pointer",
-
-            ":hover": {
-                backgroundColor: this.themeProperties.COLOR_TEXT,
-                color: "#fff",
-                transition: "0.15s"
-            }
-        };
+            cursor: "pointer"
+        }, defineProperty(_ref4, "color", "#fff"), defineProperty(_ref4, "position", "fixed"), defineProperty(_ref4, "top", this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT), defineProperty(_ref4, "left", 0), defineProperty(_ref4, "width", this.menuWidth), defineProperty(_ref4, "textAlign", "center"), defineProperty(_ref4, ":hover", {
+            backgroundColor: this.themeProperties.COLOR_PRIMARY,
+            color: "#fff",
+            transition: "0.15s"
+        }), _ref4;
     }
 })), _class7$2);
 
@@ -21429,7 +21433,7 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
 
         var _this17 = possibleConstructorReturn(this, (HistoricalWorldMap.__proto__ || Object.getPrototypeOf(HistoricalWorldMap)).call(this, options));
 
-        _this17.menuIsToggled = true;
+        _this17.menuIsToggled = false;
         return _this17;
     }
 
@@ -21470,6 +21474,14 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
             this.menuIsToggled = !this.menuIsToggled;
         }
     }, {
+        key: "getMenuLabel",
+        value: function getMenuLabel() {
+            if (this.menuIsToggled) {
+                return "Less map options";
+            }
+            return "More map options";
+        }
+    }, {
         key: "render",
         value: function render() {
             var _this18 = this;
@@ -21479,7 +21491,7 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
 
             return [UI.createElement(
                 "div",
-                { ref: "menu", className: this.styleSheet.menuContainer },
+                { ref: "menu", className: this.styleSheet.menuContainer + this.styleSheet.menuUntoggled },
                 UI.createElement(Select, { options: this.getAvailableProjections(),
                     ref: "projectionSelect",
                     onChange: function onChange(obj) {
@@ -21492,7 +21504,7 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
                 UI.createElement(
                     "div",
                     { ref: "menuIcon", className: this.styleSheet.toggleOptions },
-                    "Toggle options"
+                    this.getMenuLabel()
                 ),
                 UI.createElement(FlatSelect, { values: self.WORLD_MAP_YEARS, value: currentYear, ref: "yearSelect" })
             ), UI.createElement(HistoricalWorldMapTitle, { ref: "title",
@@ -21520,7 +21532,9 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
 
             this.menuIcon.addClickListener(function () {
                 _this19.toggleMenu();
+                _this19.menuIcon.setChildren([_this19.getMenuLabel()]);
             });
+
             this.yearSelect.addChangeListener(function () {
                 _this19.setCurrentYear(_this19.yearSelect.getCurrentValue());
             });

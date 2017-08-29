@@ -5,6 +5,7 @@ import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimutha
 import {geoEckert4, geoHammer} from "d3-geo-projection/index";
 import D3PathString from "d3-geo/src/path/string";
 import {FAIcon} from "FontAwesome";
+import {enhance} from "Color";
 
 import {Draggable} from "ui/Draggable";
 
@@ -556,7 +557,7 @@ class HistoricalWorldMapTitle extends UI.Element {
 }
 
 class HistoricalWorldMapStyle extends StyleSheet {
-    menuWidth = 200;
+    menuWidth = 240;
 
     @styleRule
     container = {
@@ -588,11 +589,15 @@ class HistoricalWorldMapStyle extends StyleSheet {
     @styleRule
     menuContainer = {
         paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
-        backgroundColor: "#ddd",
+        backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+        boxShadow: this.themeProperties.BASE_BOX_SHADOW,
         width: this.menuWidth,
         height: "100%",
         position: "absolute",
         left: "0",
+        display: "flex",
+        justifyContent: "center",
+
     };
 
     @styleRule
@@ -611,13 +616,19 @@ class HistoricalWorldMapStyle extends StyleSheet {
     toggleOptions = {
         padding: "5px 10px",
         color: this.themeProperties.COLOR_TEXT,
-        border: `2px solid ${this.themeProperties.COLOR_TEXT}`,
-        fontSize: "28px !important",
+        backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+        fontSize: "22px !important",
         transition: "0.2s",
         cursor: "pointer",
+        color: "#fff",
+        position: "fixed",
+        top: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
+        left: 0,
+        width: this.menuWidth,
+        textAlign: "center",
 
         ":hover": {
-            backgroundColor: this.themeProperties.COLOR_TEXT,
+            backgroundColor: this.themeProperties.COLOR_PRIMARY,
             color: "#fff",
             transition: "0.15s",
         },
@@ -628,7 +639,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
 export class HistoricalWorldMap extends UI.Element {
     constructor(options) {
         super(options);
-        this.menuIsToggled = true;
+        this.menuIsToggled = false;
     }
 
     getDefaultOptions() {
@@ -667,12 +678,18 @@ export class HistoricalWorldMap extends UI.Element {
         this.menuIsToggled = !this.menuIsToggled;
     }
 
+    getMenuLabel() {
+        if (this.menuIsToggled) {
+            return "Less map options";
+        }
+        return "More map options";
+    }
 
     render() {
         const {currentYear} = this.options;
 
         return [
-            <div ref="menu" className={this.styleSheet.menuContainer}>
+            <div ref="menu" className={this.styleSheet.menuContainer + this.styleSheet.menuUntoggled}>
                 <Select options={this.getAvailableProjections()}
                         ref="projectionSelect"
                         onChange={(obj) => this.setProjection(obj.get())}
@@ -681,7 +698,7 @@ export class HistoricalWorldMap extends UI.Element {
             <div className={this.styleSheet.yearSelectContainer}>
                 {/*<FAIcon ref="menuIcon" icon="bars" className={this.styleSheet.menuIcon} />,*/}
                 <div ref="menuIcon" className={this.styleSheet.toggleOptions}>
-                    Toggle options
+                    {this.getMenuLabel()}
                 </div>
                 <FlatSelect values={self.WORLD_MAP_YEARS} value={currentYear} ref="yearSelect"/>
             </div>,
@@ -707,7 +724,9 @@ export class HistoricalWorldMap extends UI.Element {
     onMount() {
         this.menuIcon.addClickListener(() => {
             this.toggleMenu();
+            this.menuIcon.setChildren([this.getMenuLabel()]);
         });
+
         this.yearSelect.addChangeListener(() => {
             this.setCurrentYear(this.yearSelect.getCurrentValue());
         });
