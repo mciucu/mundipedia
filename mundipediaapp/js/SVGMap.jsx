@@ -512,7 +512,43 @@ class FlatSelect extends UI.Element {
     }
 }
 
+class HistoricalWorldMapTitle extends UI.Element {
+    getYearsInterval(currentYear) {
+        const {years} = this.options;
+        const yearsFiltered = years.filter((value) => {
+            return value <= currentYear;
+        });
+        const previousYearWithData = (yearsFiltered[yearsFiltered.length - 1] || years[0]);
 
+        if (previousYearWithData === currentYear) {
+            return ` in ${currentYear}`;
+        } else {
+            return `between ${previousYearWithData}-${currentYear}`;
+        }
+    }
+
+    render() {
+        return (
+            <div>
+                Geopolitical map of the world {this.getYearsInterval(this.currentYear)}
+            </div>
+        );
+    }
+}
+
+class HistoricalWorldMapStyle extends StyleSheet {
+    @styleRule
+    yearSelectContainer = {
+        width: "100%",
+        height: "50px",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-end",
+        marginBottom: "50px",
+    };
+}
+
+@registerStyle(HistoricalWorldMapStyle)
 export class HistoricalWorldMap extends UI.Element {
     getAvailableProjections() {
         function makeProjection(d3Projection, name) {
@@ -530,7 +566,9 @@ export class HistoricalWorldMap extends UI.Element {
     }
 
     render() {
-        return [
+        return [<HistoricalWorldMapTitle ref="title"
+                                     years={self.WORLD_MAP_YEARS}
+                                     currentYear={this.yearSelect.getCurrentValue} />,
             <div style={{
                 width: "100%",
                 height: "50px",
