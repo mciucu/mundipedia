@@ -308,6 +308,7 @@ export class HistoricalMap extends Draggable(SVGMap) {
         projection.clipAngle(oldProjection.clipAngle());
         projection.scale(oldProjection.scale());
         projection.translate(oldProjection.translate());
+        projection.rotate(oldProjection.rotate());
         this.options.projection = projection;
         this.redraw();
     }
@@ -550,6 +551,12 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
 @registerStyle(HistoricalWorldMapStyle)
 export class HistoricalWorldMap extends UI.Element {
+    getDefaultOptions() {
+        return {
+            currentYear: self.WORLD_MAP_YEARS[0],
+        }
+    }
+
     getAvailableProjections() {
         function makeProjection(d3Projection, name) {
             const projection = d3Projection();
@@ -566,9 +573,10 @@ export class HistoricalWorldMap extends UI.Element {
     }
 
     render() {
+        const {currentYear} = this.options;
         return [<HistoricalWorldMapTitle ref="title"
                                      years={self.WORLD_MAP_YEARS}
-                                     currentYear={this.yearSelect.getCurrentValue} />,
+                                     currentYear={currentYear} />,
             <div style={{
                 width: "100%",
                 height: "50px",
@@ -579,7 +587,7 @@ export class HistoricalWorldMap extends UI.Element {
             }}>
                 <Select options={this.getAvailableProjections()} ref="projectionSelect"
                 onChange={(obj) => this.setProjection(obj.get())}/>
-                <FlatSelect values={self.WORLD_MAP_YEARS} ref="yearSelect"/>
+                <FlatSelect values={self.WORLD_MAP_YEARS} value={currentYear} ref="yearSelect"/>
             </div>,
             <HistoricalMap ref="map" />
         ]
@@ -589,9 +597,14 @@ export class HistoricalWorldMap extends UI.Element {
         this.map.setProjection(projection);
     }
 
+    setCurrentYear(currentYear) {
+        this.options.currentYear = currentYear;
+        this.map.setCurrentYear(currentYear);
+    }
+
     onMount() {
         this.yearSelect.addChangeListener(() => {
-            this.map.setCurrentYear(this.yearSelect.getCurrentValue());
+            this.setCurrentYear(this.yearSelect.getCurrentValue());
         });
     }
 }
