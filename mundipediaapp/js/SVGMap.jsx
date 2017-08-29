@@ -2,6 +2,7 @@ import {Dispatchable} from "../../stemjs/src/base/Dispatcher";
 import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, registerStyle} from "ui/UI";
 import {Ajax} from "base/Ajax";
 import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
+import {geoEckert4, geoHammer} from "d3-geo-projection/index";
 import D3PathString from "d3-geo/src/path/string";
 import {FAIcon} from "FontAwesome";
 
@@ -201,23 +202,80 @@ D3PathString.prototype.point = function (x, y) {
     }
 };
 
-class Entity extends Dispatchable {
+class Feature extends Dispatchable {
     constructor(obj) {
         super();
         Object.assign(this, obj);
     }
 }
 
-export class SVGMap extends SVG.SVGRoot {
-    getDefaultOptions() {
+class FeatureStyle extends StyleSheet {
+    @styleRule
+    featureBorder = {
+        strokeWidth: 0,
+        ":hover": {
+            stroke: "white",
+            strokeWidth: 1,
+        }
+    }
+}
+
+function hashToColor(hash) {
+    function hashCode(str, hash=0) {
+        hash = hash ^ 431;
+
+        for (let i = 0, len = str.length; i < len; i++) {
+            hash  = hash + ((hash << 5) ^ (hash >> 20)) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        hash = Math.abs(hash);
+
+        return hash;
+    }
+
+    hash = String(hash || Math.random());
+    let letters = "6789ABCD".split("");
+    let color = "#";
+
+    for (let i = 0; i < 3; i++ ) {
+        let index = hashCode(hash, 100 * i) % letters.length;
+        color += letters[index];
+    }
+    return color;
+}
+
+@registerStyle(FeatureStyle)
+class FeaturePath extends SVG.Path {
+    getDefaultOptions(options) {
         return {
-            height: 480,
-            width: 800
+            className: this.styleSheet.featureBorder,
+            fill: options.fill || this.getFeatureFill(),
         }
     }
 
-    getProjection() {
-        return this.options.projection;
+    getFeatureFill() {
+        const {feature} = this.options;
+        const id = feature.properties.entity_id || feature.properties.name || feature.properties.ctr_name;
+        return hashToColor(id);
+    }
+
+    onMount() {
+        this.addNodeListener("mouseenter", () => this.toFront());
+    }
+}
+
+export class SVGMap extends SVG.SVGRoot {
+    getDefaultOptions(options) {
+        options = Object.assign({
+            height: 600,
+            width: 800,
+        }, options);
+
+        const VIEW_BOX_SIZE = Math.min(options.height, options.width);
+
+        options.projection = options.projection || geoOrthographic().scale(0.5 * VIEW_BOX_SIZE).clipAngle(90).translate([VIEW_BOX_SIZE / 2, VIEW_BOX_SIZE / 2]);
+
+        return options;
     }
 }
 
@@ -242,18 +300,20 @@ export class HistoricalMap extends Draggable(SVGMap) {
     }
 
     getProjection() {
-        if (!this.options.projection) {
-            const VIEW_BOX_SIZE = 600;
-            this.options.projection = geoOrthographic().scale(0.5 * VIEW_BOX_SIZE).clipAngle(90).translate([VIEW_BOX_SIZE / 2, VIEW_BOX_SIZE / 2]);
-        }
         return this.options.projection;
     }
 
+    setProjection(projection) {
+        const oldProjection = this.getProjection();
+        projection.clipAngle(oldProjection.clipAngle());
+        projection.scale(oldProjection.scale());
+        projection.translate(oldProjection.translate());
+        this.options.projection = projection;
+        this.redraw();
+    }
+
     getPathMaker() {
-        if (!this.options.pathMaker) {
-            this.options.pathMaker = geoPath(this.getProjection());
-        }
-        return this.options.pathMaker;
+        return geoPath(this.getProjection());
     }
 
     makePath(geometry) {
@@ -263,10 +323,6 @@ export class HistoricalMap extends Draggable(SVGMap) {
     getGraticule() {
         const graticule = geoGraticule().step([20, 10])();
         return <SVG.Path fill="none" stroke="cornflowerblue" strokeWidth={1} strokeDasharray="1,1" d={this.makePath(graticule)} />
-    }
-
-    setProjection(projection) {
-        console.log("Set projection to ", projection);
     }
 
     render() {
@@ -279,13 +335,19 @@ export class HistoricalMap extends Draggable(SVGMap) {
             if (!path) {
                 return null;
             }
-            return <SVG.Path strokeWidth={1} stroke="#ddd" fill="#ccc" d={path} />;
+
+            return <FeaturePath feature={feature} d={path}/>;
         });
 
         paths.push(this.getGraticule());
 
-        return paths;
+        return [<SVG.Group>
+                {paths}
+            </SVG.Group>,
+            this.getGraticule(),
+        ];
     }
+
 
     onMount() {
         this.loadCurrentYearData();
@@ -453,7 +515,18 @@ class FlatSelect extends UI.Element {
 
 export class HistoricalWorldMap extends UI.Element {
     getAvailableProjections() {
-        return ["Mercator", "Echart", "Spherical"];
+        function makeProjection(d3Projection, name) {
+            const projection = d3Projection();
+            projection.toString = () => name;
+            return projection;
+        }
+        return [
+            makeProjection(geoOrthographic, "Spherical"),
+            makeProjection(geoEckert4, "Eckert 4"),
+            makeProjection(geoAzimuthalEqualArea, "Azimuthal Equal Area"),
+            makeProjection(geoConicEquidistant, "Conic equidistant"),
+            makeProjection(geoHammer, "Hammer"),
+        ];
     }
 
     render() {
@@ -466,6 +539,8 @@ export class HistoricalWorldMap extends UI.Element {
                 alignItems: "center",
                 marginBottom: "50px",
             }}>
+                <Select options={this.getAvailableProjections()} ref="projectionSelect"
+                onChange={(obj) => this.setProjection(obj.get())}/>
                 <FlatSelect values={self.WORLD_MAP_YEARS} ref="yearSelect"/>
             </div>,
             <HistoricalMap ref="map" />
