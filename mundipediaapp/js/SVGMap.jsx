@@ -265,12 +265,18 @@ class FeaturePath extends SVG.Path {
     }
 }
 
-export class SVGMap extends SVG.SVGRoot {
+function getPreferredDimensions() {
+    const themeProperties = Theme.Global.getProperties();
+
+    return {
+        height: window.innerHeight - (themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + themeProperties.GLOBAL_YEAR_SELECT_HEIGHT),
+        width: window.innerWidth,
+    };
+}
+
+export class HistoricalMap extends Draggable(SVG.SVGRoot) {
     getDefaultOptions(options) {
-        options = Object.assign({
-            height: 600,
-            width: 800,
-        }, options);
+        options = Object.assign(getPreferredDimensions(), options);
 
         const VIEW_BOX_SIZE = Math.min(options.height, options.width);
 
@@ -278,9 +284,7 @@ export class SVGMap extends SVG.SVGRoot {
 
         return options;
     }
-}
 
-export class HistoricalMap extends Draggable(SVGMap) {
     setData(data) {
         this.data = data;
         this.redraw();
@@ -351,6 +355,9 @@ export class HistoricalMap extends Draggable(SVGMap) {
         ];
     }
 
+    setDimensions(dimensions) {
+        console.log(dimensions.height, dimensions.width);
+    }
 
     onMount() {
         this.loadCurrentYearData();
@@ -386,7 +393,11 @@ export class HistoricalMap extends Draggable(SVGMap) {
             const scaleRatio = (deltaY >= 0) ? 1 + deltaY / 200 : 1 / (1 - deltaY / 200);
             this.getProjection().scale(currentScale * scaleRatio);
             this.redraw();
-        })
+        });
+
+        window.addEventListener("resize", () => {
+            this.setDimensions(getPreferredDimensions());
+        });
     }
 }
 
@@ -576,15 +587,13 @@ class HistoricalWorldMapStyle extends StyleSheet {
         alignItems: "center",
         marginTop: "10px",
         marginBottom: "10px",
-        flexDirection: "column",
-        paddingTop: "30px",
+        flexDirection: "row",
     };
 
     @styleRule
     historyWorldMapTitle = {
         textAlign: "center",
         fontSize: "22px",
-        marginBottom: "30px",
     };
 
     @styleRule
@@ -594,7 +603,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
         boxShadow: this.themeProperties.BASE_BOX_SHADOW,
         width: this.menuWidth,
         height: "100%",
-        position: "absolute",
+        position: "fixed",
         left: "0",
         display: "flex",
         justifyContent: "center",
@@ -695,18 +704,17 @@ export class HistoricalWorldMap extends UI.Element {
                         onChange={(obj) => this.setProjection(obj.get())}
                 />
             </div>,
+            <div ref="menuIcon" className={this.styleSheet.toggleOptions}>
+                {this.getMenuLabel()}
+            </div>,
             <div className={this.styleSheet.yearSelectContainer}>
                 {/*<FAIcon ref="menuIcon" icon="bars" className={this.styleSheet.menuIcon} />,*/}
-                <div ref="menuIcon" className={this.styleSheet.toggleOptions}>
-                    {this.getMenuLabel()}
-                </div>
+                {/*<HistoricalWorldMapTitle ref="title"*/}
+                                     {/*years={self.WORLD_MAP_YEARS}*/}
+                                     {/*currentYear={currentYear}*/}
+                                     {/*className={this.styleSheet.historyWorldMapTitle} />*/}
                 <FlatSelect values={self.WORLD_MAP_YEARS} value={currentYear} ref="yearSelect"/>
             </div>,
-            <HistoricalWorldMapTitle ref="title"
-                                     years={self.WORLD_MAP_YEARS}
-                                     currentYear={currentYear}
-                                     className={this.styleSheet.historyWorldMapTitle}
-            />,
             <HistoricalMap ref="map" />,
         ]
     }

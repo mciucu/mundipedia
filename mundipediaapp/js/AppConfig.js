@@ -13,4 +13,5 @@ Theme.Global.setProperties({
     COLOR_ALTERNATIVE_WHITE: "#e3e3e3",
     COLOR_PALE_BRIGHT_BLUE: "#bbbbc9",
     COLOR_TEXT: "#222",
+    GLOBAL_YEAR_SELECT_HEIGHT: 60,
 });
