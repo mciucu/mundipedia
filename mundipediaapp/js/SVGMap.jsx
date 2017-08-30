@@ -1,5 +1,5 @@
 import {Dispatchable} from "../../stemjs/src/base/Dispatcher";
-import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, registerStyle} from "ui/UI";
+import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, registerStyle, CheckboxInput} from "ui/UI";
 import {Ajax} from "base/Ajax";
 import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
 import {geoEckert4, geoHammer} from "d3-geo-projection/index";
@@ -322,6 +322,10 @@ export class HistoricalMap extends Draggable(SVG.SVGRoot) {
         console.log("reset projection");
     }
 
+    showGraticule(value) {
+        console.log("toggle graticule: ", value);
+    }
+
     getPathMaker() {
         return geoPath(this.getProjection());
     }
@@ -333,6 +337,10 @@ export class HistoricalMap extends Draggable(SVG.SVGRoot) {
     getGraticule() {
         const graticule = geoGraticule().step([20, 10])();
         return <SVG.Path fill="none" stroke="cornflowerblue" strokeWidth={1} strokeDasharray="1,1" d={this.makePath(graticule)} />
+    }
+
+    setDimensions(dimensions) {
+        console.log(dimensions.height, dimensions.width);
     }
 
     render() {
@@ -357,10 +365,6 @@ export class HistoricalMap extends Draggable(SVG.SVGRoot) {
             </SVG.Group>,
             this.getGraticule(),
         ];
-    }
-
-    setDimensions(dimensions) {
-        console.log(dimensions.height, dimensions.width);
     }
 
     onMount() {
@@ -612,8 +616,11 @@ class HistoricalWorldMapStyle extends StyleSheet {
         position: "fixed",
         left: "0",
         display: "flex",
-        justifyContent: "center",
-
+        alignItems: "center",
+        flexDirection: "column",
+        ">*": {
+            userSelect: "none",
+        }
     };
 
     @styleRule
@@ -656,6 +663,34 @@ class HistoricalWorldMapStyle extends StyleSheet {
         alignItems: "center",
         justifyContent: "center",
     };
+
+    @styleRule
+    select = {
+        backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, -0.2),
+        border: "0",
+        borderRadius: "0",
+        color: "#fff",
+        transition: "0.15s",
+        ":hover": {
+            backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, -0.3),
+            transition: "0.15s",
+        },
+    };
+
+    @styleRule
+    button = {
+        marginTop: "20px",
+        backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, -0.2),
+        padding: "10px 20px",
+        color: "#fff",
+        cursor: "pointer",
+        transition: "0.15s",
+        borderRadius: "5px",
+        ":hover": {
+            backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, -0.3),
+            transition: "0.15s",
+        },
+    };
 }
 
 @registerStyle(HistoricalWorldMapStyle)
@@ -663,6 +698,7 @@ export class HistoricalWorldMap extends UI.Element {
     constructor(options) {
         super(options);
         this.menuIsToggled = false;
+        this.graticuleIsToggled = true;
     }
 
     getDefaultOptions() {
@@ -715,6 +751,13 @@ export class HistoricalWorldMap extends UI.Element {
         ];
     }
 
+    getGraticuleLabel() {
+        if (this.graticuleIsToggled) {
+            return "Hide graticule";
+        }
+        return "Show graticule";
+    }
+
     render() {
         const {currentYear} = this.options;
 
@@ -723,7 +766,14 @@ export class HistoricalWorldMap extends UI.Element {
                 <Select options={this.getAvailableProjections()}
                         ref="projectionSelect"
                         onChange={(obj) => this.setProjection(obj.get())}
+                        className={this.styleSheet.select}
                 />
+                <div className={this.styleSheet.button} onClick={() => this.map.resetProjection()}>
+                    Reset projection
+                </div>
+                <div className={this.styleSheet.button} ref="drawGraticuleContainer">
+                    {this.getGraticuleLabel()}
+                </div>
             </div>,
             <div ref="menuIcon" className={this.styleSheet.toggleOptions}>
                 {this.getMenuLabel()}
@@ -762,6 +812,13 @@ export class HistoricalWorldMap extends UI.Element {
 
         this.yearSelect.addChangeListener(() => {
             this.setCurrentYear(this.yearSelect.getCurrentValue());
+        });
+
+        this.drawGraticuleContainer.addClickListener(() => {
+            // this.drawGraticule.setValue(!this.drawGraticule.getValue());
+            this.graticuleIsToggled = !this.graticuleIsToggled;
+            this.map.showGraticule(this.graticuleIsToggled);
+            this.drawGraticuleContainer.setChildren([this.getGraticuleLabel()]);
         });
 
         document.body.addEventListener("click", () => {
