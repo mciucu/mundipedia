@@ -21004,6 +21004,11 @@ var HistoricalMap = function (_Draggable) {
             this.redraw();
         }
     }, {
+        key: "resetProjection",
+        value: function resetProjection() {
+            console.log("reset projection");
+        }
+    }, {
         key: "getPathMaker",
         value: function getPathMaker() {
             return geoPath(this.getProjection());
@@ -21344,7 +21349,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this15 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this15), _this15.menuWidth = 240, _this15.menuExtraPaddingVertical = 10, _this15.menuExtraPaddingHorizontal = 20, _initDefineProp$18(_this15, "container", _descriptor5$10, _this15), _initDefineProp$18(_this15, "yearSelectContainer", _descriptor6$8, _this15), _initDefineProp$18(_this15, "historyWorldMapTitle", _descriptor7$6, _this15), _initDefineProp$18(_this15, "menuContainer", _descriptor8$5, _this15), _initDefineProp$18(_this15, "menuToggled", _descriptor9$5, _this15), _initDefineProp$18(_this15, "menuUntoggled", _descriptor10$3, _this15), _initDefineProp$18(_this15, "toggleOptions", _descriptor11$3, _this15), _initDefineProp$18(_this15, "menuIcon", _descriptor12$2, _this15), _temp3), possibleConstructorReturn(_this15, _ret3);
+        return _ret3 = (_temp3 = (_this15 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this15), _this15.menuWidth = 240, _this15.menuExtraPaddingVertical = 10, _this15.menuExtraPaddingHorizontal = 20, _this15.boxShadowWidth = 5, _initDefineProp$18(_this15, "container", _descriptor5$10, _this15), _initDefineProp$18(_this15, "yearSelectContainer", _descriptor6$8, _this15), _initDefineProp$18(_this15, "historyWorldMapTitle", _descriptor7$6, _this15), _initDefineProp$18(_this15, "menuContainer", _descriptor8$5, _this15), _initDefineProp$18(_this15, "menuToggled", _descriptor9$5, _this15), _initDefineProp$18(_this15, "menuUntoggled", _descriptor10$3, _this15), _initDefineProp$18(_this15, "toggleOptions", _descriptor11$3, _this15), _initDefineProp$18(_this15, "menuIcon", _descriptor12$2, _this15), _temp3), possibleConstructorReturn(_this15, _ret3);
     }
 
     return HistoricalWorldMapStyle;
@@ -21407,7 +21412,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
     enumerable: true,
     initializer: function initializer() {
         return {
-            left: "-" + this.menuWidth + "px",
+            left: "-" + (this.menuWidth + this.boxShadowWidth) + "px",
             transitionDuration: "0.15s"
         };
     }
@@ -35850,8 +35855,14 @@ var _dec2$12;
 var _class6$3;
 var _class7$5;
 var _descriptor16$4;
+var _descriptor17$3;
 var _dec3$4;
 var _class9$3;
+var _class10;
+var _descriptor18$3;
+var _descriptor19$3;
+var _dec4$2;
+var _class12;
 
 function _initDefineProp$26(target, property, descriptor, context) {
     if (!descriptor) return;
@@ -35906,7 +35917,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerImageDimensions = 100, _this.borderRadius = "20%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _initDefineProp$26(_this, "container", _descriptor$25, _this), _initDefineProp$26(_this, "header", _descriptor2$23, _this), _initDefineProp$26(_this, "circleImage", _descriptor3$21, _this), _initDefineProp$26(_this, "image", _descriptor4$18, _this), _initDefineProp$26(_this, "hr", _descriptor5$16, _this), _initDefineProp$26(_this, "padding", _descriptor6$13, _this), _initDefineProp$26(_this, "body", _descriptor7$11, _this), _initDefineProp$26(_this, "description", _descriptor8$10, _this), _initDefineProp$26(_this, "titleName", _descriptor9$9, _this), _initDefineProp$26(_this, "titleJob", _descriptor10$7, _this), _initDefineProp$26(_this, "footer", _descriptor11$7, _this), _initDefineProp$26(_this, "url", _descriptor12$5, _this), _initDefineProp$26(_this, "socialAccount", _descriptor13$4, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerImageDimensions = 160, _this.borderRadius = "50%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _initDefineProp$26(_this, "container", _descriptor$25, _this), _initDefineProp$26(_this, "header", _descriptor2$23, _this), _initDefineProp$26(_this, "circleImage", _descriptor3$21, _this), _initDefineProp$26(_this, "image", _descriptor4$18, _this), _initDefineProp$26(_this, "hr", _descriptor5$16, _this), _initDefineProp$26(_this, "padding", _descriptor6$13, _this), _initDefineProp$26(_this, "body", _descriptor7$11, _this), _initDefineProp$26(_this, "description", _descriptor8$10, _this), _initDefineProp$26(_this, "titleName", _descriptor9$9, _this), _initDefineProp$26(_this, "titleJob", _descriptor10$7, _this), _initDefineProp$26(_this, "footer", _descriptor11$7, _this), _initDefineProp$26(_this, "url", _descriptor12$5, _this), _initDefineProp$26(_this, "socialAccount", _descriptor13$4, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     createClass(TeamCardStyle, [{
@@ -36254,36 +36265,47 @@ var TeamSection = (_dec2$12 = registerStyle(TeamSectionStyle), _dec2$12(_class6$
     return TeamSection;
 }(UI.Element)) || _class6$3);
 
-var AboutPageStyle = (_class7$5 = function (_StyleSheet3) {
-    inherits(AboutPageStyle, _StyleSheet3);
+var AboutSectionStyle = (_class7$5 = function (_StyleSheet3) {
+    inherits(AboutSectionStyle, _StyleSheet3);
 
-    function AboutPageStyle() {
+    function AboutSectionStyle() {
         var _ref3;
 
         var _temp3, _this6, _ret3;
 
-        classCallCheck(this, AboutPageStyle);
+        classCallCheck(this, AboutSectionStyle);
 
         for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this6 = possibleConstructorReturn(this, (_ref3 = AboutPageStyle.__proto__ || Object.getPrototypeOf(AboutPageStyle)).call.apply(_ref3, [this].concat(args))), _this6), _initDefineProp$26(_this6, "container", _descriptor16$4, _this6), _temp3), possibleConstructorReturn(_this6, _ret3);
+        return _ret3 = (_temp3 = (_this6 = possibleConstructorReturn(this, (_ref3 = AboutSectionStyle.__proto__ || Object.getPrototypeOf(AboutSectionStyle)).call.apply(_ref3, [this].concat(args))), _this6), _initDefineProp$26(_this6, "titleContainer", _descriptor16$4, _this6), _initDefineProp$26(_this6, "messageContainer", _descriptor17$3, _this6), _temp3), possibleConstructorReturn(_this6, _ret3);
     }
 
-    return AboutPageStyle;
-}(StyleSheet), (_descriptor16$4 = _applyDecoratedDescriptor$27(_class7$5.prototype, "container", [styleRule], {
+    return AboutSectionStyle;
+}(StyleSheet), (_descriptor16$4 = _applyDecoratedDescriptor$27(_class7$5.prototype, "titleContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
-            width: "900px",
-            maxWidth: "100%",
-            margin: "0 auto"
+            fontSize: "32px",
+            fontWeight: "600",
+            textAlign: "center",
+            marginTop: "40px"
+        };
+    }
+}), _descriptor17$3 = _applyDecoratedDescriptor$27(_class7$5.prototype, "messageContainer", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            ">p": {
+                lineHeight: "30px",
+                textAlign: "justify",
+                fontSize: "18px"
+            }
         };
     }
 })), _class7$5);
-
-var AboutSection = function (_UI$Element3) {
+var AboutSection = (_dec3$4 = registerStyle(AboutSectionStyle), _dec3$4(_class9$3 = function (_UI$Element3) {
     inherits(AboutSection, _UI$Element3);
 
     function AboutSection() {
@@ -36300,30 +36322,82 @@ var AboutSection = function (_UI$Element3) {
 
             return [UI.createElement(
                 "div",
-                { style: { fontSize: "32px", fontWeight: "600", textAlign: "center", marginTop: "50px" } },
+                { className: this.styleSheet.titleContainer },
                 title
             ), UI.createElement(
                 "div",
-                { style: { fontSize: "18px" } },
+                { className: this.styleSheet.messageContainer },
                 message
             )];
         }
     }]);
     return AboutSection;
-}(UI.Element);
+}(UI.Element)) || _class9$3);
+var AboutPageStyle = (_class10 = function (_StyleSheet4) {
+    inherits(AboutPageStyle, _StyleSheet4);
 
-var About = function (_UI$Element4) {
-    inherits(About, _UI$Element4);
+    function AboutPageStyle() {
+        var _ref4;
 
-    function About() {
-        classCallCheck(this, About);
-        return possibleConstructorReturn(this, (About.__proto__ || Object.getPrototypeOf(About)).apply(this, arguments));
+        var _temp4, _this8, _ret4;
+
+        classCallCheck(this, AboutPageStyle);
+
+        for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+            args[_key4] = arguments[_key4];
+        }
+
+        return _ret4 = (_temp4 = (_this8 = possibleConstructorReturn(this, (_ref4 = AboutPageStyle.__proto__ || Object.getPrototypeOf(AboutPageStyle)).call.apply(_ref4, [this].concat(args))), _this8), _initDefineProp$26(_this8, "container", _descriptor18$3, _this8), _initDefineProp$26(_this8, "title", _descriptor19$3, _this8), _temp4), possibleConstructorReturn(_this8, _ret4);
     }
 
-    createClass(About, [{
+    return AboutPageStyle;
+}(StyleSheet), (_descriptor18$3 = _applyDecoratedDescriptor$27(_class10.prototype, "container", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            width: "920px",
+            padding: "0 15px",
+            maxWidth: "100%",
+            margin: "0 auto"
+        };
+    }
+}), _descriptor19$3 = _applyDecoratedDescriptor$27(_class10.prototype, "title", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "46px",
+            marginTop: "50px",
+            textAlign: "center"
+        };
+    }
+})), _class10);
+
+// Just change the TeamSection, it should get an array of information
+// about the cards and should map that info in some result value and return it
+
+var AboutPage = (_dec4$2 = registerStyle(AboutPageStyle), _dec4$2(_class12 = function (_UI$Element4) {
+    inherits(AboutPage, _UI$Element4);
+
+    function AboutPage() {
+        classCallCheck(this, AboutPage);
+        return possibleConstructorReturn(this, (AboutPage.__proto__ || Object.getPrototypeOf(AboutPage)).apply(this, arguments));
+    }
+
+    createClass(AboutPage, [{
+        key: "extraNodeAttributes",
+        value: function extraNodeAttributes(attr) {
+            attr.addClass(this.styleSheet.container);
+        }
+    }, {
         key: "render",
         value: function render() {
-            return [UI.createElement(AboutSection, { title: "About us",
+            return [
+            /*<MundipediaLogo size={150}/>,*/
+            UI.createElement(
+                "div",
+                { className: this.styleSheet.title },
+                "Mundipedia"
+            ), UI.createElement(AboutSection, { title: "About us",
                 message: [UI.createElement(
                     "p",
                     null,
@@ -36386,43 +36460,11 @@ var About = function (_UI$Element4) {
                         "contact@mundipedia.org"
                     ),
                     " if you\u2019ve got any thoughts you want to send our way."
-                )] })];
-        }
-    }]);
-    return About;
-}(UI.Element);
-
-// Just change the TeamSection, it should get an array of information
-// about the cards and should map that info in some result value and return it
-
-
-var AboutPage = (_dec3$4 = registerStyle(AboutPageStyle), _dec3$4(_class9$3 = function (_UI$Element5) {
-    inherits(AboutPage, _UI$Element5);
-
-    function AboutPage() {
-        classCallCheck(this, AboutPage);
-        return possibleConstructorReturn(this, (AboutPage.__proto__ || Object.getPrototypeOf(AboutPage)).apply(this, arguments));
-    }
-
-    createClass(AboutPage, [{
-        key: "extraNodeAttributes",
-        value: function extraNodeAttributes(attr) {
-            attr.addClass(this.styleSheet.container);
-        }
-    }, {
-        key: "render",
-        value: function render() {
-            return [
-            /*<MundipediaLogo size={150}/>,*/
-            UI.createElement(
-                "div",
-                { style: { fontSize: "36px", textAlign: "center" } },
-                "Mundipedia"
-            ), UI.createElement(About, null), UI.createElement(TeamSection, null)];
+                )] }), UI.createElement(TeamSection, null)];
         }
     }]);
     return AboutPage;
-}(UI.Element)) || _class9$3);
+}(UI.Element)) || _class12);
 
 var MAIN_ROUTE = new Route(null, IndexPage, [new BlogRoute(), new ForumRoute(), new Route("about", AboutPage)]);
 
@@ -36443,9 +36485,9 @@ var _descriptor13$5;
 var _descriptor14$5;
 var _descriptor15$5;
 var _descriptor16$5;
-var _descriptor17$3;
-var _descriptor18$3;
-var _descriptor19$3;
+var _descriptor17$4;
+var _descriptor18$4;
+var _descriptor19$4;
 var _descriptor20$3;
 
 function _initDefineProp$27(target, property, descriptor, context) {
@@ -36532,7 +36574,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             transitionDuration: function transitionDuration() {
                 return _this.dimensions.sidepanelTransitionDuration;
             }
-        }, _initDefineProp$27(_this, "leftSidePanel", _descriptor10$8, _this), _initDefineProp$27(_this, "rightSidePanel", _descriptor11$8, _this), _initDefineProp$27(_this, "navElementVertical", _descriptor12$6, _this), _initDefineProp$27(_this, "navElementVerticalArrow", _descriptor13$5, _this), _initDefineProp$27(_this, "navElementValueVertical", _descriptor14$5, _this), _initDefineProp$27(_this, "navSectionVertical", _descriptor15$5, _this), _initDefineProp$27(_this, "navCollapseElement", _descriptor16$5, _this), _initDefineProp$27(_this, "sidePanelGroup", _descriptor17$3, _this), _initDefineProp$27(_this, "hrStyle", _descriptor18$3, _this), _initDefineProp$27(_this, "navVerticalLeftHide", _descriptor19$3, _this), _initDefineProp$27(_this, "navVerticalRightHide", _descriptor20$3, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$27(_this, "leftSidePanel", _descriptor10$8, _this), _initDefineProp$27(_this, "rightSidePanel", _descriptor11$8, _this), _initDefineProp$27(_this, "navElementVertical", _descriptor12$6, _this), _initDefineProp$27(_this, "navElementVerticalArrow", _descriptor13$5, _this), _initDefineProp$27(_this, "navElementValueVertical", _descriptor14$5, _this), _initDefineProp$27(_this, "navSectionVertical", _descriptor15$5, _this), _initDefineProp$27(_this, "navCollapseElement", _descriptor16$5, _this), _initDefineProp$27(_this, "sidePanelGroup", _descriptor17$4, _this), _initDefineProp$27(_this, "hrStyle", _descriptor18$4, _this), _initDefineProp$27(_this, "navVerticalLeftHide", _descriptor19$4, _this), _initDefineProp$27(_this, "navVerticalRightHide", _descriptor20$3, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     createClass(NavStyle, [{
@@ -36771,7 +36813,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             lineHeight: this.dimensions.sidepanelElementHeight
         };
     }
-}), _descriptor17$3 = _applyDecoratedDescriptor$28(_class$58.prototype, "sidePanelGroup", [styleRule], {
+}), _descriptor17$4 = _applyDecoratedDescriptor$28(_class$58.prototype, "sidePanelGroup", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36782,7 +36824,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             zIndex: "3"
         };
     }
-}), _descriptor18$3 = _applyDecoratedDescriptor$28(_class$58.prototype, "hrStyle", [styleRule], {
+}), _descriptor18$4 = _applyDecoratedDescriptor$28(_class$58.prototype, "hrStyle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _this2 = this;
@@ -36794,7 +36836,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor19$3 = _applyDecoratedDescriptor$28(_class$58.prototype, "navVerticalLeftHide", [styleRule], {
+}), _descriptor19$4 = _applyDecoratedDescriptor$28(_class$58.prototype, "navVerticalLeftHide", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -38816,7 +38858,7 @@ WebsocketSubscriber.addListener = function (streamName, callback) {
 var _dec$30;
 var _dec2$14;
 var _dec3$5;
-var _dec4$2;
+var _dec4$3;
 var _dec5$1;
 var _dec6$1;
 var _dec7$1;
@@ -38872,7 +38914,7 @@ function _applyDecoratedDescriptor$29(target, property, decorators, descriptor, 
     return desc;
 }
 
-var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$14 = styleRuleCustom({ selector: ".hidden" }), _dec3$5 = styleRuleCustom({ selector: "*" }), _dec4$2 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$61 = function (_StyleSheet) {
+var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$14 = styleRuleCustom({ selector: ".hidden" }), _dec3$5 = styleRuleCustom({ selector: "*" }), _dec4$3 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$61 = function (_StyleSheet) {
     inherits(GlobalStyleSheet, _StyleSheet);
 
     function GlobalStyleSheet() {
@@ -38912,7 +38954,7 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             boxSizing: "border-box"
         };
     }
-}), _descriptor4$20 = _applyDecoratedDescriptor$29(_class$61.prototype, "a", [_dec4$2], {
+}), _descriptor4$20 = _applyDecoratedDescriptor$29(_class$61.prototype, "a", [_dec4$3], {
     enumerable: true,
     initializer: function initializer() {
         return {

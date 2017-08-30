@@ -318,6 +318,10 @@ export class HistoricalMap extends Draggable(SVG.SVGRoot) {
         this.redraw();
     }
 
+    resetProjection() {
+        console.log("reset projection");
+    }
+
     getPathMaker() {
         return geoPath(this.getProjection());
     }
@@ -571,6 +575,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
     menuWidth = 240;
     menuExtraPaddingVertical = 10;
     menuExtraPaddingHorizontal = 20;
+    boxShadowWidth = 5;
 
     @styleRule
     container = {
@@ -619,7 +624,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     menuUntoggled = {
-        left: `-${this.menuWidth}px`,
+        left: `-${this.menuWidth + this.boxShadowWidth}px`,
         transitionDuration: "0.15s",
     };
 

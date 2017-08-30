@@ -9,9 +9,9 @@ class TeamCardStyle extends StyleSheet {
     height = 350;
     width = 250;
 
-    headerImageDimensions = 100;
+    headerImageDimensions = 160;
 
-    borderRadius = "20%";
+    borderRadius = "50%";
 
     bodyDescriptionPadding = 20;
 
@@ -290,33 +290,71 @@ export class TeamSection extends UI.Element {
     }
 }
 
-
-class AboutPageStyle extends StyleSheet {
+class AboutSectionStyle extends StyleSheet {
     @styleRule
-    container = {
-        width: "900px",
-        maxWidth: "100%",
-        margin: "0 auto",
+    titleContainer = {
+        fontSize: "32px",
+        fontWeight: "600",
+        textAlign: "center",
+        marginTop: "40px",
     };
+
+    @styleRule
+    messageContainer = {
+        ">p": {
+            lineHeight: "30px",
+            textAlign: "justify",
+            fontSize: "18px",
+        }
+    }
 }
 
+@registerStyle(AboutSectionStyle)
 class AboutSection extends UI.Element {
     render() {
         const {title, message} = this.options;
         return [
-            <div style={{fontSize: "32px", fontWeight: "600", textAlign: "center", marginTop: "50px",}}>
+            <div className={this.styleSheet.titleContainer}>
                 {title}
             </div>,
-            <div style={{fontSize: "18px"}}>
+            <div className={this.styleSheet.messageContainer}>
                 {message}
             </div>
         ];
     }
 }
 
-class About extends UI.Element {
+class AboutPageStyle extends StyleSheet {
+    @styleRule
+    container = {
+        width: "920px",
+        padding: "0 15px",
+        maxWidth: "100%",
+        margin: "0 auto",
+    };
+
+    @styleRule
+    title = {
+        fontSize: "46px",
+        marginTop: "50px",
+        textAlign: "center",
+    };
+}
+
+// Just change the TeamSection, it should get an array of information
+// about the cards and should map that info in some result value and return it
+@registerStyle(AboutPageStyle)
+export class AboutPage extends UI.Element {
+    extraNodeAttributes(attr) {
+        attr.addClass(this.styleSheet.container);
+    }
+
     render() {
         return [
+            /*<MundipediaLogo size={150}/>,*/
+            <div className={this.styleSheet.title}>
+                Mundipedia
+            </div>,
             <AboutSection title="About us"
                           message={[
                               <p>
@@ -389,24 +427,7 @@ class About extends UI.Element {
                                   Write to us at <strong>contact@mundipedia.org</strong> if you’ve got any thoughts you want to send our way.
                               </p>
                           ]} />,
-        ];
-    }
-}
-
-// Just change the TeamSection, it should get an array of information
-// about the cards and should map that info in some result value and return it
-@registerStyle(AboutPageStyle)
-export class AboutPage extends UI.Element {
-    extraNodeAttributes(attr) {
-        attr.addClass(this.styleSheet.container);
-    }
-
-    render() {
-        return [
-            /*<MundipediaLogo size={150}/>,*/
-            <div style={{fontSize: "36px", textAlign: "center",}}>Mundipedia</div>,
-            <About />,
-            <TeamSection />
+            <TeamSection />,
         ]
     }
 }
