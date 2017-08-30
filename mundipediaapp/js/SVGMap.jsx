@@ -569,7 +569,8 @@ class HistoricalWorldMapTitle extends UI.Element {
 
 class HistoricalWorldMapStyle extends StyleSheet {
     menuWidth = 240;
-    menuExtraPadding = 10;
+    menuExtraPaddingVertical = 10;
+    menuExtraPaddingHorizontal = 20;
 
     @styleRule
     container = {
@@ -598,7 +599,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     menuContainer = {
-        paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + this.menuExtraPadding,
+        paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + this.menuExtraPaddingVertical,
         backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
         boxShadow: this.themeProperties.BASE_BOX_SHADOW,
         width: this.menuWidth,
@@ -624,7 +625,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     toggleOptions = {
-        padding: this.menuExtraPadding,
+        padding: `${this.menuExtraPaddingVertical}px ${this.menuExtraPaddingHorizontal}px`,
         backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
         fontSize: "22px !important",
         transition: "0.2s",
@@ -634,13 +635,21 @@ class HistoricalWorldMapStyle extends StyleSheet {
         top: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
         left: 0,
         width: this.menuWidth,
-        textAlign: "center",
+        display: "flex",
+        justifyContent: "space-between",
 
         ":hover": {
             backgroundColor: this.themeProperties.COLOR_PRIMARY,
             color: "#fff",
             transition: "0.15s",
         },
+    };
+
+    @styleRule
+    menuIcon = {
+        display: "flex !important",
+        alignItems: "center",
+        justifyContent: "center",
     };
 }
 
@@ -685,13 +694,20 @@ export class HistoricalWorldMap extends UI.Element {
             this.menu.addClass(this.styleSheet.menuToggled);
         }
         this.menuIsToggled = !this.menuIsToggled;
+        this.menuIcon.setChildren([this.getMenuLabel()]);
     }
 
     getMenuLabel() {
         if (this.menuIsToggled) {
-            return "Less map options";
+            return [
+                "Less map options",
+                <FAIcon icon="angle-double-left" className={this.styleSheet.menuIcon} />,
+            ];
         }
-        return "More map options";
+        return [
+            "More map options",
+            <FAIcon icon="angle-double-right" className={this.styleSheet.menuIcon} />,
+        ];
     }
 
     render() {
@@ -730,13 +746,23 @@ export class HistoricalWorldMap extends UI.Element {
     }
 
     onMount() {
-        this.menuIcon.addClickListener(() => {
+        this.menuIcon.addClickListener((event) => {
+            event.stopPropagation();
             this.toggleMenu();
-            this.menuIcon.setChildren([this.getMenuLabel()]);
+        });
+
+        this.menu.addClickListener((event) => {
+            event.stopPropagation();
         });
 
         this.yearSelect.addChangeListener(() => {
             this.setCurrentYear(this.yearSelect.getCurrentValue());
+        });
+
+        document.body.addEventListener("click", () => {
+            if (this.menuIsToggled) {
+                this.toggleMenu();
+            }
         });
     }
 }

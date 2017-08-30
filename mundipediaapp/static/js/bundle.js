@@ -20623,6 +20623,7 @@ var _descriptor8$5;
 var _descriptor9$5;
 var _descriptor10$3;
 var _descriptor11$3;
+var _descriptor12$2;
 var _dec3$1;
 var _class9$1;
 
@@ -21343,7 +21344,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this15 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this15), _this15.menuWidth = 240, _this15.menuExtraPadding = 10, _initDefineProp$18(_this15, "container", _descriptor5$10, _this15), _initDefineProp$18(_this15, "yearSelectContainer", _descriptor6$8, _this15), _initDefineProp$18(_this15, "historyWorldMapTitle", _descriptor7$6, _this15), _initDefineProp$18(_this15, "menuContainer", _descriptor8$5, _this15), _initDefineProp$18(_this15, "menuToggled", _descriptor9$5, _this15), _initDefineProp$18(_this15, "menuUntoggled", _descriptor10$3, _this15), _initDefineProp$18(_this15, "toggleOptions", _descriptor11$3, _this15), _temp3), possibleConstructorReturn(_this15, _ret3);
+        return _ret3 = (_temp3 = (_this15 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this15), _this15.menuWidth = 240, _this15.menuExtraPaddingVertical = 10, _this15.menuExtraPaddingHorizontal = 20, _initDefineProp$18(_this15, "container", _descriptor5$10, _this15), _initDefineProp$18(_this15, "yearSelectContainer", _descriptor6$8, _this15), _initDefineProp$18(_this15, "historyWorldMapTitle", _descriptor7$6, _this15), _initDefineProp$18(_this15, "menuContainer", _descriptor8$5, _this15), _initDefineProp$18(_this15, "menuToggled", _descriptor9$5, _this15), _initDefineProp$18(_this15, "menuUntoggled", _descriptor10$3, _this15), _initDefineProp$18(_this15, "toggleOptions", _descriptor11$3, _this15), _initDefineProp$18(_this15, "menuIcon", _descriptor12$2, _this15), _temp3), possibleConstructorReturn(_this15, _ret3);
     }
 
     return HistoricalWorldMapStyle;
@@ -21382,7 +21383,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
     enumerable: true,
     initializer: function initializer() {
         return {
-            paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + this.menuExtraPadding,
+            paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + this.menuExtraPaddingVertical,
             backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
             boxShadow: this.themeProperties.BASE_BOX_SHADOW,
             width: this.menuWidth,
@@ -21414,7 +21415,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
     enumerable: true,
     initializer: function initializer() {
         return {
-            padding: this.menuExtraPadding,
+            padding: this.menuExtraPaddingVertical + "px " + this.menuExtraPaddingHorizontal + "px",
             backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
             fontSize: "22px !important",
             transition: "0.2s",
@@ -21424,13 +21425,23 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             top: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
             left: 0,
             width: this.menuWidth,
-            textAlign: "center",
+            display: "flex",
+            justifyContent: "space-between",
 
             ":hover": {
                 backgroundColor: this.themeProperties.COLOR_PRIMARY,
                 color: "#fff",
                 transition: "0.15s"
             }
+        };
+    }
+}), _descriptor12$2 = _applyDecoratedDescriptor$19(_class7$2.prototype, "menuIcon", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            display: "flex !important",
+            alignItems: "center",
+            justifyContent: "center"
         };
     }
 })), _class7$2);
@@ -21482,14 +21493,15 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
                 this.menu.addClass(this.styleSheet.menuToggled);
             }
             this.menuIsToggled = !this.menuIsToggled;
+            this.menuIcon.setChildren([this.getMenuLabel()]);
         }
     }, {
         key: "getMenuLabel",
         value: function getMenuLabel() {
             if (this.menuIsToggled) {
-                return "Less map options";
+                return ["Less map options", UI.createElement(FAIcon, { icon: "angle-double-left", className: this.styleSheet.menuIcon })];
             }
-            return "More map options";
+            return ["More map options", UI.createElement(FAIcon, { icon: "angle-double-right", className: this.styleSheet.menuIcon })];
         }
     }, {
         key: "render",
@@ -21535,13 +21547,23 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
         value: function onMount() {
             var _this18 = this;
 
-            this.menuIcon.addClickListener(function () {
+            this.menuIcon.addClickListener(function (event) {
+                event.stopPropagation();
                 _this18.toggleMenu();
-                _this18.menuIcon.setChildren([_this18.getMenuLabel()]);
+            });
+
+            this.menu.addClickListener(function (event) {
+                event.stopPropagation();
             });
 
             this.yearSelect.addChangeListener(function () {
                 _this18.setCurrentYear(_this18.yearSelect.getCurrentValue());
+            });
+
+            document.body.addEventListener("click", function () {
+                if (_this18.menuIsToggled) {
+                    _this18.toggleMenu();
+                }
             });
         }
     }]);
@@ -28592,7 +28614,7 @@ var _descriptor8$7;
 var _descriptor9$6;
 var _descriptor10$4;
 var _descriptor11$4;
-var _descriptor12$2;
+var _descriptor12$3;
 var _descriptor13$2;
 var _descriptor14$2;
 var _descriptor15$2;
@@ -28689,7 +28711,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             borderBottomLeftRadius: "5px",
             borderRight: "0px solid white",
             marginTop: "20px"
-        }, _initDefineProp$20(_this, "input", _descriptor9$6, _this), _initDefineProp$20(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$20(_this, "badLogin", _descriptor11$4, _this), _initDefineProp$20(_this, "rememberMe", _descriptor12$2, _this), _initDefineProp$20(_this, "forgotPassword", _descriptor13$2, _this), _initDefineProp$20(_this, "signInButtonContainer", _descriptor14$2, _this), _initDefineProp$20(_this, "signInButton", _descriptor15$2, _this), _initDefineProp$20(_this, "horizontalLine", _descriptor16$2, _this), _this.connectWith = {
+        }, _initDefineProp$20(_this, "input", _descriptor9$6, _this), _initDefineProp$20(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$20(_this, "badLogin", _descriptor11$4, _this), _initDefineProp$20(_this, "rememberMe", _descriptor12$3, _this), _initDefineProp$20(_this, "forgotPassword", _descriptor13$2, _this), _initDefineProp$20(_this, "signInButtonContainer", _descriptor14$2, _this), _initDefineProp$20(_this, "signInButton", _descriptor15$2, _this), _initDefineProp$20(_this, "horizontalLine", _descriptor16$2, _this), _this.connectWith = {
             width: "100%",
             textAlign: "center",
             fontFamily: _this.fontFamily,
@@ -28882,7 +28904,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor12$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "rememberMe", [styleRule], {
+}), _descriptor12$3 = _applyDecoratedDescriptor$21(_class$46.prototype, "rememberMe", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -33208,7 +33230,7 @@ var _descriptor8$9;
 var _descriptor9$8;
 var _descriptor10$6;
 var _descriptor11$6;
-var _descriptor12$3;
+var _descriptor12$4;
 var _descriptor13$3;
 var _descriptor14$3;
 var _descriptor15$3;
@@ -33390,7 +33412,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             args[_key2] = arguments[_key2];
         }
 
-        return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontFamily = "lato, open sans", _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$25(_this2, "mainClass", _descriptor6$12, _this2), _initDefineProp$25(_this2, "title", _descriptor7$10, _this2), _initDefineProp$25(_this2, "backButton", _descriptor8$9, _this2), _initDefineProp$25(_this2, "replyButtonDiv", _descriptor9$8, _this2), _initDefineProp$25(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$25(_this2, "fullPost", _descriptor11$6, _this2), _initDefineProp$25(_this2, "dislikeButton", _descriptor12$3, _this2), _initDefineProp$25(_this2, "likeButton", _descriptor13$3, _this2), _initDefineProp$25(_this2, "author", _descriptor14$3, _this2), _initDefineProp$25(_this2, "header", _descriptor15$3, _this2), _initDefineProp$25(_this2, "message", _descriptor16$3, _this2), _initDefineProp$25(_this2, "buttons", _descriptor17$2, _this2), _initDefineProp$25(_this2, "bottomPanel", _descriptor18$2, _this2), _initDefineProp$25(_this2, "voting", _descriptor19$2, _this2), _initDefineProp$25(_this2, "numReplies", _descriptor20$2, _this2), _initDefineProp$25(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$25(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$25(_this2, "editButton", _descriptor23, _this2), _initDefineProp$25(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+        return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontFamily = "lato, open sans", _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$25(_this2, "mainClass", _descriptor6$12, _this2), _initDefineProp$25(_this2, "title", _descriptor7$10, _this2), _initDefineProp$25(_this2, "backButton", _descriptor8$9, _this2), _initDefineProp$25(_this2, "replyButtonDiv", _descriptor9$8, _this2), _initDefineProp$25(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$25(_this2, "fullPost", _descriptor11$6, _this2), _initDefineProp$25(_this2, "dislikeButton", _descriptor12$4, _this2), _initDefineProp$25(_this2, "likeButton", _descriptor13$3, _this2), _initDefineProp$25(_this2, "author", _descriptor14$3, _this2), _initDefineProp$25(_this2, "header", _descriptor15$3, _this2), _initDefineProp$25(_this2, "message", _descriptor16$3, _this2), _initDefineProp$25(_this2, "buttons", _descriptor17$2, _this2), _initDefineProp$25(_this2, "bottomPanel", _descriptor18$2, _this2), _initDefineProp$25(_this2, "voting", _descriptor19$2, _this2), _initDefineProp$25(_this2, "numReplies", _descriptor20$2, _this2), _initDefineProp$25(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$25(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$25(_this2, "editButton", _descriptor23, _this2), _initDefineProp$25(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
     }
 
     return ForumThreadPanelStyle;
@@ -33468,7 +33490,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             borderTop: "0"
         };
     }
-}), _descriptor12$3 = _applyDecoratedDescriptor$26(_class3$16.prototype, "dislikeButton", [styleRule], {
+}), _descriptor12$4 = _applyDecoratedDescriptor$26(_class3$16.prototype, "dislikeButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -35817,7 +35839,7 @@ var _descriptor8$10;
 var _descriptor9$9;
 var _descriptor10$7;
 var _descriptor11$7;
-var _descriptor12$4;
+var _descriptor12$5;
 var _descriptor13$4;
 var _dec$28;
 var _class3$17;
@@ -35884,7 +35906,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerImageDimensions = 100, _this.borderRadius = "20%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _initDefineProp$26(_this, "container", _descriptor$25, _this), _initDefineProp$26(_this, "header", _descriptor2$23, _this), _initDefineProp$26(_this, "circleImage", _descriptor3$21, _this), _initDefineProp$26(_this, "image", _descriptor4$18, _this), _initDefineProp$26(_this, "hr", _descriptor5$16, _this), _initDefineProp$26(_this, "padding", _descriptor6$13, _this), _initDefineProp$26(_this, "body", _descriptor7$11, _this), _initDefineProp$26(_this, "description", _descriptor8$10, _this), _initDefineProp$26(_this, "titleName", _descriptor9$9, _this), _initDefineProp$26(_this, "titleJob", _descriptor10$7, _this), _initDefineProp$26(_this, "footer", _descriptor11$7, _this), _initDefineProp$26(_this, "url", _descriptor12$4, _this), _initDefineProp$26(_this, "socialAccount", _descriptor13$4, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerImageDimensions = 100, _this.borderRadius = "20%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _initDefineProp$26(_this, "container", _descriptor$25, _this), _initDefineProp$26(_this, "header", _descriptor2$23, _this), _initDefineProp$26(_this, "circleImage", _descriptor3$21, _this), _initDefineProp$26(_this, "image", _descriptor4$18, _this), _initDefineProp$26(_this, "hr", _descriptor5$16, _this), _initDefineProp$26(_this, "padding", _descriptor6$13, _this), _initDefineProp$26(_this, "body", _descriptor7$11, _this), _initDefineProp$26(_this, "description", _descriptor8$10, _this), _initDefineProp$26(_this, "titleName", _descriptor9$9, _this), _initDefineProp$26(_this, "titleJob", _descriptor10$7, _this), _initDefineProp$26(_this, "footer", _descriptor11$7, _this), _initDefineProp$26(_this, "url", _descriptor12$5, _this), _initDefineProp$26(_this, "socialAccount", _descriptor13$4, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     createClass(TeamCardStyle, [{
@@ -36006,7 +36028,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             flexDirection: "row"
         };
     }
-}), _descriptor12$4 = _applyDecoratedDescriptor$27(_class$55.prototype, "url", [styleRule], {
+}), _descriptor12$5 = _applyDecoratedDescriptor$27(_class$55.prototype, "url", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36416,7 +36438,7 @@ var _descriptor8$11;
 var _descriptor9$10;
 var _descriptor10$8;
 var _descriptor11$8;
-var _descriptor12$5;
+var _descriptor12$6;
 var _descriptor13$5;
 var _descriptor14$5;
 var _descriptor15$5;
@@ -36510,7 +36532,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             transitionDuration: function transitionDuration() {
                 return _this.dimensions.sidepanelTransitionDuration;
             }
-        }, _initDefineProp$27(_this, "leftSidePanel", _descriptor10$8, _this), _initDefineProp$27(_this, "rightSidePanel", _descriptor11$8, _this), _initDefineProp$27(_this, "navElementVertical", _descriptor12$5, _this), _initDefineProp$27(_this, "navElementVerticalArrow", _descriptor13$5, _this), _initDefineProp$27(_this, "navElementValueVertical", _descriptor14$5, _this), _initDefineProp$27(_this, "navSectionVertical", _descriptor15$5, _this), _initDefineProp$27(_this, "navCollapseElement", _descriptor16$5, _this), _initDefineProp$27(_this, "sidePanelGroup", _descriptor17$3, _this), _initDefineProp$27(_this, "hrStyle", _descriptor18$3, _this), _initDefineProp$27(_this, "navVerticalLeftHide", _descriptor19$3, _this), _initDefineProp$27(_this, "navVerticalRightHide", _descriptor20$3, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$27(_this, "leftSidePanel", _descriptor10$8, _this), _initDefineProp$27(_this, "rightSidePanel", _descriptor11$8, _this), _initDefineProp$27(_this, "navElementVertical", _descriptor12$6, _this), _initDefineProp$27(_this, "navElementVerticalArrow", _descriptor13$5, _this), _initDefineProp$27(_this, "navElementValueVertical", _descriptor14$5, _this), _initDefineProp$27(_this, "navSectionVertical", _descriptor15$5, _this), _initDefineProp$27(_this, "navCollapseElement", _descriptor16$5, _this), _initDefineProp$27(_this, "sidePanelGroup", _descriptor17$3, _this), _initDefineProp$27(_this, "hrStyle", _descriptor18$3, _this), _initDefineProp$27(_this, "navVerticalLeftHide", _descriptor19$3, _this), _initDefineProp$27(_this, "navVerticalRightHide", _descriptor20$3, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     createClass(NavStyle, [{
@@ -36693,7 +36715,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
     initializer: function initializer() {
         return this.sidePanel;
     }
-}), _descriptor12$5 = _applyDecoratedDescriptor$28(_class$58.prototype, "navElementVertical", [styleRule], {
+}), _descriptor12$6 = _applyDecoratedDescriptor$28(_class$58.prototype, "navElementVertical", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
