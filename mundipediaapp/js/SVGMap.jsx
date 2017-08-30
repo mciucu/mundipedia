@@ -558,6 +558,7 @@ class HistoricalWorldMapTitle extends UI.Element {
 
 class HistoricalWorldMapStyle extends StyleSheet {
     menuWidth = 240;
+    menuExtraPadding = 10;
 
     @styleRule
     container = {
@@ -588,7 +589,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     menuContainer = {
-        paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
+        paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + this.menuExtraPadding,
         backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
         boxShadow: this.themeProperties.BASE_BOX_SHADOW,
         width: this.menuWidth,
@@ -614,8 +615,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     toggleOptions = {
-        padding: "5px 10px",
-        color: this.themeProperties.COLOR_TEXT,
+        padding: this.menuExtraPadding,
         backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
         fontSize: "22px !important",
         transition: "0.2s",

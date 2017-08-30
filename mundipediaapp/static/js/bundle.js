@@ -2389,6 +2389,9 @@ function changeParent(element, newParent) {
     newParent.appendChild(element);
 }
 
+// TODO: should this be actually better done throught the dynamic CSS API, without doing through the DOM?
+// So far it's actually better like this, since browsers like Chrome allow users to edit classes
+
 var StyleInstance = function (_UI$TextElement) {
     inherits(StyleInstance, _UI$TextElement);
 
@@ -2885,6 +2888,9 @@ var keyframesRuleInherit = styleRuleWithOptions({
     getKey: getKeyframesRuleKey,
     inherit: true
 });
+
+// Class meant to group multiple classes inside a single <style> element, for convenience
+// TODO: pattern should be more robust, to be able to only update classes
 
 var StyleSheet = function (_Dispatchable) {
     inherits(StyleSheet, _Dispatchable);
@@ -3506,6 +3512,8 @@ var Draggable = function Draggable(BaseClass) {
 };
 
 // TODO: this file existed to hold generic classes in a period of fast prototyping, has a lot of old code
+// A very simple class, all this does is implement the `getTitle()` method
+
 var Panel = function (_UI$Element) {
     inherits(Panel, _UI$Element);
 
@@ -5207,6 +5215,10 @@ var FormField = function (_FormGroup) {
     return FormField;
 }(FormGroup);
 
+// Setting these attributes as styles in mozilla has no effect.
+// To maintain compatibility between moz and webkit, whenever
+// one of these attributes is set as a style, it is also set as a
+// node attribute.
 var MozStyleElements = new Set(["width", "height", "rx", "ry", "cx", "cy", "x", "y"]);
 
 var SVGNodeAttributes = function (_NodeAttributes) {
@@ -7191,6 +7203,7 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
     return desc;
 }
 
+// TODO: export these properly, don't use a namespace here
 var GlobalStyle = {};
 
 Theme.Global.setProperties({
@@ -8755,6 +8768,7 @@ var TerminalRoute = function (_Route) {
     return TerminalRoute;
 }(Route);
 
+// This is the object that will be used to translate text
 var translationMap = null;
 
 // Keep a set of all UI Element that need to be updated when the language changes
@@ -8851,11 +8865,6 @@ UI.TranslationTextElement = function (_UI$TextElement) {
 UI.T = function (str) {
     return new UI.TranslationTextElement(str);
 };
-
-// TODO @mciucu this should be wrapped in a way that previous requests that arrive later don't get processed
-// TODO: should this be done with promises?
-// Function to be called with a translation map
-// The translationMap object needs to implement .get(value) to return the translation for value
 
 var _class$9;
 var _descriptor$4;
@@ -9341,6 +9350,8 @@ var TabArea = (_dec$4 = registerStyle(DefaultTabAreaStyle), _dec$4(_class$8 = fu
     return TabArea;
 }(UI.Element)) || _class$8);
 
+// A map that supports multiple values to the same key
+
 var MultiMap = function () {
     function MultiMap() {
         classCallCheck(this, MultiMap);
@@ -9590,6 +9601,8 @@ var MultiMap = function () {
 var _class$12;
 var _temp$3;
 
+// This class currently mirrors the functionality of Headers on Chrome at the time of implementation
+// TODO: It is specified that the function get() should return the result of getAll() and getAll() deprecated
 var Headers$1 = (_temp$3 = _class$12 = function (_MultiMap) {
     inherits(Headers, _MultiMap);
 
@@ -10156,6 +10169,8 @@ function polyfillResponse(global) {
 // Tries to be a more flexible implementation of fetch()
 // Still work in progress
 
+// May need to polyfill Headers, Request, Response, Body, URLSearchParams classes, so import them
+// TODO: should only call this in the first call to fetch, to not create unneeded dependencies?
 if (window) {
     polyfillRequest(window);
     polyfillResponse(window);
@@ -13212,6 +13227,7 @@ var _dec2$3;
 var _class2$2;
 
 // TODO: Too much "hidden"
+// options.orientation is the orientation of the divided elements
 var DividerBar = (_dec$13 = registerStyle(SectionDividerStyle), _dec$13(_class$26 = function (_Divider) {
     inherits(DividerBar, _Divider);
 
@@ -14680,9 +14696,6 @@ var EntriesManager = function (_Dispatchable) {
     return EntriesManager;
 }(Dispatchable);
 
-// A wrapper for tables which optimizes rendering when many entries / updates are involved. It currently has hardcoded
-// row height for functionality reasons.
-
 var _class$32;
 var _descriptor$14;
 var _descriptor2$12;
@@ -14823,6 +14836,8 @@ var SortableTableStyle = (_class3$10 = function (_TableStyle) {
 
 var _dec$16;
 var _class$31;
+
+// TODO: the whole table architecture probably needs a rethinking
 
 var TableRow = function (_UI$Primitive) {
     inherits(TableRow, _UI$Primitive);
@@ -15802,6 +15817,10 @@ addCanonicalTimeUnits();
 
 var _class$34;
 
+// MAX_UNIX_TIME is either ~Feb 2106 in unix seconds or ~Feb 1970 in unix milliseconds
+// Any value less than this is interpreted as a unix time in seconds
+// If you want to go around this behavious, you can use the static method .fromUnixMilliseconds()
+// To disable, set this value to 0
 var MAX_AUTO_UNIX_TIME = Math.pow(2, 32);
 
 var BaseDate = self.Date;
@@ -16318,6 +16337,7 @@ StemDate.tokenFormattersMap = new Map([["ISO", function (date) {
     return date.format("MMMM Do, YYYY");
 }]]);
 
+// File meant to handle server time/client time differences
 var ServerTime = {
     now: function now() {
         return StemDate().subtract(this.getOffset());
@@ -16349,6 +16369,8 @@ function isDifferentDay(timeA, timeB) {
     // Check if different day of the month, when difference is less than a day
     return timeA.getDate() !== timeB.getDate();
 }
+
+// import {Button} from "./button/Button";
 
 var DatePickerTable = function (_UI$Element) {
     inherits(DatePickerTable, _UI$Element);
@@ -18013,6 +18035,7 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
   return rotation;
 }
 
+// Generates a circle centered at [0°, 0°], with a given radius and precision.
 function circleStream(stream, radius, delta, direction, t0, t1) {
   if (!delta) return;
   var cosRadius = cos(radius),
@@ -19076,6 +19099,8 @@ function boundsPoint$1(x, y) {
   if (y < y0$2) y0$2 = y;
   if (y > y1) y1 = y;
 }
+
+// TODO Enforce positive area for exterior, negative area for interior?
 
 var X0$1 = 0;
 var Y0$1 = 0;
@@ -20173,9 +20198,6 @@ function sqrt$1(x) {
   return x > 0 ? Math.sqrt(x) : 0;
 }
 
-// Abort if [x, y] is not within an ellipse centered at [0, 0] with
-// semi-major axis pi and semi-minor axis pi/2.
-
 function eckert4Raw(lambda, phi) {
   var k = (2 + halfPi$1) * sin$1(phi);
   phi /= 2;
@@ -20262,6 +20284,9 @@ var ginzburg6Raw = ginzburgPolyconicRaw(5 / 6 * pi$1, -0.62636, -0.0344, 0, 1.34
 
 var ginzburg9Raw = ginzburgPolyconicRaw(2.6516, -0.76534, 0.19123, -0.047094, 1.36289, -0.13965, 0.031762);
 
+// Returns [sn, cn, dn](u + iv|m).
+
+
 // Returns [sn, cn, dn, ph](u|m).
 
 
@@ -20314,9 +20339,6 @@ var geoHammer = function () {
   return p.scale(169.529);
 };
 
-// Latitudinal rotation by phi0.
-// Temporary hack until D3 supports arbitrary small-circle clipping origins.
-
 function interpolateLine(coordinates, m) {
   var i = -1,
       n = coordinates.length,
@@ -20337,10 +20359,10 @@ function interpolateLine(coordinates, m) {
   return resampled;
 }
 
+// Inverts a transform matrix.
+
+
 // Multiplies two 3x2 matrices.
-
-
-// Subtracts 2D vectors.
 
 function outline(stream, node, parent) {
   var point,
@@ -20376,8 +20398,6 @@ function outline(stream, node, parent) {
     }
   }
 }
-
-// Tests equality of two spherical points.
 
 // TODO generate on-the-fly to avoid external modification.
 var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
@@ -20605,6 +20625,8 @@ function stitchGeometry(input) {
   return output;
 }
 
+// TODO clip to ellipse
+
 var _class$39;
 var _descriptor$17;
 var _dec$18;
@@ -20664,6 +20686,10 @@ function _applyDecoratedDescriptor$19(target, property, decorators, descriptor, 
 
     return desc;
 }
+
+/***** ALL MATH FUNCTIONS ****/
+
+// The following code is from ivyywang
 
 var to_radians = Math.PI / 180;
 var to_degrees = 180 / Math.PI;
@@ -21336,7 +21362,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this16 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this16), _this16.menuWidth = 240, _initDefineProp$18(_this16, "container", _descriptor5$10, _this16), _initDefineProp$18(_this16, "yearSelectContainer", _descriptor6$8, _this16), _initDefineProp$18(_this16, "historyWorldMapTitle", _descriptor7$6, _this16), _initDefineProp$18(_this16, "menuContainer", _descriptor8$5, _this16), _initDefineProp$18(_this16, "menuToggled", _descriptor9$5, _this16), _initDefineProp$18(_this16, "menuUntoggled", _descriptor10$3, _this16), _initDefineProp$18(_this16, "toggleOptions", _descriptor11$3, _this16), _temp3), possibleConstructorReturn(_this16, _ret3);
+        return _ret3 = (_temp3 = (_this16 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this16), _this16.menuWidth = 240, _this16.menuExtraPadding = 10, _initDefineProp$18(_this16, "container", _descriptor5$10, _this16), _initDefineProp$18(_this16, "yearSelectContainer", _descriptor6$8, _this16), _initDefineProp$18(_this16, "historyWorldMapTitle", _descriptor7$6, _this16), _initDefineProp$18(_this16, "menuContainer", _descriptor8$5, _this16), _initDefineProp$18(_this16, "menuToggled", _descriptor9$5, _this16), _initDefineProp$18(_this16, "menuUntoggled", _descriptor10$3, _this16), _initDefineProp$18(_this16, "toggleOptions", _descriptor11$3, _this16), _temp3), possibleConstructorReturn(_this16, _ret3);
     }
 
     return HistoricalWorldMapStyle;
@@ -21377,7 +21403,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
     enumerable: true,
     initializer: function initializer() {
         return {
-            paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
+            paddingTop: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + this.menuExtraPadding,
             backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
             boxShadow: this.themeProperties.BASE_BOX_SHADOW,
             width: this.menuWidth,
@@ -21408,20 +21434,25 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
 }), _descriptor11$3 = _applyDecoratedDescriptor$19(_class7$2.prototype, "toggleOptions", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
-        var _ref4;
-
-        return _ref4 = {
-            padding: "5px 10px",
-            color: this.themeProperties.COLOR_TEXT,
+        return {
+            padding: this.menuExtraPadding,
             backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
             fontSize: "22px !important",
             transition: "0.2s",
-            cursor: "pointer"
-        }, defineProperty(_ref4, "color", "#fff"), defineProperty(_ref4, "position", "fixed"), defineProperty(_ref4, "top", this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT), defineProperty(_ref4, "left", 0), defineProperty(_ref4, "width", this.menuWidth), defineProperty(_ref4, "textAlign", "center"), defineProperty(_ref4, ":hover", {
-            backgroundColor: this.themeProperties.COLOR_PRIMARY,
+            cursor: "pointer",
             color: "#fff",
-            transition: "0.15s"
-        }), _ref4;
+            position: "fixed",
+            top: this.themeProperties.NAV_MANAGER_NAVBAR_HEIGHT,
+            left: 0,
+            width: this.menuWidth,
+            textAlign: "center",
+
+            ":hover": {
+                backgroundColor: this.themeProperties.COLOR_PRIMARY,
+                color: "#fff",
+                transition: "0.15s"
+            }
+        };
     }
 })), _class7$2);
 
@@ -21763,6 +21794,7 @@ var DefaultState = GlobalState;
 
 self.GlobalState = GlobalState;
 
+// The store information is kept in a symbol, to not interfere with serialization/deserialization
 var StoreSymbol = Symbol("Store");
 
 var StoreObject = function (_Dispatchable) {
@@ -24692,6 +24724,10 @@ MarkupParser.parseJSON5 = function () {
     };
 }();
 
+// TODO: these should be in a unit test file, not here
+
+// Class that for every markup tag returns the UI class to instantiate for that element
+
 var MarkupClassMap = function () {
     function MarkupClassMap(fallback) {
         classCallCheck(this, MarkupClassMap);
@@ -27597,6 +27633,9 @@ PrivateChatStore.addListener("update", function (obj, event) {
         GlobalState.importState(event.state);
     }
 });
+
+// import {Emoji as EmojiMini} from "EmojiMini";
+// import "EmojiUI";
 
 UI.Emoji = UI.Emoji || UI.Element;
 
@@ -32167,6 +32206,14 @@ var DelayedElement = function DelayedElement(BaseClass) {
     }(BaseClass);
 };
 
+// You can configure the loading/error states by defining the "renderLoading" and "renderError" attributes of the
+// function somewhere globally in your app.
+// Example:
+// StateDependentElement.renderLoading = "Loading...";
+// or
+// StateDependentElement.renderLoading = () => <MyCustomLoadingAnimation />
+// StateDependentElement.renderError = (error) => <MyCustomErrorMessageClass error={error} />
+
 var StateDependentElement = function StateDependentElement(BaseClass) {
     return function (_DelayedElement) {
         inherits(StateDependentElementClass, _DelayedElement);
@@ -33287,6 +33334,8 @@ function _applyDecoratedDescriptor$26(target, property, decorators, descriptor, 
 
     return desc;
 }
+
+//import {CSAStyle} from "CSAStyle";
 
 var colors = {
     // BLUE: "#20232d",
@@ -36669,6 +36718,10 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
 var _class$59;
 var _temp$8;
 
+// Class for working with the Window.localStorage and Window.sessionStorage objects
+// All keys are prefixed with our custom name, so we don't have to worry about polluting the global storage namespace
+// Keys must be strings, and values are modified by the serialize/deserialize methods,
+// which by default involve JSON conversion
 var StorageMap = (_temp$8 = _class$59 = function (_Dispatchable) {
     inherits(StorageMap, _Dispatchable);
 
@@ -37992,6 +38045,13 @@ function logout() {
 }
 
 // UI components
+/*
+ * This is the NavManager file of your app.
+ *
+ * Note that the whole app is a single page app.
+ * Follow the instructions below in order to customize your application.
+ */
+
 var AppNavManager = function (_NavManager) {
     inherits(AppNavManager, _NavManager);
 
@@ -38917,6 +38977,7 @@ var EstablishmentApp = function (_StemApp) {
     return EstablishmentApp;
 }(StemApp);
 
+// The default page title
 PageTitleManager.setDefaultTitle("Mundipedia");
 
 var oldThemeProperties = Theme.Global.getProperties();
