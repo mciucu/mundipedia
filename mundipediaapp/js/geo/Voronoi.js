@@ -135,11 +135,11 @@ function hemispheres(a, b) {
 }
 
 d3.convexhull3d = function (points) {
-    let n = points.length;
+    let n = points.length, i;
 
     if (n < 4) return []; // coplanar points
 
-    for (let i = 0; i < n; ++i) points[i].i = i;
+    for (i = 0; i < n; ++i) points[i].i = i;
     shuffle(points);
 
     let a = points[0],
@@ -148,7 +148,7 @@ d3.convexhull3d = function (points) {
         t = new Triangle(a, b, c);
 
     // Find non-coplanar fourth point.
-    for (let i = 3; i < n && coplanar(t, points[i]); ++i) ;
+    for (i = 3; i < n && coplanar(t, points[i]); ++i) ;
 
     if (i === n) return []; // coplanar points
 
@@ -177,7 +177,7 @@ d3.convexhull3d = function (points) {
     neighbors(tc.b, tb.c);
 
     // Initialise conflict graph.
-    for (let i = 4; i < n; ++i) {
+    for (i = 4; i < n; ++i) {
         let p = points[i];
         addConflict(ta, p, i);
         addConflict(tb, p, i);
@@ -185,7 +185,7 @@ d3.convexhull3d = function (points) {
         addConflict(td, p, i);
     }
 
-    for (let i = 4; i < n; ++i) {
+    for (i = 4; i < n; ++i) {
         let p = points[i], h = p.visible;
         if (!h) continue;
 
@@ -201,7 +201,8 @@ d3.convexhull3d = function (points) {
 
         if (!horizon) continue;
 
-        for (let j = 0, m = horizon.length, prev = null, first = null; j < m; ++j) {
+        let prev = null, first = null;
+        for (let j = 0, m = horizon.length; j < m; ++j) {
             let e = horizon[j],
                 f1 = e.triangle, f2 = e.neighbor.triangle,
                 t = new Triangle(p, e.neighbor.p, e.p, triangles.length);

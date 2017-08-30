@@ -59,13 +59,6 @@ D3PathString.prototype.point = function (x, y) {
     }
 };
 
-class Feature extends Dispatchable {
-    constructor(obj) {
-        super();
-        Object.assign(this, obj);
-    }
-}
-
 class FeatureStyle extends StyleSheet {
     @styleRule
     featureBorder = {
@@ -132,7 +125,9 @@ function getPreferredDimensions() {
 
 export class HistoricalMap extends Draggable(SVG.SVGRoot) {
     getDefaultOptions(options) {
-        options = Object.assign(getPreferredDimensions(), options);
+        options = Object.assign(getPreferredDimensions(), {
+            showGraticule: true,
+        }, options);
 
         const VIEW_BOX_SIZE = Math.min(options.height, options.width);
 
@@ -177,8 +172,8 @@ export class HistoricalMap extends Draggable(SVG.SVGRoot) {
         console.log("reset projection");
     }
 
-    showGraticule(value) {
-        console.log("toggle graticule: ", value);
+    setShowGraticule(value) {
+        this.updateOptions({showGraticule: value});
     }
 
     getPathMaker() {
@@ -190,8 +185,10 @@ export class HistoricalMap extends Draggable(SVG.SVGRoot) {
     }
 
     getGraticule() {
-        const graticule = geoGraticule().step([20, 10])();
-        return <SVG.Path fill="none" stroke="#aaa" strokeWidth={0.5} d={this.makePath(graticule)} />
+        if (this.options.showGraticule) {
+            const graticule = geoGraticule().step([20, 10])();
+            return <SVG.Path fill="none" stroke="#aaa" strokeWidth={0.5} d={this.makePath(graticule)} />;
+        }
     }
 
     setDimensions(dimensions) {
@@ -690,9 +687,8 @@ export class HistoricalWorldMap extends UI.Element {
         });
 
         this.drawGraticuleContainer.addClickListener(() => {
-            // this.drawGraticule.setValue(!this.drawGraticule.getValue());
             this.graticuleIsToggled = !this.graticuleIsToggled;
-            this.map.showGraticule(this.graticuleIsToggled);
+            this.map.setShowGraticule(this.graticuleIsToggled);
             this.drawGraticuleContainer.setChildren([this.getGraticuleLabel()]);
         });
 
