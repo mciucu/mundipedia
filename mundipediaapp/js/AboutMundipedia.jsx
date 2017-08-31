@@ -240,7 +240,7 @@ export class TeamSection extends UI.Element {
     render() {
         const people = [{
             name: "Mihai Ciucu",
-            image: <MundipediaLogo size={100}/>,
+            image: <MundipediaLogo size={TeamCardStyle.getInstance().headerImageDimensions}/>,
             job: "Founder",
             description: "I don't have time for thinking about a description, I'm busy!",
             socialAccounts: [{
