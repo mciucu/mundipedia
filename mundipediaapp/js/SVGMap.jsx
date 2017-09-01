@@ -89,11 +89,19 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
             height: 600,
             width: 800,
             showGraticule: true,
+
         }, options);
 
         const VIEW_BOX_SIZE = Math.min(options.height, options.width);
 
-        options.projection = options.projection || geoOrthographic().scale(0.5 * VIEW_BOX_SIZE).clipAngle(90).translate([VIEW_BOX_SIZE / 2, VIEW_BOX_SIZE / 2]);
+        options = Object.assign({
+            initialScale: 0.5 * VIEW_BOX_SIZE,
+            initialTranslate: [options.width / 2, options.height / 2],
+            initialRotation: [0, 0, 0],
+        }, options);
+
+
+        options.projection = options.projection || geoOrthographic().scale(options.initialScale).clipAngle(90).translate(options.initialTranslate);
 
         return options;
     }
@@ -117,7 +125,8 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     }
 
     resetProjection() {
-        console.log("reset projection");
+        this.getProjection().scale(this.options.initialScale).translate(this.options.initialTranslate).rotate(this.options.initialRotation);
+        this.redraw();
     }
 
     setShowGraticule(value) {
