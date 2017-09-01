@@ -9,35 +9,7 @@ import {enhance} from "Color";
 import {getDragPointRotation} from "./geo/Transform";
 
 import {Draggable} from "ui/Draggable";
-
-const Zoomable = (BaseClass) => class Zoomable extends BaseClass {
-    getZoomLevel() {
-        return this.options.zoomLevel || 1;
-    }
-
-    getMinZoomLevel() {
-        return this.options.minZoomLevel || 0.02;
-    }
-
-    getMaxZoomLevel() {
-        return this.options.maxZoomLevel || 50;
-    }
-
-    setZoomLevel(zoomLevel, event) {
-        zoomLevel = Math.max(this.getMinZoomLevel(), zoomLevel);
-        zoomLevel = Math.min(this.getMaxZoomLevel(), zoomLevel);
-        if (this.getZoomLevel() === zoomLevel) {
-            return;
-        }
-        this.options.zoomLevel = zoomLevel;
-        this.redraw();
-        this.dispatch("setZoomLevel", zoomLevel);
-    }
-
-    addZoomListener(callback) {
-
-    }
-};
+import {Zoomable} from "ui/Zoomable";
 
 
 D3PathString.prototype.point = function (x, y) {
@@ -123,7 +95,7 @@ function getPreferredDimensions() {
     };
 }
 
-export class HistoricalMap extends Draggable(SVG.SVGRoot) {
+export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     getDefaultOptions(options) {
         options = Object.assign(getPreferredDimensions(), {
             showGraticule: true,
@@ -265,13 +237,9 @@ export class HistoricalMap extends Draggable(SVG.SVGRoot) {
             onEnd: (event) => this.handleDragEnd(),
         });
 
-        // TODO: handle touch and wheel
-        this.addNodeListener("wheel", (event) => {
-            let projection = this.getProjection();
-            let currentScale = projection.scale();
-            let deltaY = -event.deltaY;
-            const scaleRatio = (deltaY >= 0) ? 1 + deltaY / 200 : 1 / (1 - deltaY / 200);
-            this.getProjection().scale(currentScale * scaleRatio);
+        this.addZoomListener((zoomEvent) => {
+            const projection = this.getProjection();
+            projection.scale(projection.scale() * zoomEvent.zoomFactor);
             this.redraw();
         });
 

@@ -2389,6 +2389,9 @@ function changeParent(element, newParent) {
     newParent.appendChild(element);
 }
 
+// TODO: should this be actually better done throught the dynamic CSS API, without doing through the DOM?
+// So far it's actually better like this, since browsers like Chrome allow users to edit classes
+
 var StyleInstance = function (_UI$TextElement) {
     inherits(StyleInstance, _UI$TextElement);
 
@@ -2886,6 +2889,9 @@ var keyframesRuleInherit = styleRuleWithOptions({
     inherit: true
 });
 
+// Class meant to group multiple classes inside a single <style> element, for convenience
+// TODO: pattern should be more robust, to be able to only update classes
+
 var StyleSheet = function (_Dispatchable) {
     inherits(StyleSheet, _Dispatchable);
 
@@ -3245,28 +3251,51 @@ var Device = function () {
             return this._isMobileDevice;
         }
     }, {
+        key: "getEventTouchIdentifier",
+        value: function getEventTouchIdentifier(event) {
+            return Math.min.apply(Math, toConsumableArray([].concat(toConsumableArray(event.touches)).map(function (touch) {
+                return touch.identifier;
+            })));
+        }
+    }, {
+        key: "getEventTouch",
+        value: function getEventTouch(event) {
+            var identifier = this.getEventTouchIdentifier(event);
+            return [].concat(toConsumableArray(event.touches)).find(function (touch) {
+                return touch.identifier === identifier;
+            });
+        }
+    }, {
         key: "getEventCoord",
         value: function getEventCoord(event, axis) {
-            var pageName = "page" + axis;
-            if (this.isTouchDevice()) {
-                if (event.targetTouches) {
-                    return event.targetTouches[0][pageName];
-                }
-                if (event.originalEvent && event.originalEvent.targetTouches) {
-                    return event.originalEvent.targetTouches[0][pageName];
-                }
+            var reference = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "client";
+
+            var coordName = reference + axis;
+            if (event[coordName]) {
+                return event[coordName];
             }
-            return event[pageName];
+            if (event.touches) {
+                return this.getEventTouch(event)[coordName];
+            }
+            if (event.originalEvent) {
+                return this.getEventCoord(event.originalEvent, axis, reference);
+            }
+
+            console.warn("Couldn't find coordinates for event. Maybe wrong reference point? (client/page/screen)");
         }
     }, {
         key: "getEventX",
         value: function getEventX(event) {
-            return this.getEventCoord(event, "X");
+            var reference = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "client";
+
+            return this.getEventCoord(event, "X", reference);
         }
     }, {
         key: "getEventY",
         value: function getEventY(event) {
-            return this.getEventCoord(event, "Y");
+            var reference = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "client";
+
+            return this.getEventCoord(event, "Y", reference);
         }
     }, {
         key: "getBrowser",
@@ -3395,18 +3424,21 @@ var Draggable = function Draggable(BaseClass) {
                 var listenerWrapper = Object.assign({}, listeners);
 
                 listenerWrapper.onWrapperDrag = function (event) {
-                    var deltaX = event.clientX - listenerWrapper._lastX;
-                    listenerWrapper._lastX = event.clientX;
+                    var eventX = Device.getEventX(event),
+                        eventY = Device.getEventY(event);
 
-                    var deltaY = event.clientY - listenerWrapper._lastY;
-                    listenerWrapper._lastY = event.clientY;
+                    var deltaX = eventX - listenerWrapper._lastX;
+                    listenerWrapper._lastX = eventX;
+
+                    var deltaY = eventY - listenerWrapper._lastY;
+                    listenerWrapper._lastY = eventY;
 
                     listeners.onDrag(deltaX, deltaY);
                 };
 
                 listenerWrapper.onWrapperStart = function (event) {
-                    listenerWrapper._lastX = event.clientX;
-                    listenerWrapper._lastY = event.clientY;
+                    listenerWrapper._lastX = Device.getEventX(event);
+                    listenerWrapper._lastY = Device.getEventY(event);
 
                     if (listeners.onStart) {
                         listeners.onStart(event);
@@ -3431,20 +3463,22 @@ var Draggable = function Draggable(BaseClass) {
                 var listenerWrapper = Object.assign({}, listeners);
 
                 listenerWrapper.onWrapperDrag = function (event) {
-                    var touch = event.targetTouches[0];
-                    var deltaX = touch.pageX - listenerWrapper._lastX;
-                    listenerWrapper._lastX = touch.pageX;
+                    var eventX = Device.getEventX(event),
+                        eventY = Device.getEventY(event);
 
-                    var deltaY = touch.pageY - listenerWrapper._lastY;
-                    listenerWrapper._lastY = touch.pageY;
+                    var deltaX = eventX - listenerWrapper._lastX;
+                    listenerWrapper._lastX = eventX;
+
+                    var deltaY = eventY - listenerWrapper._lastY;
+                    listenerWrapper._lastY = eventY;
 
                     listeners.onDrag(deltaX, deltaY);
                 };
 
                 listenerWrapper.onWrapperStart = function (event) {
-                    var touch = event.targetTouches[0];
-                    listenerWrapper._lastX = touch.pageX;
-                    listenerWrapper._lastY = touch.pageY;
+                    listenerWrapper._lastX = Device.getEventX(event);
+                    listenerWrapper._lastY = Device.getEventY(event);
+                    listenerWrapper.touchEventIdentifier = Device.getEventTouchIdentifier(event);
 
                     if (listeners.onStart) {
                         listeners.onStart(event);
@@ -3456,6 +3490,9 @@ var Draggable = function Draggable(BaseClass) {
                 };
 
                 listenerWrapper.onWrapperEnd = function (event) {
+                    if (event.touches.length && Device.getEventTouchIdentifier(event) === listenerWrapper.touchEventIdentifier) {
+                        return;
+                    }
                     if (listeners.onEnd) {
                         listeners.onEnd(event);
                     }
@@ -3506,6 +3543,8 @@ var Draggable = function Draggable(BaseClass) {
 };
 
 // TODO: this file existed to hold generic classes in a period of fast prototyping, has a lot of old code
+// A very simple class, all this does is implement the `getTitle()` method
+
 var Panel = function (_UI$Element) {
     inherits(Panel, _UI$Element);
 
@@ -5207,6 +5246,10 @@ var FormField = function (_FormGroup) {
     return FormField;
 }(FormGroup);
 
+// Setting these attributes as styles in mozilla has no effect.
+// To maintain compatibility between moz and webkit, whenever
+// one of these attributes is set as a style, it is also set as a
+// node attribute.
 var MozStyleElements = new Set(["width", "height", "rx", "ry", "cx", "cy", "x", "y"]);
 
 var SVGNodeAttributes = function (_NodeAttributes) {
@@ -5317,10 +5360,8 @@ SVG.Element = function (_UI$Element) {
             get(SVGElement.prototype.__proto__ || Object.getPrototypeOf(SVGElement.prototype), "setOptions", this).call(this, options);
         }
     }, {
-        key: "getMouseCoordinates",
-        value: function getMouseCoordinates() {
-            var event = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : self.event;
-
+        key: "getScreenCoordinatedForPoint",
+        value: function getScreenCoordinatedForPoint(point) {
             var node = this.node;
             // TODO: this is a good argument to always keep a reference to the Stem element in the nodes
             var svgNode = node.ownerSVGElement || node;
@@ -5328,17 +5369,24 @@ SVG.Element = function (_UI$Element) {
             if (svgNode.createSVGPoint) {
                 // Using native SVG transformations
                 // See https://msdn.microsoft.com/en-us/library/hh535760(v=vs.85).aspx
-                var point = svgNode.createSVGPoint();
-                point.x = event.clientX;
-                point.y = event.clientY;
-                return point.matrixTransform(node.getScreenCTM().inverse());
+                var svgPoint = svgNode.createSVGPoint();
+                svgPoint.x = point.x;
+                svgPoint.y = point.y;
+                return svgPoint.matrixTransform(node.getScreenCTM().inverse());
             }
 
             var rect = this.getBoundingClientRect();
             return {
-                x: event.clientX - rect.left - node.clientLeft,
-                y: event.clientY - rect.top - node.clientTop
+                x: point.x - rect.left - node.clientLeft,
+                y: point.y - rect.top - node.clientTop
             };
+        }
+    }, {
+        key: "getMouseCoordinatesForEvent",
+        value: function getMouseCoordinatesForEvent() {
+            var event = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : window.event;
+
+            return this.getScreenCoordinatedForPoint({ x: Device.getEventX(event), y: Device.getEventY(event) });
         }
     }, {
         key: "saveState",
@@ -7191,6 +7239,7 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
     return desc;
 }
 
+// TODO: export these properly, don't use a namespace here
 var GlobalStyle = {};
 
 Theme.Global.setProperties({
@@ -8755,6 +8804,7 @@ var TerminalRoute = function (_Route) {
     return TerminalRoute;
 }(Route);
 
+// This is the object that will be used to translate text
 var translationMap = null;
 
 // Keep a set of all UI Element that need to be updated when the language changes
@@ -8851,11 +8901,6 @@ UI.TranslationTextElement = function (_UI$TextElement) {
 UI.T = function (str) {
     return new UI.TranslationTextElement(str);
 };
-
-// TODO @mciucu this should be wrapped in a way that previous requests that arrive later don't get processed
-// TODO: should this be done with promises?
-// Function to be called with a translation map
-// The translationMap object needs to implement .get(value) to return the translation for value
 
 var _class$9;
 var _descriptor$4;
@@ -9341,6 +9386,8 @@ var TabArea = (_dec$4 = registerStyle(DefaultTabAreaStyle), _dec$4(_class$8 = fu
     return TabArea;
 }(UI.Element)) || _class$8);
 
+// A map that supports multiple values to the same key
+
 var MultiMap = function () {
     function MultiMap() {
         classCallCheck(this, MultiMap);
@@ -9590,6 +9637,8 @@ var MultiMap = function () {
 var _class$12;
 var _temp$3;
 
+// This class currently mirrors the functionality of Headers on Chrome at the time of implementation
+// TODO: It is specified that the function get() should return the result of getAll() and getAll() deprecated
 var Headers$1 = (_temp$3 = _class$12 = function (_MultiMap) {
     inherits(Headers, _MultiMap);
 
@@ -10156,6 +10205,8 @@ function polyfillResponse(global) {
 // Tries to be a more flexible implementation of fetch()
 // Still work in progress
 
+// May need to polyfill Headers, Request, Response, Body, URLSearchParams classes, so import them
+// TODO: should only call this in the first call to fetch, to not create unneeded dependencies?
 if (window) {
     polyfillRequest(window);
     polyfillResponse(window);
@@ -13212,6 +13263,7 @@ var _dec2$3;
 var _class2$2;
 
 // TODO: Too much "hidden"
+// options.orientation is the orientation of the divided elements
 var DividerBar = (_dec$13 = registerStyle(SectionDividerStyle), _dec$13(_class$26 = function (_Divider) {
     inherits(DividerBar, _Divider);
 
@@ -14680,9 +14732,6 @@ var EntriesManager = function (_Dispatchable) {
     return EntriesManager;
 }(Dispatchable);
 
-// A wrapper for tables which optimizes rendering when many entries / updates are involved. It currently has hardcoded
-// row height for functionality reasons.
-
 var _class$32;
 var _descriptor$14;
 var _descriptor2$12;
@@ -14823,6 +14872,8 @@ var SortableTableStyle = (_class3$10 = function (_TableStyle) {
 
 var _dec$16;
 var _class$31;
+
+// TODO: the whole table architecture probably needs a rethinking
 
 var TableRow = function (_UI$Primitive) {
     inherits(TableRow, _UI$Primitive);
@@ -15802,6 +15853,10 @@ addCanonicalTimeUnits();
 
 var _class$34;
 
+// MAX_UNIX_TIME is either ~Feb 2106 in unix seconds or ~Feb 1970 in unix milliseconds
+// Any value less than this is interpreted as a unix time in seconds
+// If you want to go around this behavious, you can use the static method .fromUnixMilliseconds()
+// To disable, set this value to 0
 var MAX_AUTO_UNIX_TIME = Math.pow(2, 32);
 
 var BaseDate = self.Date;
@@ -16318,6 +16373,7 @@ StemDate.tokenFormattersMap = new Map([["ISO", function (date) {
     return date.format("MMMM Do, YYYY");
 }]]);
 
+// File meant to handle server time/client time differences
 var ServerTime = {
     now: function now() {
         return StemDate().subtract(this.getOffset());
@@ -16349,6 +16405,8 @@ function isDifferentDay(timeA, timeB) {
     // Check if different day of the month, when difference is less than a day
     return timeA.getDate() !== timeB.getDate();
 }
+
+// import {Button} from "./button/Button";
 
 var DatePickerTable = function (_UI$Element) {
     inherits(DatePickerTable, _UI$Element);
@@ -18013,6 +18071,7 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
   return rotation;
 }
 
+// Generates a circle centered at [0°, 0°], with a given radius and precision.
 function circleStream(stream, radius, delta, direction, t0, t1) {
   if (!delta) return;
   var cosRadius = cos(radius),
@@ -18475,7 +18534,7 @@ var min = function (values, valueof) {
   return min;
 };
 
-var d3Shuffle = function (array, i0, i1) {
+var shuffle = function (array, i0, i1) {
   var m = (i1 == null ? array.length : i1) - (i0 = i0 == null ? 0 : +i0),
       t,
       i;
@@ -19076,6 +19135,8 @@ function boundsPoint$1(x, y) {
   if (y < y0$2) y0$2 = y;
   if (y > y1) y1 = y;
 }
+
+// TODO Enforce positive area for exterior, negative area for interior?
 
 var X0$1 = 0;
 var Y0$1 = 0;
@@ -20173,9 +20234,6 @@ function sqrt$1(x) {
   return x > 0 ? Math.sqrt(x) : 0;
 }
 
-// Abort if [x, y] is not within an ellipse centered at [0, 0] with
-// semi-major axis pi and semi-minor axis pi/2.
-
 function eckert4Raw(lambda, phi) {
   var k = (2 + halfPi$1) * sin$1(phi);
   phi /= 2;
@@ -20262,6 +20320,9 @@ var ginzburg6Raw = ginzburgPolyconicRaw(5 / 6 * pi$1, -0.62636, -0.0344, 0, 1.34
 
 var ginzburg9Raw = ginzburgPolyconicRaw(2.6516, -0.76534, 0.19123, -0.047094, 1.36289, -0.13965, 0.031762);
 
+// Returns [sn, cn, dn](u + iv|m).
+
+
 // Returns [sn, cn, dn, ph](u|m).
 
 
@@ -20314,9 +20375,6 @@ var geoHammer = function () {
   return p.scale(169.529);
 };
 
-// Latitudinal rotation by phi0.
-// Temporary hack until D3 supports arbitrary small-circle clipping origins.
-
 function interpolateLine(coordinates, m) {
   var i = -1,
       n = coordinates.length,
@@ -20337,10 +20395,10 @@ function interpolateLine(coordinates, m) {
   return resampled;
 }
 
+// Inverts a transform matrix.
+
+
 // Multiplies two 3x2 matrices.
-
-
-// Subtracts 2D vectors.
 
 function outline(stream, node, parent) {
   var point,
@@ -20376,8 +20434,6 @@ function outline(stream, node, parent) {
     }
   }
 }
-
-// Tests equality of two spherical points.
 
 // TODO generate on-the-fly to avoid external modification.
 var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
@@ -20605,6 +20661,365 @@ function stitchGeometry(input) {
   return output;
 }
 
+// TODO clip to ellipse
+
+// The following code is from ivyywang
+
+var to_radians = Math.PI / 180;
+var to_degrees = 180 / Math.PI;
+
+// Helper function: cross product of two vectors v0&v1
+function cross$2(v0, v1) {
+  return [v0[1] * v1[2] - v0[2] * v1[1], v0[2] * v1[0] - v0[0] * v1[2], v0[0] * v1[1] - v0[1] * v1[0]];
+}
+
+//Helper function: dot product of two vectors v0&v1
+function dot$1(v0, v1) {
+  for (var i = 0, sum = 0; v0.length > i; ++i) {
+    sum += v0[i] * v1[i];
+  }return sum;
+}
+
+// Helper function:
+// This function converts a [lon, lat] coordinates into a [x,y,z] coordinate
+// the [x, y, z] is Cartesian, with origin at lon/lat (0,0) center of the earth
+function lonlat2xyz(coord) {
+
+  var lon = coord[0] * to_radians;
+  var lat = coord[1] * to_radians;
+
+  var x = Math.cos(lat) * Math.cos(lon);
+
+  var y = Math.cos(lat) * Math.sin(lon);
+
+  var z = Math.sin(lat);
+
+  return [x, y, z];
+}
+
+// Helper function:
+// This function computes a quaternion representation for the rotation between to vectors
+// https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Euler_angles_.E2.86.94_Quaternion
+function quaternion(v0, v1) {
+
+  if (v0 && v1) {
+
+    var w = cross$2(v0, v1),
+        // vector pendicular to v0 & v1
+    w_len = Math.sqrt(dot$1(w, w)); // length of w
+
+    if (w_len == 0) return;
+
+    var theta = .5 * Math.acos(Math.max(-1, Math.min(1, dot$1(v0, v1)))),
+        qi = w[2] * Math.sin(theta) / w_len,
+        qj = -w[1] * Math.sin(theta) / w_len,
+        qk = w[0] * Math.sin(theta) / w_len,
+        qr = Math.cos(theta);
+
+    return theta && [qr, qi, qj, qk];
+  }
+}
+
+// Helper function:
+// This functions converts euler angles to quaternion
+// https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Euler_angles_.E2.86.94_Quaternion
+function euler2quat(e) {
+
+  if (!e) return;
+
+  var roll = .5 * e[0] * to_radians,
+      pitch = .5 * e[1] * to_radians,
+      yaw = .5 * e[2] * to_radians,
+      sr = Math.sin(roll),
+      cr = Math.cos(roll),
+      sp = Math.sin(pitch),
+      cp = Math.cos(pitch),
+      sy = Math.sin(yaw),
+      cy = Math.cos(yaw),
+      qi = sr * cp * cy - cr * sp * sy,
+      qj = cr * sp * cy + sr * cp * sy,
+      qk = cr * cp * sy - sr * sp * cy,
+      qr = cr * cp * cy + sr * sp * sy;
+
+  return [qr, qi, qj, qk];
+}
+
+// This functions computes a quaternion multiply
+// Geometrically, it means combining two quant rotations
+// http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/arithmetic/index.htm
+function quatMultiply(q1, q2) {
+  if (!q1 || !q2) return;
+
+  var a = q1[0],
+      b = q1[1],
+      c = q1[2],
+      d = q1[3],
+      e = q2[0],
+      f = q2[1],
+      g = q2[2],
+      h = q2[3];
+
+  return [a * e - b * f - c * g - d * h, b * e + a * f + c * h - d * g, a * g - b * h + c * e + d * f, a * h + b * g - c * f + d * e];
+}
+
+// This function computes quaternion to euler angles
+// https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Euler_angles_.E2.86.94_Quaternion
+function quat2euler(t) {
+
+  if (!t) return;
+
+  return [Math.atan2(2 * (t[0] * t[1] + t[2] * t[3]), 1 - 2 * (t[1] * t[1] + t[2] * t[2])) * to_degrees, Math.asin(Math.max(-1, Math.min(1, 2 * (t[0] * t[2] - t[3] * t[1])))) * to_degrees, Math.atan2(2 * (t[0] * t[3] + t[1] * t[2]), 1 - 2 * (t[2] * t[2] + t[3] * t[3])) * to_degrees];
+}
+
+/*  This function computes the euler angles when given two vectors, and a rotation
+	This is really the only math function called with d3 code.
+
+	v0 - starting pos in lon/lat, commonly obtained by projection.invert
+	v1 - ending pos in lon/lat, commonly obtained by projection.invert
+	o0 - the projection rotation in euler angles at starting pos (v0), commonly obtained by projection.rotate
+*/
+
+function getDragPointRotation(v0, v1, o0) {
+
+  /*
+  	The math behind this:
+  	- first calculate the quaternion rotation between the two vectors, v0 & v1
+  	- then multiply this rotation onto the original rotation at v0
+  	- finally convert the resulted quat angle back to euler angles for d3 to rotate
+  */
+
+  var t = quatMultiply(euler2quat(o0), quaternion(lonlat2xyz(v0), lonlat2xyz(v1)));
+  return quat2euler(t);
+
+  // const point0 = lonlat2xyz(v0);
+  // const point1 = lonlat2xyz(v1);
+  //
+  // for (let i = 0; i < 3; i++) {
+  //     point0[i] *= to_degrees;
+  //     point1[i] *= to_degrees;
+  // }
+  //
+  // const domMatrix0 = makeDOMMatrix().rotate(...point0);
+  // const domMatrix1 = makeDOMMatrix().rotate(...point1);
+  //
+  // const between = domMatrix1.multiply(domMatrix0.inverse());
+  //
+  // let newMat = makeDOMMatrix().rotate(...o0).multiply(between);
+}
+
+var WheelZoomEventHandler = function () {
+    function WheelZoomEventHandler(uiElement, callback, unit) {
+        classCallCheck(this, WheelZoomEventHandler);
+
+        this.eventHandler = uiElement.addNodeListener("wheel", function (event) {
+            var deltaY = event.deltaY;
+            var factor = deltaY <= 0 ? 1 - deltaY / unit : 1 / (1 + deltaY / unit);
+            callback({
+                x: Device.getEventX(event),
+                y: Device.getEventY(event),
+                zoomFactor: factor,
+                event: event
+            });
+        });
+    }
+
+    createClass(WheelZoomEventHandler, [{
+        key: "cleanup",
+        value: function cleanup() {
+            this.eventHandler.remove();
+        }
+    }]);
+    return WheelZoomEventHandler;
+}();
+
+var PinchZoomEventHandler = function () {
+    function PinchZoomEventHandler(uiElement, callback, unit) {
+        var _this = this;
+
+        classCallCheck(this, PinchZoomEventHandler);
+
+        this.pinchActive = false;
+        this.touchStartHandler = uiElement.addNodeListener("touchstart", function (event) {
+            _this.recalculateCentroid(event);
+        });
+        this.touchEndHandler = uiElement.addNodeListener("touchend", function (event) {
+            _this.recalculateCentroid(event);
+        });
+        this.touchCancelHandler = uiElement.addNodeListener("touchcancel", function (event) {
+            _this.recalculateCentroid(event);
+        });
+        this.touchMoveHandler = uiElement.addNodeListener("touchmove", function (event) {
+            if (_this.pinchActive && event.touches && event.touches.length > 1) {
+                var _calculateCentroid = _this.calculateCentroid(event.touches),
+                    _calculateCentroid2 = slicedToArray(_calculateCentroid, 2),
+                    newCentroid = _calculateCentroid2[0],
+                    newAveregeDist = _calculateCentroid2[1];
+
+                var delta = _this.averegeDist - newAveregeDist;
+                var factor = delta <= 0 ? 1 - delta / unit : 1 / (1 + delta / unit);
+                callback({
+                    x: Device.getEventX(event),
+                    y: Device.getEventY(event),
+                    zoomFactor: factor,
+                    event: event
+                });
+                _this.centroid = newCentroid;
+                _this.averegeDist = newAveregeDist;
+            }
+        });
+    }
+
+    createClass(PinchZoomEventHandler, [{
+        key: "calculateCentroid",
+        value: function calculateCentroid(touches) {
+            var centroid = { x: 0, y: 0 };
+            var _iteratorNormalCompletion = true;
+            var _didIteratorError = false;
+            var _iteratorError = undefined;
+
+            try {
+                for (var _iterator = touches[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var touch = _step.value;
+
+                    centroid.x += Device.getEventX(touch);
+                    centroid.y += Device.getEventY(touch);
+                }
+            } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                        _iterator.return();
+                    }
+                } finally {
+                    if (_didIteratorError) {
+                        throw _iteratorError;
+                    }
+                }
+            }
+
+            centroid.x /= touches.length;
+            centroid.y /= touches.length;
+
+            var averegeDist = 0;
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+
+            try {
+                for (var _iterator2 = touches[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var _touch = _step2.value;
+
+                    var x = Device.getEventX(_touch),
+                        y = Device.getEventY(_touch);
+                    averegeDist += Math.sqrt((x - centroid.x) * (x - centroid.x) + (y - centroid.y) * (y - centroid.y));
+                }
+            } catch (err) {
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
+                    }
+                } finally {
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
+                    }
+                }
+            }
+
+            averegeDist /= touches.length;
+            return [centroid, averegeDist];
+        }
+    }, {
+        key: "recalculateCentroid",
+        value: function recalculateCentroid(event) {
+            var touches = event.touches || [];
+            if (touches.length < 2) {
+                this.pinchActive = false;
+                return;
+            }
+            this.pinchActive = true;
+
+            var _calculateCentroid3 = this.calculateCentroid(touches);
+
+            var _calculateCentroid4 = slicedToArray(_calculateCentroid3, 2);
+
+            this.centroid = _calculateCentroid4[0];
+            this.averegeDist = _calculateCentroid4[1];
+        }
+    }, {
+        key: "cleanup",
+        value: function cleanup() {
+            this.touchStartHandler.remove();
+            this.touchMoveHandler.remove();
+            this.touchEndHandler.remove();
+            this.touchCancelHandler.remove();
+        }
+    }]);
+    return PinchZoomEventHandler;
+}();
+
+var Zoomable = function Zoomable(BaseClass) {
+    return function (_BaseClass) {
+        inherits(Zoomable, _BaseClass);
+
+        function Zoomable() {
+            classCallCheck(this, Zoomable);
+            return possibleConstructorReturn(this, (Zoomable.__proto__ || Object.getPrototypeOf(Zoomable)).apply(this, arguments));
+        }
+
+        createClass(Zoomable, [{
+            key: "getZoomLevel",
+            value: function getZoomLevel() {
+                return this.options.zoomLevel || 1;
+            }
+        }, {
+            key: "getMinZoomLevel",
+            value: function getMinZoomLevel() {
+                return this.options.minZoomLevel || 0.02;
+            }
+        }, {
+            key: "getMaxZoomLevel",
+            value: function getMaxZoomLevel() {
+                return this.options.maxZoomLevel || 50;
+            }
+        }, {
+            key: "setZoomLevel",
+            value: function setZoomLevel(zoomLevel, event) {
+                zoomLevel = Math.max(this.getMinZoomLevel(), zoomLevel);
+                zoomLevel = Math.min(this.getMaxZoomLevel(), zoomLevel);
+                if (this.getZoomLevel() === zoomLevel) {
+                    return;
+                }
+                this.options.zoomLevel = zoomLevel;
+                this.redraw();
+                this.dispatch("setZoomLevel", zoomLevel);
+            }
+        }, {
+            key: "addZoomListener",
+            value: function addZoomListener(callback) {
+                var unit = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 200;
+
+                // callback will be called with three arguments: x, y and factor
+                var wheelEventHandler = new WheelZoomEventHandler(this, callback, unit);
+                var pinchEventHandler = new PinchZoomEventHandler(this, callback, 0.5 * unit);
+
+                return this.zoomHandler = new CleanupJobs([wheelEventHandler, pinchEventHandler]);
+            }
+        }, {
+            key: "removeZoomListener",
+            value: function removeZoomListener() {
+                this.zoomHandler && this.zoomHandler.cleanup();
+                delete this.zoomHandler;
+            }
+        }]);
+        return Zoomable;
+    }(BaseClass);
+};
+
 var _class$39;
 var _descriptor$17;
 var _dec$18;
@@ -20668,139 +21083,6 @@ function _applyDecoratedDescriptor$19(target, property, decorators, descriptor, 
     return desc;
 }
 
-/***** ALL MATH FUNCTIONS ****/
-
-// The following code is from ivyywang
-
-var to_radians = Math.PI / 180;
-var to_degrees = 180 / Math.PI;
-
-// Helper function: cross product of two vectors v0&v1
-function cross(v0, v1) {
-    return [v0[1] * v1[2] - v0[2] * v1[1], v0[2] * v1[0] - v0[0] * v1[2], v0[0] * v1[1] - v0[1] * v1[0]];
-}
-
-//Helper function: dot product of two vectors v0&v1
-function dot(v0, v1) {
-    for (var i = 0, sum = 0; v0.length > i; ++i) {
-        sum += v0[i] * v1[i];
-    }return sum;
-}
-
-// Helper function:
-// This function converts a [lon, lat] coordinates into a [x,y,z] coordinate
-// the [x, y, z] is Cartesian, with origin at lon/lat (0,0) center of the earth
-function lonlat2xyz(coord) {
-
-    var lon = coord[0] * to_radians;
-    var lat = coord[1] * to_radians;
-
-    var x = Math.cos(lat) * Math.cos(lon);
-
-    var y = Math.cos(lat) * Math.sin(lon);
-
-    var z = Math.sin(lat);
-
-    return [x, y, z];
-}
-
-// Helper function:
-// This function computes a quaternion representation for the rotation between to vectors
-// https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Euler_angles_.E2.86.94_Quaternion
-function quaternion(v0, v1) {
-
-    if (v0 && v1) {
-
-        var w = cross(v0, v1),
-            // vector pendicular to v0 & v1
-        w_len = Math.sqrt(dot(w, w)); // length of w
-
-        if (w_len == 0) return;
-
-        var theta = .5 * Math.acos(Math.max(-1, Math.min(1, dot(v0, v1)))),
-            qi = w[2] * Math.sin(theta) / w_len,
-            qj = -w[1] * Math.sin(theta) / w_len,
-            qk = w[0] * Math.sin(theta) / w_len,
-            qr = Math.cos(theta);
-
-        return theta && [qr, qi, qj, qk];
-    }
-}
-
-// Helper function:
-// This functions converts euler angles to quaternion
-// https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Euler_angles_.E2.86.94_Quaternion
-function euler2quat(e) {
-
-    if (!e) return;
-
-    var roll = .5 * e[0] * to_radians,
-        pitch = .5 * e[1] * to_radians,
-        yaw = .5 * e[2] * to_radians,
-        sr = Math.sin(roll),
-        cr = Math.cos(roll),
-        sp = Math.sin(pitch),
-        cp = Math.cos(pitch),
-        sy = Math.sin(yaw),
-        cy = Math.cos(yaw),
-        qi = sr * cp * cy - cr * sp * sy,
-        qj = cr * sp * cy + sr * cp * sy,
-        qk = cr * cp * sy - sr * sp * cy,
-        qr = cr * cp * cy + sr * sp * sy;
-
-    return [qr, qi, qj, qk];
-}
-
-// This functions computes a quaternion multiply
-// Geometrically, it means combining two quant rotations
-// http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/arithmetic/index.htm
-function quatMultiply(q1, q2) {
-    if (!q1 || !q2) return;
-
-    var a = q1[0],
-        b = q1[1],
-        c = q1[2],
-        d = q1[3],
-        e = q2[0],
-        f = q2[1],
-        g = q2[2],
-        h = q2[3];
-
-    return [a * e - b * f - c * g - d * h, b * e + a * f + c * h - d * g, a * g - b * h + c * e + d * f, a * h + b * g - c * f + d * e];
-}
-
-// This function computes quaternion to euler angles
-// https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Euler_angles_.E2.86.94_Quaternion
-function quat2euler(t) {
-
-    if (!t) return;
-
-    return [Math.atan2(2 * (t[0] * t[1] + t[2] * t[3]), 1 - 2 * (t[1] * t[1] + t[2] * t[2])) * to_degrees, Math.asin(Math.max(-1, Math.min(1, 2 * (t[0] * t[2] - t[3] * t[1])))) * to_degrees, Math.atan2(2 * (t[0] * t[3] + t[1] * t[2]), 1 - 2 * (t[2] * t[2] + t[3] * t[3])) * to_degrees];
-}
-
-/*  This function computes the euler angles when given two vectors, and a rotation
-	This is really the only math function called with d3 code.
-
-	v0 - starting pos in lon/lat, commonly obtained by projection.invert
-	v1 - ending pos in lon/lat, commonly obtained by projection.invert
-	o0 - the projection rotation in euler angles at starting pos (v0), commonly obtained by projection.rotate
-*/
-
-function eulerAngles(v0, v1, o0) {
-
-    /*
-    	The math behind this:
-    	- first calculate the quaternion rotation between the two vectors, v0 & v1
-    	- then multiply this rotation onto the original rotation at v0
-    	- finally convert the resulted quat angle back to euler angles for d3 to rotate
-    */
-
-    var t = quatMultiply(euler2quat(o0), quaternion(lonlat2xyz(v0), lonlat2xyz(v1)));
-    return quat2euler(t);
-}
-
-/**************end of math functions**********************/
-
 PathString.prototype.point = function (x, y) {
     switch (this._point) {
         case 0:
@@ -20823,28 +21105,13 @@ PathString.prototype.point = function (x, y) {
     }
 };
 
-var Feature = function (_Dispatchable) {
-    inherits(Feature, _Dispatchable);
-
-    function Feature(obj) {
-        classCallCheck(this, Feature);
-
-        var _this2 = possibleConstructorReturn(this, (Feature.__proto__ || Object.getPrototypeOf(Feature)).call(this));
-
-        Object.assign(_this2, obj);
-        return _this2;
-    }
-
-    return Feature;
-}(Dispatchable);
-
 var FeatureStyle = (_class$39 = function (_StyleSheet) {
     inherits(FeatureStyle, _StyleSheet);
 
     function FeatureStyle() {
         var _ref;
 
-        var _temp, _this3, _ret;
+        var _temp, _this, _ret;
 
         classCallCheck(this, FeatureStyle);
 
@@ -20852,7 +21119,7 @@ var FeatureStyle = (_class$39 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this3 = possibleConstructorReturn(this, (_ref = FeatureStyle.__proto__ || Object.getPrototypeOf(FeatureStyle)).call.apply(_ref, [this].concat(args))), _this3), _initDefineProp$18(_this3, "featureBorder", _descriptor$17, _this3), _temp), possibleConstructorReturn(_this3, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FeatureStyle.__proto__ || Object.getPrototypeOf(FeatureStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$18(_this, "featureBorder", _descriptor$17, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return FeatureStyle;
@@ -20923,10 +21190,10 @@ var FeaturePath = (_dec$18 = registerStyle(FeatureStyle), _dec$18(_class3$11 = f
     }, {
         key: "onMount",
         value: function onMount() {
-            var _this5 = this;
+            var _this3 = this;
 
             this.addNodeListener("mouseenter", function () {
-                return _this5.toFront();
+                return _this3.toFront();
             });
         }
     }]);
@@ -20943,8 +21210,8 @@ function getPreferredDimensions() {
     };
 }
 
-var HistoricalMap = function (_Draggable) {
-    inherits(HistoricalMap, _Draggable);
+var HistoricalMap = function (_Zoomable) {
+    inherits(HistoricalMap, _Zoomable);
 
     function HistoricalMap() {
         classCallCheck(this, HistoricalMap);
@@ -20954,7 +21221,9 @@ var HistoricalMap = function (_Draggable) {
     createClass(HistoricalMap, [{
         key: "getDefaultOptions",
         value: function getDefaultOptions(options) {
-            options = Object.assign(getPreferredDimensions(), options);
+            options = Object.assign(getPreferredDimensions(), {
+                showGraticule: true
+            }, options);
 
             var VIEW_BOX_SIZE = Math.min(options.height, options.width);
 
@@ -20982,11 +21251,11 @@ var HistoricalMap = function (_Draggable) {
     }, {
         key: "loadCurrentYearData",
         value: function loadCurrentYearData() {
-            var _this7 = this;
+            var _this5 = this;
 
             var fileName = "/static/json/world/" + this.getCurrentYear() + "-sm.json";
             Ajax.getJSON(fileName).then(function (data) {
-                return _this7.setData(data);
+                return _this5.setData(data);
             });
         }
     }, {
@@ -20998,7 +21267,6 @@ var HistoricalMap = function (_Draggable) {
         key: "setProjection",
         value: function setProjection(projection) {
             var oldProjection = this.getProjection();
-            projection.clipAngle(oldProjection.clipAngle());
             projection.scale(oldProjection.scale());
             projection.translate(oldProjection.translate());
             projection.rotate(oldProjection.rotate());
@@ -21011,9 +21279,9 @@ var HistoricalMap = function (_Draggable) {
             console.log("reset projection");
         }
     }, {
-        key: "showGraticule",
-        value: function showGraticule(value) {
-            console.log("toggle graticule: ", value);
+        key: "setShowGraticule",
+        value: function setShowGraticule(value) {
+            this.updateOptions({ showGraticule: value });
         }
     }, {
         key: "getPathMaker",
@@ -21028,8 +21296,10 @@ var HistoricalMap = function (_Draggable) {
     }, {
         key: "getGraticule",
         value: function getGraticule() {
-            var graticule$$1 = graticule().step([20, 10])();
-            return UI.createElement(SVG.Path, { fill: "none", stroke: "cornflowerblue", strokeWidth: 1, strokeDasharray: "1,1", d: this.makePath(graticule$$1) });
+            if (this.options.showGraticule) {
+                var graticule$$1 = graticule().step([20, 10])();
+                return UI.createElement(SVG.Path, { fill: "none", stroke: "#aaa", strokeWidth: 0.5, d: this.makePath(graticule$$1) });
+            }
         }
     }, {
         key: "setDimensions",
@@ -21039,22 +21309,20 @@ var HistoricalMap = function (_Draggable) {
     }, {
         key: "render",
         value: function render() {
-            var _this8 = this;
+            var _this6 = this;
 
             if (!this.data) {
                 return [];
             }
 
             var paths = this.data.features.map(function (feature) {
-                var path = _this8.makePath(feature.geometry);
+                var path = _this6.makePath(feature.geometry);
                 if (!path) {
                     return null;
                 }
 
                 return UI.createElement(FeaturePath, { feature: feature, d: path });
             });
-
-            paths.push(this.getGraticule());
 
             return [UI.createElement(
                 SVG.Group,
@@ -21063,54 +21331,83 @@ var HistoricalMap = function (_Draggable) {
             ), this.getGraticule()];
         }
     }, {
+        key: "getProjectionCoordinates",
+        value: function getProjectionCoordinates() {
+            var point = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.getMouseCoordinatesForEvent();
+
+            return this.getProjection().invert([point.x, point.y]);
+        }
+    }, {
+        key: "handleDragStart",
+        value: function handleDragStart(event) {
+            this._dragStartPoint = this.getProjectionCoordinates();
+            //this.options.drawMode = DrawMode.SIMPLIFIED;
+        }
+    }, {
+        key: "handleDrag",
+        value: function handleDrag() {
+            var projection = this.getProjection();
+            var currentPoint = this.getProjectionCoordinates();
+
+            // const currentTranslation = projection.translate();
+            // const currentScale = projection.scale();
+            // console.log("Current scale", currentScale);
+            //
+            // const newTranslation = [0, 0];
+            // for (let i = 0; i < 2; i++) {
+            //     // vertical is mirrored, using obscuring formula (you know, for the kids)
+            //     newTranslation[i] = currentTranslation[i] + (currentPoint[i] - this._dragStartPoint[i]) * (1 - 2 * i);
+            // }
+            //
+            // projection.translate(newTranslation);
+
+            var currentRotation = projection.rotate();
+            var newRotation = getDragPointRotation(this._dragStartPoint, currentPoint, currentRotation);
+
+            projection.rotate(newRotation);
+
+            this.redraw();
+        }
+    }, {
+        key: "handleDragEnd",
+        value: function handleDragEnd() {}
+    }, {
+        key: "setDimensions",
+        value: function setDimensions(dimensions) {
+            console.log(dimensions.height, dimensions.width);
+        }
+    }, {
         key: "onMount",
         value: function onMount() {
-            var _this9 = this;
+            var _this7 = this;
 
             this.loadCurrentYearData();
 
-            var pointToArray = function pointToArray(point) {
-                return [point.x, point.y];
-            };
-
-            var gpos0 = void 0,
-                o0 = void 0;
-
             this.addDragListener({
                 onStart: function onStart(event) {
-                    var projection = _this9.getProjection();
-                    gpos0 = projection.invert(pointToArray(_this9.getMouseCoordinates(event)));
+                    return _this7.handleDragStart();
                 },
                 onDrag: function onDrag(deltaX, deltaY, event) {
-                    var projection = _this9.getProjection();
-
-                    var gpos1 = projection.invert(pointToArray(_this9.getMouseCoordinates(event)));
-                    o0 = projection.rotate();
-
-                    var o1 = eulerAngles(gpos0, gpos1, o0);
-                    projection.rotate(o1);
-
-                    _this9.redraw();
+                    return _this7.handleDrag();
                 },
-                onEnd: function onEnd(event) {}
+                onEnd: function onEnd(event) {
+                    return _this7.handleDragEnd();
+                }
             });
 
-            this.addNodeListener("wheel", function (event) {
-                var projection = _this9.getProjection();
-                var currentScale = projection.scale();
-                var deltaY = -event.deltaY;
-                var scaleRatio = deltaY >= 0 ? 1 + deltaY / 200 : 1 / (1 - deltaY / 200);
-                _this9.getProjection().scale(currentScale * scaleRatio);
-                _this9.redraw();
+            this.addZoomListener(function (zoomEvent) {
+                var projection = _this7.getProjection();
+                projection.scale(projection.scale() * zoomEvent.zoomFactor);
+                _this7.redraw();
             });
 
             window.addEventListener("resize", function () {
-                _this9.setDimensions(getPreferredDimensions());
+                _this7.setDimensions(getPreferredDimensions());
             });
         }
     }]);
     return HistoricalMap;
-}(Draggable(SVG.SVGRoot));
+}(Zoomable(Draggable(SVG.SVGRoot)));
 
 var FlatSelectStyle = (_class4$1 = function (_StyleSheet2) {
     inherits(FlatSelectStyle, _StyleSheet2);
@@ -21118,7 +21415,7 @@ var FlatSelectStyle = (_class4$1 = function (_StyleSheet2) {
     function FlatSelectStyle() {
         var _ref2;
 
-        var _temp2, _this10, _ret2;
+        var _temp2, _this8, _ret2;
 
         classCallCheck(this, FlatSelectStyle);
 
@@ -21126,7 +21423,7 @@ var FlatSelectStyle = (_class4$1 = function (_StyleSheet2) {
             args[_key2] = arguments[_key2];
         }
 
-        return _ret2 = (_temp2 = (_this10 = possibleConstructorReturn(this, (_ref2 = FlatSelectStyle.__proto__ || Object.getPrototypeOf(FlatSelectStyle)).call.apply(_ref2, [this].concat(args))), _this10), _this10.height = 40, _this10.width = 160, _initDefineProp$18(_this10, "flatSelect", _descriptor2$15, _this10), _initDefineProp$18(_this10, "button", _descriptor3$15, _this10), _initDefineProp$18(_this10, "textInput", _descriptor4$12, _this10), _temp2), possibleConstructorReturn(_this10, _ret2);
+        return _ret2 = (_temp2 = (_this8 = possibleConstructorReturn(this, (_ref2 = FlatSelectStyle.__proto__ || Object.getPrototypeOf(FlatSelectStyle)).call.apply(_ref2, [this].concat(args))), _this8), _this8.height = 40, _this8.width = 160, _initDefineProp$18(_this8, "flatSelect", _descriptor2$15, _this8), _initDefineProp$18(_this8, "button", _descriptor3$15, _this8), _initDefineProp$18(_this8, "textInput", _descriptor4$12, _this8), _temp2), possibleConstructorReturn(_this8, _ret2);
     }
 
     return FlatSelectStyle;
@@ -21265,18 +21562,18 @@ var FlatSelect = (_dec2$5 = registerStyle(FlatSelectStyle), _dec2$5(_class6$1 = 
     }, {
         key: "render",
         value: function render() {
-            var _this12 = this;
+            var _this10 = this;
 
             return [UI.createElement(
                 Button,
                 { className: this.styleSheet.button, onClick: function onClick() {
-                        return _this12.getFromArrow(-1);
+                        return _this10.getFromArrow(-1);
                     } },
                 UI.createElement(FAIcon, { icon: "arrow-left" })
             ), UI.createElement(TextInput, { ref: "textInput", className: this.styleSheet.textInput, value: this.getCurrentValue() }), UI.createElement(
                 Button,
                 { className: this.styleSheet.button, onClick: function onClick() {
-                        return _this12.getFromArrow(1);
+                        return _this10.getFromArrow(1);
                     } },
                 UI.createElement(FAIcon, { icon: "arrow-right" })
             )];
@@ -21284,13 +21581,13 @@ var FlatSelect = (_dec2$5 = registerStyle(FlatSelectStyle), _dec2$5(_class6$1 = 
     }, {
         key: "onMount",
         value: function onMount() {
-            var _this13 = this;
+            var _this11 = this;
 
             this.textInput.addNodeListener("keypress", function (event) {
                 if (event.keyCode === 13) {
                     // 'Enter' was pressed
-                    _this13.getFromInput(_this13.textInput.getValue());
-                    _this13.redraw();
+                    _this11.getFromInput(_this11.textInput.getValue());
+                    _this11.redraw();
                 }
             });
         }
@@ -21348,7 +21645,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
     function HistoricalWorldMapStyle() {
         var _ref3;
 
-        var _temp3, _this15, _ret3;
+        var _temp3, _this13, _ret3;
 
         classCallCheck(this, HistoricalWorldMapStyle);
 
@@ -21356,7 +21653,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this15 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this15), _this15.menuWidth = 240, _this15.menuExtraPaddingVertical = 10, _this15.menuExtraPaddingHorizontal = 20, _this15.boxShadowWidth = 5, _initDefineProp$18(_this15, "container", _descriptor5$10, _this15), _initDefineProp$18(_this15, "yearSelectContainer", _descriptor6$8, _this15), _initDefineProp$18(_this15, "historyWorldMapTitle", _descriptor7$6, _this15), _initDefineProp$18(_this15, "menuContainer", _descriptor8$5, _this15), _initDefineProp$18(_this15, "menuToggled", _descriptor9$5, _this15), _initDefineProp$18(_this15, "menuUntoggled", _descriptor10$3, _this15), _initDefineProp$18(_this15, "toggleOptions", _descriptor11$3, _this15), _initDefineProp$18(_this15, "menuIcon", _descriptor12$2, _this15), _initDefineProp$18(_this15, "select", _descriptor13$2, _this15), _initDefineProp$18(_this15, "button", _descriptor14$2, _this15), _temp3), possibleConstructorReturn(_this15, _ret3);
+        return _ret3 = (_temp3 = (_this13 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this13), _this13.menuWidth = 240, _this13.menuExtraPaddingVertical = 10, _this13.menuExtraPaddingHorizontal = 20, _this13.boxShadowWidth = 5, _initDefineProp$18(_this13, "container", _descriptor5$10, _this13), _initDefineProp$18(_this13, "yearSelectContainer", _descriptor6$8, _this13), _initDefineProp$18(_this13, "historyWorldMapTitle", _descriptor7$6, _this13), _initDefineProp$18(_this13, "menuContainer", _descriptor8$5, _this13), _initDefineProp$18(_this13, "menuToggled", _descriptor9$5, _this13), _initDefineProp$18(_this13, "menuUntoggled", _descriptor10$3, _this13), _initDefineProp$18(_this13, "toggleOptions", _descriptor11$3, _this13), _initDefineProp$18(_this13, "menuIcon", _descriptor12$2, _this13), _initDefineProp$18(_this13, "select", _descriptor13$2, _this13), _initDefineProp$18(_this13, "button", _descriptor14$2, _this13), _temp3), possibleConstructorReturn(_this13, _ret3);
     }
 
     return HistoricalWorldMapStyle;
@@ -21499,11 +21796,11 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
     function HistoricalWorldMap(options) {
         classCallCheck(this, HistoricalWorldMap);
 
-        var _this16 = possibleConstructorReturn(this, (HistoricalWorldMap.__proto__ || Object.getPrototypeOf(HistoricalWorldMap)).call(this, options));
+        var _this14 = possibleConstructorReturn(this, (HistoricalWorldMap.__proto__ || Object.getPrototypeOf(HistoricalWorldMap)).call(this, options));
 
-        _this16.menuIsToggled = false;
-        _this16.graticuleIsToggled = true;
-        return _this16;
+        _this14.menuIsToggled = false;
+        _this14.graticuleIsToggled = true;
+        return _this14;
     }
 
     createClass(HistoricalWorldMap, [{
@@ -21522,7 +21819,7 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
         key: "getAvailableProjections",
         value: function getAvailableProjections() {
             function makeProjection(d3Projection, name) {
-                var projection = d3Projection();
+                var projection = d3Projection().clipAngle(90);
                 projection.toString = function () {
                     return name;
                 };
@@ -21562,7 +21859,7 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
     }, {
         key: "render",
         value: function render() {
-            var _this17 = this;
+            var _this15 = this;
 
             var currentYear = this.options.currentYear;
 
@@ -21573,14 +21870,14 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
                 UI.createElement(Select, { options: this.getAvailableProjections(),
                     ref: "projectionSelect",
                     onChange: function onChange(obj) {
-                        return _this17.setProjection(obj.get());
+                        return _this15.setProjection(obj.get());
                     },
                     className: this.styleSheet.select
                 }),
                 UI.createElement(
                     "div",
                     { className: this.styleSheet.button, onClick: function onClick() {
-                            return _this17.map.resetProjection();
+                            return _this15.map.resetProjection();
                         } },
                     "Reset projection"
                 ),
@@ -21614,11 +21911,11 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
     }, {
         key: "onMount",
         value: function onMount() {
-            var _this18 = this;
+            var _this16 = this;
 
             this.menuIcon.addClickListener(function (event) {
                 event.stopPropagation();
-                _this18.toggleMenu();
+                _this16.toggleMenu();
             });
 
             this.menu.addClickListener(function (event) {
@@ -21626,19 +21923,18 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
             });
 
             this.yearSelect.addChangeListener(function () {
-                _this18.setCurrentYear(_this18.yearSelect.getCurrentValue());
+                _this16.setCurrentYear(_this16.yearSelect.getCurrentValue());
             });
 
             this.drawGraticuleContainer.addClickListener(function () {
-                // this.drawGraticule.setValue(!this.drawGraticule.getValue());
-                _this18.graticuleIsToggled = !_this18.graticuleIsToggled;
-                _this18.map.showGraticule(_this18.graticuleIsToggled);
-                _this18.drawGraticuleContainer.setChildren([_this18.getGraticuleLabel()]);
+                _this16.graticuleIsToggled = !_this16.graticuleIsToggled;
+                _this16.map.setShowGraticule(_this16.graticuleIsToggled);
+                _this16.drawGraticuleContainer.setChildren([_this16.getGraticuleLabel()]);
             });
 
             document.body.addEventListener("click", function () {
-                if (_this18.menuIsToggled) {
-                    _this18.toggleMenu();
+                if (_this16.menuIsToggled) {
+                    _this16.toggleMenu();
                 }
             });
         }
@@ -21866,6 +22162,7 @@ var DefaultState = GlobalState;
 
 self.GlobalState = GlobalState;
 
+// The store information is kept in a symbol, to not interfere with serialization/deserialization
 var StoreSymbol = Symbol("Store");
 
 var StoreObject = function (_Dispatchable) {
@@ -24795,6 +25092,10 @@ MarkupParser.parseJSON5 = function () {
     };
 }();
 
+// TODO: these should be in a unit test file, not here
+
+// Class that for every markup tag returns the UI class to instantiate for that element
+
 var MarkupClassMap = function () {
     function MarkupClassMap(fallback) {
         classCallCheck(this, MarkupClassMap);
@@ -27701,6 +28002,330 @@ PrivateChatStore.addListener("update", function (obj, event) {
     }
 });
 
+var BasePopup = function (_FloatingWindow) {
+    inherits(BasePopup, _FloatingWindow);
+
+    function BasePopup() {
+        classCallCheck(this, BasePopup);
+        return possibleConstructorReturn(this, (BasePopup.__proto__ || Object.getPrototypeOf(BasePopup)).apply(this, arguments));
+    }
+
+    createClass(BasePopup, [{
+        key: "getDefaultOptions",
+        value: function getDefaultOptions() {
+            var options = get(BasePopup.prototype.__proto__ || Object.getPrototypeOf(BasePopup.prototype), "getDefaultOptions", this).call(this);
+            options.x = 0;
+            options.y = 0;
+            options.contentPadding = "7px";
+            options.contentStyle = {};
+            options.arrowDirection = Direction.UP;
+            options.arrowColor = "white";
+            options.backgroundColor = "white";
+            return options;
+        }
+    }, {
+        key: "setOptions",
+        value: function setOptions(options) {
+            get(BasePopup.prototype.__proto__ || Object.getPrototypeOf(BasePopup.prototype), "setOptions", this).call(this, options);
+            this.options.style = Object.assign({
+                boxShadow: "0px 0px 4px rgba(0,0,0,0.5)",
+                borderRadius: "5px",
+                display: "table",
+                maxWidth: "350px",
+                backgroundColor: this.options.backgroundColor,
+                position: "absolute",
+                left: this.options.x + "px",
+                top: this.options.y + "px",
+                zIndex: "3",
+                right: "0px"
+            }, this.options.style);
+            this.createArrowStyle();
+        }
+    }, {
+        key: "setContent",
+        value: function setContent(content) {
+            this.options.children = content;
+            this.redraw();
+        }
+    }, {
+        key: "getContent",
+        value: function getContent() {
+            return UI.createElement(
+                "div",
+                { style: Object.assign({ padding: this.options.contentPadding }, this.options.contentStyle), ref: "contentArea" },
+                this.options.children
+            );
+        }
+    }, {
+        key: "createArrowStyle",
+        value: function createArrowStyle() {
+            var baseArrowOutline = {
+                "left": "50%",
+                "z-index": "-3",
+                "position": "absolute",
+                "width": "0",
+                "height": "0",
+                "border-left": "10px solid transparent",
+                "border-right": "10px solid transparent",
+                marginLeft: "-11px"
+            };
+
+            this["arrow" + Direction.UP + "Outline"] = Object.assign({
+                "border-bottom": "10px solid #C8C8C8",
+                "margin-top": "-10.8px",
+                marginLeft: "-11px"
+            }, baseArrowOutline);
+
+            this["arrow" + Direction.DOWN + "Outline"] = Object.assign({
+                "border-top": "10px solid #C8C8C8",
+                "margin-top": "2px"
+            }, baseArrowOutline);
+
+            var baseArrow = {
+                "left": "50%",
+                "position": "absolute",
+                "width": "0",
+                "height": "0",
+                "border-left": "10px solid transparent",
+                "border-right": "10px solid transparent"
+            };
+
+            this["arrow" + Direction.UP] = Object.assign({
+                "margin-top": "-10px",
+                "border-bottom": "10px solid " + this.options.arrowColor
+            }, baseArrow);
+
+            this["arrow" + Direction.DOWN] = Object.assign({
+                "border-top": "10px solid " + this.options.arrowColor
+            }, baseArrow);
+        }
+    }, {
+        key: "getArrow",
+        value: function getArrow() {
+            var direction = this.options.arrowDirection;
+            return [UI.createElement(Panel, { ref: "popupArrow", style: this["arrow" + direction] }), UI.createElement(Panel, { ref: "popupArrowOutline", style: this["arrow" + direction + "Outline"] })];
+        }
+    }, {
+        key: "render",
+        value: function render() {
+            return this.options.arrowDirection === Direction.UP ? [this.getArrow(), this.getContent()] : [this.getContent(), this.getArrow()];
+        }
+    }, {
+        key: "bindInsideParent",
+        value: function bindInsideParent() {
+            if (this.target) {
+                this.options.x = this.target.offsetWidth / 2;
+                this.options.y = this.options.arrowDirection === Direction.UP ? this.target.offsetHeight : 0;
+            }
+            var left = parseFloat(this.options.x);
+            var top = parseFloat(this.options.y) + (this.options.arrowDirection === Direction.UP ? 11 : -this.getHeight() - 11);
+            var arrowMargin = -11;
+            left -= this.getWidth() / 2;
+            if (this.target) {
+                if (this.node.offsetParent) {
+                    var left2 = left + this.node.offsetParent.offsetLeft;
+                    if (left2 < 0) {
+                        left -= left2 - 2;
+                        arrowMargin += left2 + 2;
+                    } else if (left2 + this.getWidth() > this.node.offsetParent.offsetParent.offsetWidth) {
+                        var delta = this.node.offsetParent.offsetParent.offsetWidth - (left2 + this.getWidth());
+                        arrowMargin -= delta - 2;
+                        left += delta - 2;
+                    }
+                }
+            } else {
+                if (left < 0) {
+                    arrowMargin += left + 2;
+                    left = 2;
+                } else if (left + this.getWidth() > this.parentNode.offsetWidth) {
+                    var _delta = left + this.getWidth() - this.parentNode.offsetWidth;
+                    arrowMargin += _delta;
+                    left -= _delta;
+                }
+            }
+            this.popupArrow.setStyle("margin-left", arrowMargin + "px");
+            this.popupArrowOutline.setStyle("margin-left", arrowMargin + "px");
+            this.setStyle("left", left + "px");
+            this.setStyle("top", top + "px");
+        }
+    }, {
+        key: "setParent",
+        value: function setParent(parent) {
+            var newParent = void 0;
+            if (parent instanceof HTMLElement) {
+                newParent = parent;
+            } else {
+                newParent = parent.node;
+            }
+            if (newParent === this.parentNode) {
+                return;
+            }
+            if (this.isInDocument()) {
+                this.parentNode.removeChild(this.node);
+                newParent.appendChild(this.node);
+                this.setParentNode(newParent);
+            } else {
+                this.setParentNode(newParent);
+            }
+        }
+    }, {
+        key: "setCenter",
+        value: function setCenter(center) {
+            var _this2 = this;
+
+            var manual = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+            this.options.x = center.x;
+            this.options.y = center.y;
+            if (manual) {
+                setTimeout(function () {
+                    _this2.bindInsideParent();
+                }, 0);
+            } else {
+                this.bindInsideParent();
+            }
+        }
+    }, {
+        key: "onMount",
+        value: function onMount() {
+            if (this.options.target) {
+                if (this.options.target instanceof HTMLElement) {
+                    this.target = this.options.target;
+                } else {
+                    this.target = this.options.target.node;
+                }
+                this.options.x = this.target.offsetWidth / 2;
+                this.options.y = this.target.offsetHeight;
+            }
+            get(BasePopup.prototype.__proto__ || Object.getPrototypeOf(BasePopup.prototype), "onMount", this).call(this);
+            // Set the Popup inside the parent
+            this.bindInsideParent();
+        }
+    }]);
+    return BasePopup;
+}(FloatingWindow);
+
+var Popup = function (_BasePopup) {
+    inherits(Popup, _BasePopup);
+
+    function Popup() {
+        classCallCheck(this, Popup);
+        return possibleConstructorReturn(this, (Popup.__proto__ || Object.getPrototypeOf(Popup)).apply(this, arguments));
+    }
+
+    createClass(Popup, [{
+        key: "getDefaultOptions",
+        value: function getDefaultOptions() {
+            var options = get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "getDefaultOptions", this).call(this);
+            options.titleFontSize = "12pt";
+            options.contentFontSize = "10pt";
+            options.arrowColor = "#F3F3F3";
+            return options;
+        }
+    }, {
+        key: "getContent",
+        value: function getContent() {
+            var contentArea = get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "getContent", this).call(this);
+            contentArea.options.style = Object.assign({
+                fontSize: this.options.contentFontSize
+            }, contentArea.options.style || {});
+
+            return [UI.createElement(
+                Panel,
+                { ref: "titleArea", style: { backgroundColor: "#F3F3F3", paddingLeft: "20px", fontSize: this.options.titleFontSize,
+                        fontWeight: "bold", paddingTop: "6px", paddingBottom: "6px", textAlign: "center",
+                        borderBottom: "1px solid #BEBEBE" } },
+                this.getTitleAreaContent()
+            ), contentArea];
+        }
+    }, {
+        key: "setTitle",
+        value: function setTitle(newTitle) {
+            this.options.title = newTitle;
+            this.redraw();
+        }
+    }, {
+        key: "getTitleAreaContent",
+        value: function getTitleAreaContent() {
+            return [UI.createElement(Button, { className: "pull-right", ref: "closeButton", style: { backgroundColor: "transparent", border: "none", color: "#888888", fontSize: "18pt", padding: "2px", marginRight: "3px", marginTop: "-12px" }, label: "\xD7" }), UI.createElement(
+                "div",
+                { style: { marginRight: "25px" } },
+                this.options.title
+            )];
+        }
+    }, {
+        key: "bindWindowListeners",
+        value: function bindWindowListeners() {
+            var _this4 = this;
+
+            this.addClickListener(function (event) {
+                event.stopPropagation();
+            });
+
+            var documentListener = function documentListener() {
+                _this4.hide();
+                if (!Device.supportsEvent("click")) {
+                    document.removeEventListener("touchstart", documentListener);
+                } else {
+                    document.removeEventListener("click", documentListener);
+                }
+            };
+            if (!Device.supportsEvent("click")) {
+                document.addEventListener("touchstart", documentListener);
+            } else {
+                document.addEventListener("click", documentListener);
+            }
+        }
+    }, {
+        key: "show",
+        value: function show() {
+            get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "show", this).call(this);
+            this.bindWindowListeners();
+        }
+    }, {
+        key: "redraw",
+        value: function redraw() {
+            if (this.isInDocument()) {
+                this.bindInsideParent();
+            }
+            get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "redraw", this).call(this);
+        }
+    }, {
+        key: "onMount",
+        value: function onMount() {
+            var _this5 = this;
+
+            get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "onMount", this).call(this);
+
+            // fake a click event that will propagate to window and trigger
+            // the events of any other popup, closing them
+            var fakeClickEvent = document.createEvent("MouseEvents");
+            fakeClickEvent.initEvent("click", true, false);
+            document.body.dispatchEvent(fakeClickEvent);
+
+            // Make the popup close when something else is clicked
+            this.bindWindowListeners();
+
+            // Close button behavior
+            this.closeButton.addClickListener(function () {
+                _this5.hide();
+                _this5.closeButton.node.blur();
+            });
+            var closeButtonColor = this.closeButton.options.style.color;
+            this.closeButton.addNodeListener("mouseover", function () {
+                _this5.closeButton.setStyle("color", "#0082AD");
+            });
+            this.closeButton.addNodeListener("mouseout", function () {
+                _this5.closeButton.setStyle("color", closeButtonColor);
+            });
+        }
+    }]);
+    return Popup;
+}(BasePopup);
+
+// import {Emoji as EmojiMini} from "EmojiMini";
+// import "EmojiUI";
+
 UI.Emoji = UI.Emoji || UI.Element;
 
 var ClickableEmote = function (_UI$Emoji) {
@@ -27802,7 +28427,7 @@ var EmojiButton = function (_Button) {
             for (var twitchEmoji in EmojiMini.TWITCH_EMOTICONS) {
                 emotesList.push(UI.createElement(ClickableTwitchEmote, { textBox: textBox, afterClick: afterClick, value: twitchEmoji }));
             }
-            return UI.BasePopup.create(this.parent, {
+            return BasePopup.create(this.parent, {
                 target: this,
                 children: emotesList,
                 arrowDirection: UI.Direction.DOWN,
@@ -32271,6 +32896,14 @@ var DelayedElement = function DelayedElement(BaseClass) {
     }(BaseClass);
 };
 
+// You can configure the loading/error states by defining the "renderLoading" and "renderError" attributes of the
+// function somewhere globally in your app.
+// Example:
+// StateDependentElement.renderLoading = "Loading...";
+// or
+// StateDependentElement.renderLoading = () => <MyCustomLoadingAnimation />
+// StateDependentElement.renderError = (error) => <MyCustomErrorMessageClass error={error} />
+
 var StateDependentElement = function StateDependentElement(BaseClass) {
     return function (_DelayedElement) {
         inherits(StateDependentElementClass, _DelayedElement);
@@ -33391,6 +34024,8 @@ function _applyDecoratedDescriptor$26(target, property, decorators, descriptor, 
 
     return desc;
 }
+
+//import {CSAStyle} from "CSAStyle";
 
 var colors = {
     // BLUE: "#20232d",
@@ -35402,27 +36037,15 @@ var ForumRoute = function (_Route) {
     return ForumRoute;
 }(Route);
 
-var _class$56;
-var _temp$7;
+var d3 = { geo: {} };
 
-window.d3 = {
-  geo: {
-    circle: geoCircle(),
-    interpolate: geoInterpolate
-  },
-  shuffle: d3Shuffle
-};
+// adapted from d3.geo.voronoi by Jason Davies, http://www.jasondavies.com/
+var π = Math.PI;
+var degrees$2 = 180 / π;
+var radians$2 = π / 180;
+var ε = 1e-15;
 
-// d3.geo.voronoi Copyright 2014 Jason Davies, http://www.jasondavies.com/
-(function () {
-
-  var π = Math.PI,
-      degrees = 180 / π,
-      radians = π / 180,
-      ε = 1e-15,
-      circle = d3.geo.circle();
-
-  d3.geo.voronoi = function (points, triangles) {
+d3.geo.voronoi = function (points, triangles) {
     if (arguments.length < 2) triangles = d3.geo.delaunay(points);
     if (!triangles) triangles = [];
 
@@ -35430,42 +36053,42 @@ window.d3 = {
 
     var edgeByStart = [];
     triangles.forEach(function (t) {
-      edgeByStart[t.a.p.i] = t.a;
-      edgeByStart[t.b.p.i] = t.b;
+        edgeByStart[t.a.p.i] = t.a;
+        edgeByStart[t.b.p.i] = t.b;
     });
 
     return {
-      type: "GeometryCollection",
-      geometries: n === 1 ? [{ type: "Sphere" }] : n === 2 ? hemispheres(points[0], points[1]) : points.map(function (_, i) {
-        var cell = [],
-            neighbors = [],
-            o = { type: "Polygon", coordinates: [cell], neighbors: neighbors },
-            e00 = edgeByStart[i],
-            e0 = e00,
-            e = e0;
-        if (!e) return null;
-        var centre0 = e.triangle.centre;
-        do {
-          var centre = e.triangle.centre;
-          if (dot(centre, centre0) < ε - 1) {
-            var a = cartesian(points[e.neighbor.p.i]),
-                b = cartesian(points[e.p.i]),
-                c = normalise([a[0] + b[0], a[1] + b[1], a[2] + b[2]]);
-            if (dot(centre, cross(a, b)) > 0) c[0] = -c[0], c[1] = -c[1], c[2] = -c[2];
-            cell.push(spherical(c));
-          }
-          cell.push(spherical(centre));
-          neighbors.push(e.neighbor.p.i);
-          centre0 = centre;
-          if (e === e00 && e0 !== e00) break;
-          e = (e0 = e).next.next.neighbor;
-        } while (1);
-        return o;
-      })
+        type: "GeometryCollection",
+        geometries: n === 1 ? [{ type: "Sphere" }] : n === 2 ? hemispheres(points[0], points[1]) : points.map(function (_, i) {
+            var cell = [],
+                neighbors = [],
+                o = { type: "Polygon", coordinates: [cell], neighbors: neighbors },
+                e00 = edgeByStart[i],
+                e0 = e00,
+                e = e0;
+            if (!e) return null;
+            var centre0 = e.triangle.centre;
+            do {
+                var centre = e.triangle.centre;
+                if (dot$2(centre, centre0) < ε - 1) {
+                    var a = cartesian$2(points[e.neighbor.p.i]),
+                        b = cartesian$2(points[e.p.i]),
+                        c = normalise([a[0] + b[0], a[1] + b[1], a[2] + b[2]]);
+                    if (dot$2(centre, cross$3(a, b)) > 0) c[0] = -c[0], c[1] = -c[1], c[2] = -c[2];
+                    cell.push(spherical$2(c));
+                }
+                cell.push(spherical$2(centre));
+                neighbors.push(e.neighbor.p.i);
+                centre0 = centre;
+                if (e === e00 && e0 !== e00) break;
+                e = (e0 = e).next.next.neighbor;
+            } while (1);
+            return o;
+        })
     };
-  };
+};
 
-  d3.geo.voronoi.topology = function (points, triangles) {
+d3.geo.voronoi.topology = function (points, triangles) {
     if (arguments.length < 2) triangles = d3.geo.delaunay(points);
     if (!triangles) triangles = [];
 
@@ -35477,79 +36100,80 @@ window.d3 = {
 
     var edgeByStart = [];
     triangles.forEach(function (t) {
-      edgeByStart[t.a.p.i] = t.a;
-      edgeByStart[t.b.p.i] = t.b;
+        edgeByStart[t.a.p.i] = t.a;
+        edgeByStart[t.b.p.i] = t.b;
     });
 
     // TODO n == 2 (hemispheres)
     points.forEach(function (_, index) {
-      var arcIndexes = [],
-          neighbors = [],
-          e00 = edgeByStart[index],
-          e0 = e00,
-          e = e0;
-      if (!e) return null;
-      do {
-        // TODO ~180° lines
-        if (e !== e0) {
-          var l = e0.triangle.index,
-              r = e.triangle.index,
-              k = l < r ? l + "," + r : r + "," + l,
-              i = arcIndexByEdge[k];
-          if (i == null) {
-            if (l < r) arcs[i = arcIndexByEdge[k] = ++arcIndex] = [spherical(e0.triangle.centre), spherical(e.triangle.centre)];else arcs[i = arcIndexByEdge[k] = ++arcIndex] = [spherical(e.triangle.centre), spherical(e0.triangle.centre)];
-          }
-          arcIndexes.push(l < r ? i : ~i);
-          neighbors.push(e.neighbor.p.i);
-        }
-        if (e === e00 && e0 !== e00) break;
-        e = (e0 = e).neighbor.next;
-      } while (1);
-      geometries[index] = {
-        type: "Polygon",
-        neighbors: neighbors,
-        arcs: [arcIndexes]
-      };
+        var arcIndexes = [],
+            neighbors = [],
+            e00 = edgeByStart[index],
+            e0 = e00,
+            e = e0;
+        if (!e) return null;
+        do {
+            // TODO ~180° lines
+            if (e !== e0) {
+                var l = e0.triangle.index,
+                    r = e.triangle.index,
+                    k = l < r ? l + "," + r : r + "," + l,
+                    i = arcIndexByEdge[k];
+                if (i == null) {
+                    if (l < r) arcs[i = arcIndexByEdge[k] = ++arcIndex] = [spherical$2(e0.triangle.centre), spherical$2(e.triangle.centre)];else arcs[i = arcIndexByEdge[k] = ++arcIndex] = [spherical$2(e.triangle.centre), spherical$2(e0.triangle.centre)];
+                }
+                arcIndexes.push(l < r ? i : ~i);
+                neighbors.push(e.neighbor.p.i);
+            }
+            if (e === e00 && e0 !== e00) break;
+            e = (e0 = e).neighbor.next;
+        } while (1);
+        geometries[index] = {
+            type: "Polygon",
+            neighbors: neighbors,
+            arcs: [arcIndexes]
+        };
     });
     return {
-      objects: {
-        voronoi: {
-          type: "GeometryCollection",
-          geometries: geometries
-        }
-      },
-      arcs: arcs
+        objects: {
+            voronoi: {
+                type: "GeometryCollection",
+                geometries: geometries
+            }
+        },
+        arcs: arcs
     };
-  };
+};
 
-  d3.geo.delaunay = function (points) {
-    var p = points.map(cartesian),
+d3.geo.delaunay = function (points) {
+    var p = points.map(cartesian$2),
         n = points.length,
         triangles = d3.convexhull3d(p);
 
     if (triangles.length) return triangles.forEach(function (t) {
-      t.coordinates = [points[t.a.p.i], points[t.b.p.i], points[t.c.p.i]];
-      t.centre = circumcentre(t);
+        t.coordinates = [points[t.a.p.i], points[t.b.p.i], points[t.c.p.i]];
+        t.centre = circumcentre(t);
     }), triangles;
-  };
+};
 
-  function hemispheres(a, b) {
-    var c = d3.geo.interpolate(a, b)(.5),
-        n = cross(cross(cartesian(a), cartesian(b)), cartesian(c)),
+function hemispheres(a, b) {
+    var c = geoInterpolate(a, b)(.5),
+        n = cross$3(cross$3(cartesian$2(a), cartesian$2(b)), cartesian$2(c)),
         m = 1 / norm(n);
     n[0] *= m, n[1] *= m, n[2] *= m;
-    var ring = circle.origin(spherical(n))().coordinates[0];
+    var ring = geoCircle().origin(spherical$2(n))().coordinates[0];
     return [{ type: "Polygon", coordinates: [ring] }, { type: "Polygon", coordinates: [ring.slice().reverse()] }];
-  }
+}
 
-  d3.convexhull3d = function (points) {
-    var n = points.length;
+d3.convexhull3d = function (points) {
+    var n = points.length,
+        i = void 0;
 
     if (n < 4) return []; // coplanar points
 
-    for (var i = 0; i < n; ++i) {
-      points[i].i = i;
-    }d3.shuffle(points);
+    for (i = 0; i < n; ++i) {
+        points[i].i = i;
+    }shuffle(points);
 
     var a = points[0],
         b = points[1],
@@ -35557,7 +36181,7 @@ window.d3 = {
         t = new Triangle(a, b, c);
 
     // Find non-coplanar fourth point.
-    for (var i = 3; i < n && coplanar(t, points[i]); ++i) {}
+    for (i = 3; i < n && coplanar(t, points[i]); ++i) {}
 
     if (i === n) return []; // coplanar points
 
@@ -35566,7 +36190,9 @@ window.d3 = {
     points[i] = points[3], points[3] = d;
 
     if (visible(t, d)) {
-      var tmp = b;b = c;c = tmp;
+        var tmp = b;
+        b = c;
+        c = tmp;
     }
 
     var ta = new Triangle(a, b, c, 0),
@@ -35584,149 +36210,154 @@ window.d3 = {
     neighbors(tc.b, tb.c);
 
     // Initialise conflict graph.
-    for (var i = 4; i < n; ++i) {
-      var p = points[i];
-      addConflict(ta, p, i);
-      addConflict(tb, p, i);
-      addConflict(tc, p, i);
-      addConflict(td, p, i);
+    for (i = 4; i < n; ++i) {
+        var p = points[i];
+        addConflict(ta, p, i);
+        addConflict(tb, p, i);
+        addConflict(tc, p, i);
+        addConflict(td, p, i);
     }
 
-    for (var i = 4; i < n; ++i) {
-      var p = points[i],
-          h = p.visible;
-      if (!h) continue;
+    for (i = 4; i < n; ++i) {
+        var _p = points[i],
+            h = _p.visible;
+        if (!h) continue;
 
-      // Find horizon.
-      var horizon = null,
-          a = h;
-      do {
-        a.t.marked = true;
-      } while (a = a.nextF);
+        // Find horizon.
+        var horizon = null,
+            _a = h;
+        do {
+            _a.t.marked = true;
+        } while (_a = _a.nextF);
 
-      a = h;do {
-        var t = a.t;
-        if (horizon = findHorizon(t.a) || findHorizon(t.b) || findHorizon(t.c)) break;
-      } while (a = a.nextF);
+        _a = h;
+        do {
+            var _t = _a.t;
+            if (horizon = findHorizon(_t.a) || findHorizon(_t.b) || findHorizon(_t.c)) break;
+        } while (_a = _a.nextF);
 
-      if (!horizon) continue;
+        if (!horizon) continue;
 
-      for (var j = 0, m = horizon.length, prev = null, first = null; j < m; ++j) {
-        var e = horizon[j],
-            f1 = e.triangle,
-            f2 = e.neighbor.triangle,
-            t = new Triangle(p, e.neighbor.p, e.p, triangles.length);
-        neighbors(t.b, e);
-        if (prev) neighbors(prev.a, t.c);else first = t;
-        addConflicts(t, f1, f2);
-        triangles.push(prev = t);
-      }
-      neighbors(prev.a, first.c);
+        var prev = null,
+            first = null;
+        for (var j = 0, m = horizon.length; j < m; ++j) {
+            var e = horizon[j],
+                f1 = e.triangle,
+                f2 = e.neighbor.triangle,
+                _t2 = new Triangle(_p, e.neighbor.p, e.p, triangles.length);
+            neighbors(_t2.b, e);
+            if (prev) neighbors(prev.a, _t2.c);else first = _t2;
+            addConflicts(_t2, f1, f2);
+            triangles.push(prev = _t2);
+        }
+        neighbors(prev.a, first.c);
 
-      a = h;do {
-        var t = a.t;
-        for (var j = 0, m = t.visible.length; j < m; ++j) {
-          t.visible[j].remove();
-        }t.visible.length = 0;
-        removeElement(triangles, t.index);
-      } while (a = a.nextF);
+        _a = h;
+        do {
+            var _t3 = _a.t;
+            for (var _j = 0, _m = _t3.visible.length; _j < _m; ++_j) {
+                _t3.visible[_j].remove();
+            }_t3.visible.length = 0;
+            removeElement(triangles, _t3.index);
+        } while (_a = _a.nextF);
     }
     return triangles;
-  };
+};
 
-  function removeElement(array, i) {
+function removeElement(array, i) {
     var x = array.pop();
     if (i < array.length) (array[i] = x).index = i;
-  }
+}
 
-  function circumcentre(t) {
+function circumcentre(t) {
     var p0 = t.a.p,
         p1 = t.b.p,
         p2 = t.c.p,
-        n = cross(subtract(t.c.p, t.a.p), subtract(t.b.p, t.a.p)),
+        n = cross$3(subtract$1(t.c.p, t.a.p), subtract$1(t.b.p, t.a.p)),
         m2 = 1 / norm2(n),
         m = Math.sqrt(m2),
-        radius = asin(.5 * m * norm(subtract(p0, p1)) * norm(subtract(p1, p2)) * norm(subtract(p2, p0))),
-        α = .5 * m2 * norm2(subtract(p1, p2)) * dot(subtract(p0, p1), subtract(p0, p2)),
-        β = .5 * m2 * norm2(subtract(p0, p2)) * dot(subtract(p1, p0), subtract(p1, p2)),
-        γ = .5 * m2 * norm2(subtract(p0, p1)) * dot(subtract(p2, p0), subtract(p2, p1)),
+        radius = asin$2(.5 * m * norm(subtract$1(p0, p1)) * norm(subtract$1(p1, p2)) * norm(subtract$1(p2, p0))),
+        α = .5 * m2 * norm2(subtract$1(p1, p2)) * dot$2(subtract$1(p0, p1), subtract$1(p0, p2)),
+        β = .5 * m2 * norm2(subtract$1(p0, p2)) * dot$2(subtract$1(p1, p0), subtract$1(p1, p2)),
+        γ = .5 * m2 * norm2(subtract$1(p0, p1)) * dot$2(subtract$1(p2, p0), subtract$1(p2, p1)),
         centre = [α * p0[0] + β * p1[0] + γ * p2[0], α * p0[1] + β * p1[1] + γ * p2[1], α * p0[2] + β * p1[2] + γ * p2[2]],
         k = norm2(centre);
     if (k > ε) centre[0] *= k = 1 / Math.sqrt(k), centre[1] *= k, centre[2] *= k;else centre = t.n;
     if (!visible(t, centre)) centre[0] *= -1, centre[1] *= -1, centre[2] *= -1, radius = π - radius, centre.negative = true;
     centre.radius = radius;
     return centre;
-  }
+}
 
-  function norm2(p) {
-    return dot(p, p);
-  }
-  function norm(p) {
+function norm2(p) {
+    return dot$2(p, p);
+}
+
+function norm(p) {
     return Math.sqrt(norm2(p));
-  }
+}
 
-  function dot(a, b) {
+function dot$2(a, b) {
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  }
+}
 
-  function cross(a, b) {
+function cross$3(a, b) {
     return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-  }
+}
 
-  function asin(x) {
+function asin$2(x) {
     return Math.asin(Math.max(-1, Math.min(1, x)));
-  }
+}
 
-  function subtract(a, b) {
+function subtract$1(a, b) {
     return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-  }
+}
 
-  function visible(t, p) {
-    return dot(t.n, p) - dot(t.n, t.a.p) > ε;
-  }
+function visible(t, p) {
+    return dot$2(t.n, p) - dot$2(t.n, t.a.p) > ε;
+}
 
-  function coplanar(t, p) {
-    return Math.abs(dot(t.n, p) - dot(t.n, t.a.p)) <= ε;
-  }
+function coplanar(t, p) {
+    return Math.abs(dot$2(t.n, p) - dot$2(t.n, t.a.p)) <= ε;
+}
 
-  function normalise(d) {
+function normalise(d) {
     var m = 1 / norm(d);
     d[0] *= m, d[1] *= m, d[2] *= m;
     return d;
-  }
+}
 
-  function spherical(cartesian) {
-    return [Math.atan2(cartesian[1], cartesian[0]) * degrees, asin(cartesian[2]) * degrees];
-  }
+function spherical$2(cartesian) {
+    return [Math.atan2(cartesian[1], cartesian[0]) * degrees$2, asin$2(cartesian[2]) * degrees$2];
+}
 
-  function cartesian(spherical) {
-    var λ = spherical[0] * radians,
-        φ = spherical[1] * radians,
+function cartesian$2(spherical) {
+    var λ = spherical[0] * radians$2,
+        φ = spherical[1] * radians$2,
         cosφ = Math.cos(φ);
     return [cosφ * Math.cos(λ), cosφ * Math.sin(λ), Math.sin(φ)];
-  }
+}
 
-  function Arc(t, v, i) {
-    var head;
+function Arc(t, v, i) {
+    var head = void 0;
     this.t = t;
     this.v = v;
     this.i = i;
     this.prevF = null;
     if (head = this.nextF = v.visible) head.prevF = this;
     v.visible = this;
-  }
+}
 
-  Arc.prototype.remove = function () {
+Arc.prototype.remove = function () {
     if (this.prevF) this.prevF.nextF = this.nextF;else this.v.visible = this.nextF;
     if (this.nextF) this.nextF.prevF = this.prevF;
-  };
+};
 
-  function addConflict(t, p, i) {
+function addConflict(t, p, i) {
     if (visible(t, p)) t.visible.push(new Arc(t, p, i));
-  }
+}
 
-  // Maintain order of vertices in facet conflict lists when merging.
-  function addConflicts(t, a, b) {
+// Maintain order of vertices in facet conflict lists when merging.
+function addConflicts(t, a, b) {
     var av = a.visible,
         bv = b.visible,
         an = av.length,
@@ -35734,173 +36365,179 @@ window.d3 = {
         ai = 0,
         bi = 0;
     while (ai < an || bi < bn) {
-      if (ai < an) {
-        var ax = av[ai];
-        if (bi < bn) {
-          var bx = bv[bi];
-          if (ax.i > bx.i) {
-            addConflict(t, bx.v, bx.i), ++bi;
-            continue;
-          }
-          if (ax.i === bx.i) ++bi;
+        if (ai < an) {
+            var ax = av[ai];
+            if (bi < bn) {
+                var bx = bv[bi];
+                if (ax.i > bx.i) {
+                    addConflict(t, bx.v, bx.i), ++bi;
+                    continue;
+                }
+                if (ax.i === bx.i) ++bi;
+            }
+            addConflict(t, ax.v, ax.i), ++ai;
+        } else {
+            var _bx = bv[bi];
+            addConflict(t, _bx.v, _bx.i), ++bi;
         }
-        addConflict(t, ax.v, ax.i), ++ai;
-      } else {
-        var bx = bv[bi];
-        addConflict(t, bx.v, bx.i), ++bi;
-      }
     }
-  }
+}
 
-  function Triangle(a, b, c, index) {
+function Triangle(a, b, c, index) {
     this.visible = [];
     this.marked = false;
-    this.n = normalise(cross(subtract(c, a), subtract(b, a)));
+    this.n = normalise(cross$3(subtract$1(c, a), subtract$1(b, a)));
     (((this.a = new Edge(this, a)).next = this.b = new Edge(this, b)).next = this.c = new Edge(this, c)).next = this.a;
     this.index = index;
-  }
+}
 
-  function Edge(triangle, p) {
+function Edge(triangle, p) {
     this.triangle = triangle;
     this.p = p;
     this.neighbor = this.next = null;
-  }
+}
 
-  function onHorizon(e) {
+function onHorizon(e) {
     return !e.triangle.marked && e.neighbor.triangle.marked;
-  }
+}
 
-  // Assume e is marked.
-  function findHorizon(e) {
+// Assume e is marked.
+function findHorizon(e) {
     if ((e = e.neighbor).triangle.marked) return;
     var horizon = [e],
         h0 = e;
     do {
-      if (onHorizon(e = e.next)) {
-        if (e === h0) return horizon;
-        horizon.push(e);
-      } else {
-        e = e.neighbor;
-      }
+        if (onHorizon(e = e.next)) {
+            if (e === h0) return horizon;
+            horizon.push(e);
+        } else {
+            e = e.neighbor;
+        }
     } while (1);
-  }
+}
 
-  function neighbors(a, b) {
+function neighbors(a, b) {
     (a.neighbor = b).neighbor = a;
-  }
-})();
+}
+
+var geoVoronoi = d3.geo.voronoi;
+
+var _class$56;
+var _temp$7;
 
 function getPoints(seed) {
-  var nrPoints = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 42;
+    var nrPoints = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 42;
 
-  var vectors = [];
-  seed = seed / 333;
-  for (var i = 0; i < nrPoints; i++) {
-    vectors.push([Math.PI * i % 1, Math.E * i % 1]);
-    vectors[i][0] = 2.0 * (vectors[i][0] - 0.5);
-    vectors[i][1] = 2.0 * (vectors[i][1] - 0.5) / 2.0;
-  }
+    var vectors = [];
+    seed = seed / 333;
+    for (var i = 0; i < nrPoints; i++) {
+        vectors.push([Math.PI * i % 1, Math.E * i % 1]);
+        vectors[i][0] = 2.0 * (vectors[i][0] - 0.5);
+        vectors[i][1] = 2.0 * (vectors[i][1] - 0.5) / 2.0;
+    }
 
-  function randomPoint(speedU, speedV) {
-    var u = Math.abs(seed * speedU) % 360;
-    var v = Math.abs(seed * speedV / 180) % 1;
-    return [u, 180 * Math.asin(2.0 * v - 1.0)];
-  }
+    function randomPoint(speedU, speedV) {
+        var u = Math.abs(seed * speedU) % 360;
+        var v = Math.abs(seed * speedV / 180) % 1;
+        return [u, 180 * Math.asin(2.0 * v - 1.0)];
+    }
 
-  return vectors.map(function (deltas) {
-    return randomPoint(deltas[0], deltas[1]);
-  });
+    return vectors.map(function (deltas) {
+        return randomPoint(deltas[0], deltas[1]);
+    });
 }
 
 var MundipediaLogo = (_temp$7 = _class$56 = function (_UI$Element) {
-  inherits(MundipediaLogo, _UI$Element);
+    inherits(MundipediaLogo, _UI$Element);
 
-  function MundipediaLogo() {
-    classCallCheck(this, MundipediaLogo);
-    return possibleConstructorReturn(this, (MundipediaLogo.__proto__ || Object.getPrototypeOf(MundipediaLogo)).apply(this, arguments));
-  }
-
-  createClass(MundipediaLogo, [{
-    key: "getDefaultOptions",
-    value: function getDefaultOptions() {
-      return {
-        framerate: 60,
-        stroke: "white",
-        fill: "cornflowerblue"
-      };
+    function MundipediaLogo() {
+        classCallCheck(this, MundipediaLogo);
+        return possibleConstructorReturn(this, (MundipediaLogo.__proto__ || Object.getPrototypeOf(MundipediaLogo)).apply(this, arguments));
     }
-  }, {
-    key: "render",
-    value: function render() {
-      var _this2 = this;
 
-      var size = this.options.size || 300;
-      var VIEW_BOX_SIZE = this.constructor.VIEW_BOX_SIZE;
+    createClass(MundipediaLogo, [{
+        key: "getDefaultOptions",
+        value: function getDefaultOptions() {
+            return {
+                framerate: 60,
+                stroke: "white",
+                fill: "cornflowerblue"
+            };
+        }
+    }, {
+        key: "render",
+        value: function render() {
+            var _this2 = this;
 
-      var paths = this.constructor.getPaths(this.options.timestamp || Date.now());
+            var size = this.options.size || 300;
+            var VIEW_BOX_SIZE = this.constructor.VIEW_BOX_SIZE;
 
-      return [UI.createElement(
-        SVG.SVGRoot,
-        { height: size, width: size, viewBox: "0 0 " + VIEW_BOX_SIZE + " " + VIEW_BOX_SIZE },
-        paths.map(function (path) {
-          return path && UI.createElement(SVG.Path, { strokeWidth: 12, stroke: _this2.options.stroke, fill: _this2.options.fill, d: path });
-        })
-      )];
-    }
-  }, {
-    key: "setTimestamp",
-    value: function setTimestamp(timestamp) {
-      if (!this.isInDocument()) {
-        return;
-      }
-      this.updateOptions({ timestamp: timestamp });
-    }
-  }, {
-    key: "onMount",
-    value: function onMount() {
-      var _this3 = this;
+            var paths = this.constructor.getPaths(this.options.timestamp || Date.now());
 
-      if (this.options.framerate >= 60) {
-        var redrawMe = function redrawMe(highResTimestamp) {
-          _this3.setTimestamp(+StemDate.fromHighResTimestamp(highResTimestamp));
-          _this3.animationFrame = requestAnimationFrame(redrawMe);
-        };
-        this.animationFrame = requestAnimationFrame(redrawMe);
-      } else {
-        this.interval = setInterval(function () {
-          return _this3.setTimestamp(Date.now());
-        }, 1000 / this.options.framerate);
-      }
-    }
-  }, {
-    key: "onUnmount",
-    value: function onUnmount() {
-      this.interval && clearInterval(this.interval);
-      this.animationFrame && cancelAnimationFrame(this.animationFrame);
-    }
-  }], [{
-    key: "getPaths",
-    value: function getPaths(timestamp) {
-      timestamp = timestamp || Date.now();
-      if (timestamp == this.prevTimestamp) {
-        return this.cachedPaths;
-      }
-      this.prevTimestamp = timestamp;
+            return [UI.createElement(
+                SVG.SVGRoot,
+                { height: size, width: size, viewBox: "0 0 " + VIEW_BOX_SIZE + " " + VIEW_BOX_SIZE },
+                paths.map(function (path) {
+                    return path && UI.createElement(SVG.Path, { strokeWidth: 12, stroke: _this2.options.stroke, fill: _this2.options.fill, d: path });
+                })
+            )];
+        }
+    }, {
+        key: "setTimestamp",
+        value: function setTimestamp(timestamp) {
+            if (!this.isInDocument()) {
+                return;
+            }
+            this.updateOptions({ timestamp: timestamp });
+        }
+    }, {
+        key: "onMount",
+        value: function onMount() {
+            var _this3 = this;
 
-      var points = getPoints(timestamp);
-      var voronoiFeatures = d3.geo.voronoi(points).geometries;
+            if (this.options.framerate >= 60) {
+                var redrawMe = function redrawMe(highResTimestamp) {
+                    _this3.setTimestamp(+StemDate.fromHighResTimestamp(highResTimestamp));
+                    _this3.animationFrame = requestAnimationFrame(redrawMe);
+                };
+                this.animationFrame = requestAnimationFrame(redrawMe);
+            } else {
+                this.interval = setInterval(function () {
+                    return _this3.setTimestamp(Date.now());
+                }, 1000 / this.options.framerate);
+            }
+        }
+    }, {
+        key: "onUnmount",
+        value: function onUnmount() {
+            this.interval && clearInterval(this.interval);
+            this.animationFrame && cancelAnimationFrame(this.animationFrame);
+        }
+    }], [{
+        key: "getPaths",
+        value: function getPaths(timestamp) {
+            timestamp = timestamp || Date.now();
+            if (timestamp == this.cachedTimestamp) {
+                return this.cachedPaths;
+            }
+            this.cachedTimestamp = timestamp;
 
-      var VIEW_BOX_SIZE = this.VIEW_BOX_SIZE;
+            var points = getPoints(timestamp);
+            var voronoiFeatures = geoVoronoi(points).geometries;
 
-      var projection = geoOrthographic().scale(0.5 * VIEW_BOX_SIZE).clipAngle(90).translate([VIEW_BOX_SIZE / 2, VIEW_BOX_SIZE / 2]);
-      var pathMaker = geoPath().projection(projection);
+            var VIEW_BOX_SIZE = this.VIEW_BOX_SIZE;
 
-      return this.cachedPaths = voronoiFeatures.map(function (feature) {
-        return pathMaker(feature);
-      });
-    }
-  }]);
-  return MundipediaLogo;
+            var projection = geoOrthographic().scale(0.5 * VIEW_BOX_SIZE).clipAngle(90).translate([VIEW_BOX_SIZE / 2, VIEW_BOX_SIZE / 2]);
+            var pathMaker = geoPath().projection(projection);
+
+            this.cachedPaths = voronoiFeatures.map(function (feature) {
+                return pathMaker(feature);
+            });
+
+            return this.cachedPaths;
+        }
+    }]);
+    return MundipediaLogo;
 }(UI.Element), _class$56.VIEW_BOX_SIZE = 500, _temp$7);
 
 var _class$55;
@@ -36280,7 +36917,7 @@ var TeamSection = (_dec2$12 = registerStyle(TeamSectionStyle), _dec2$12(_class6$
 
             var people = [{
                 name: "Mihai Ciucu",
-                image: UI.createElement(MundipediaLogo, { size: 100 }),
+                image: UI.createElement(MundipediaLogo, { size: TeamCardStyle.getInstance().headerImageDimensions }),
                 job: "Founder",
                 description: "I don't have time for thinking about a description, I'm busy!",
                 socialAccounts: [{
@@ -36315,6 +36952,7 @@ var TeamSection = (_dec2$12 = registerStyle(TeamSectionStyle), _dec2$12(_class6$
                 job: "Research Collaborator"
             }, {
                 name: "Mircea Pavel",
+                image: "",
                 job: "Research Collaborator"
             }, {
                 name: "Marian Iancu",
@@ -36537,7 +37175,31 @@ var AboutPage = (_dec4$2 = registerStyle(AboutPageStyle), _dec4$2(_class12 = fun
     return AboutPage;
 }(UI.Element)) || _class12);
 
-var MAIN_ROUTE = new Route(null, IndexPage, [new BlogRoute(), new ForumRoute(), new Route("about", AboutPage)]);
+var GlobalChat = function (_StateDependentElemen) {
+    inherits(GlobalChat, _StateDependentElemen);
+
+    function GlobalChat() {
+        classCallCheck(this, GlobalChat);
+        return possibleConstructorReturn(this, (GlobalChat.__proto__ || Object.getPrototypeOf(GlobalChat)).apply(this, arguments));
+    }
+
+    createClass(GlobalChat, [{
+        key: "getAjaxURL",
+        value: function getAjaxURL() {
+            return GroupChatStore.options.fetchURL;
+        }
+    }, {
+        key: "getAjaxRequest",
+        value: function getAjaxRequest() {
+            return {
+                ids: [window.GLOBAL_CHAT_ID]
+            };
+        }
+    }]);
+    return GlobalChat;
+}(StateDependentElement(UI.Element));
+
+var MAIN_ROUTE = new Route(null, IndexPage, [new BlogRoute(), new ForumRoute(), new Route("chat", GlobalChat), new Route("about", AboutPage)]);
 
 var _class$58;
 var _descriptor$26;
@@ -36928,6 +37590,10 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
 var _class$59;
 var _temp$8;
 
+// Class for working with the Window.localStorage and Window.sessionStorage objects
+// All keys are prefixed with our custom name, so we don't have to worry about polluting the global storage namespace
+// Keys must be strings, and values are modified by the serialize/deserialize methods,
+// which by default involve JSON conversion
 var StorageMap = (_temp$8 = _class$59 = function (_Dispatchable) {
     inherits(StorageMap, _Dispatchable);
 
@@ -38251,6 +38917,13 @@ function logout() {
 }
 
 // UI components
+/*
+ * This is the NavManager file of your app.
+ *
+ * Note that the whole app is a single page app.
+ * Follow the instructions below in order to customize your application.
+ */
+
 var AppNavManager = function (_NavManager) {
     inherits(AppNavManager, _NavManager);
 
@@ -39189,6 +39862,7 @@ var EstablishmentApp = (_temp$9 = _class$60 = function (_StemApp) {
     return EstablishmentApp;
 }(StemApp), _class$60.MIN_VIEWPORT_META_WIDTH = 375, _temp$9);
 
+// The default page title
 PageTitleManager.setDefaultTitle("Mundipedia");
 
 var oldThemeProperties = Theme.Global.getProperties();
