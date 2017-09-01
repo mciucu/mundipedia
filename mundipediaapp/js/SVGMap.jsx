@@ -174,7 +174,7 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
 
         return [
             <SVG.Group>
-                <SVG.Path fill="#eee" d={this.makePath({type: "Sphere"})} />
+                <SVG.Path fill="#cef" d={this.makePath({type: "Sphere"})} />
                 {paths}
             </SVG.Group>,
             this.getGraticule(),
