@@ -90,7 +90,7 @@ function getPreferredDimensions() {
     const themeProperties = Theme.Global.getProperties();
 
     return {
-        height: window.innerHeight - (themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + themeProperties.GLOBAL_YEAR_SELECT_HEIGHT),
+        height: window.innerHeight - (themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + themeProperties.GLOBAL_YEAR_SELECT_HEIGHT + 25),
         width: window.innerWidth,
     };
 }
@@ -423,10 +423,8 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     container = {
-        width: "1200px",
-        maxWidth: "100%",
-        paddingLeft: "20px",
-        paddingRight: "20px",
+        // width: "1200px",
+        width: "100%",
     };
 
     @styleRule

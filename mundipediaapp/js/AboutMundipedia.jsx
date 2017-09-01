@@ -297,7 +297,7 @@ class AboutSectionStyle extends StyleSheet {
         fontSize: "32px",
         fontWeight: "600",
         textAlign: "center",
-        marginTop: "40px",
+        marginTop: "60px",
     };
 
     @styleRule
@@ -312,10 +312,19 @@ class AboutSectionStyle extends StyleSheet {
 
 @registerStyle(AboutSectionStyle)
 class AboutSection extends UI.Element {
+    getDefaultOptions() {
+        return {
+            hasLogo: true,
+        }
+    }
+
     render() {
         const {title, message} = this.options;
         return [
             <div className={this.styleSheet.titleContainer}>
+                {
+                    this.options.hasLogo ? <MundipediaLogo size={100} /> : ""
+                }
                 {title}
             </div>,
             <div className={this.styleSheet.messageContainer}>
@@ -354,7 +363,10 @@ export class AboutPage extends UI.Element {
         return [
             /*<MundipediaLogo size={150}/>,*/
             <div className={this.styleSheet.title}>
-                Mundipedia
+                <MundipediaLogo size={120} />
+                <span>
+                    Mundipedia
+                </span>
             </div>,
             <AboutSection title="About us"
                           message={[
@@ -376,7 +388,8 @@ export class AboutPage extends UI.Element {
                                   Everything that we’ll collect will be made freely available to anyone, at first through our
                                   website and later on through a standardized API.
                               </p>
-                          ]} />,
+                          ]}
+                          hasLogo={false} />,
             <AboutSection title="Aren’t there other websites that do this?"
                           message={[
                               <p>
@@ -385,7 +398,8 @@ export class AboutPage extends UI.Element {
                                   solution we want to be is a platform that gathers all that data and offers a single format for every
                                   type of data.
                               </p>
-                          ]} />,
+                          ]}
+                          /*hasLogo*/ />,
             <AboutSection title="We’re not a wiki (yet)"
                           message={[
                               <p>
@@ -412,15 +426,17 @@ export class AboutPage extends UI.Element {
                                   We don’t have any income right now, and we’ll be accepting donations soon. We’re still looking for ways to
                                   be funded, but whatever happens though, we will stand by our key principles:
                               </p>,
-                              <li>
-                                  All of our information will remain forever free and without copyright limitations to usage.
-                              </li>,
-                              <li>
-                                  We will never have banners or ads of any kind on our website.
-                              </li>,
-                              <li>
-                                  We will not compromise our content or direction for sponsorships.
-                              </li>,
+                              <p>
+                                  <li>
+                                      All of our information will remain forever free and without copyright limitations to usage.
+                                  </li>
+                                  <li>
+                                      We will never have banners or ads of any kind on our website.
+                                  </li>
+                                  <li>
+                                      We will not compromise our content or direction for sponsorships.
+                                  </li>
+                              </p>
                           ]} />,
             <AboutSection title="Contact us for more"
                           message={[
