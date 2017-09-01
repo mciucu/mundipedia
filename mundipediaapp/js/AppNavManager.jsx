@@ -16,9 +16,7 @@ import {FAIcon} from "ui/FontAwesome";
 
 /*
  * This is the NavManager file of your app.
- *
- * Note that the whole app is a single page app.
- * Follow the instructions below in order to customize your application.
+ * Here's where you can add links in the navigation menu
  */
 
 class AppNavManager extends NavManager {
@@ -30,7 +28,8 @@ class AppNavManager extends NavManager {
             <NavSection anchor={Direction.LEFT} style={{margin: 0}}>
                 <NavLinkElement value="Home" href="/" />
                 <NavLinkElement value="Blog" href="/blog" />
-                <NavLinkElement value="Forum" href="/forum" />
+                {/*<NavLinkElement value="Forum" href="/forum" />*/}
+                {/*<NavLinkElement value="Chat" href="/chat" />*/}
             </NavSection>
         ];
     }
