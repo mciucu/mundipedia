@@ -1,6 +1,6 @@
 import {UI, Link, registerStyle} from "UI";
 import {IndexPageStyle} from "./IndexPageStyle";
-import {HistoricalWorldMap} from "./SVGMap";
+import {HistoricalWorldMap} from "./HistoricalWorldMap";
 
 
 @registerStyle(IndexPageStyle)
