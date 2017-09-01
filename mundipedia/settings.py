@@ -30,7 +30,7 @@ SECRET_KEY = '7^b^xw9szx2+4!p%@f6cnfgl+xh_uh+5^lrjm)t_8=5tv=1&n0'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [".mundipedia.org"]
 
 ADMINS = []
 

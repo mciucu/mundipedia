@@ -6,7 +6,7 @@
   "main": "none",
   "dependencies": {
     "d3-geo-projection": "^2.2.0",
-    "d3-geo-voronoi": "0.0.3"
+    "mapshaper": "^0.4.49"
   },
   "devDependencies": {
     "babel-plugin-transform-class-properties": "^6.24.1",
