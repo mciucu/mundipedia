@@ -53,7 +53,7 @@ function hashToColor(hash) {
     }
 
     hash = String(hash || Math.random());
-    let letters = "6789ABCD".split("");
+    let letters = "56789ABC".split("");
     let color = "#";
 
     for (let i = 0; i < 3; i++ ) {
@@ -104,6 +104,12 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
         options.projection = options.projection || geoOrthographic().scale(options.initialScale).clipAngle(90).translate(options.initialTranslate);
 
         return options;
+    }
+
+    extraNodeAttributes(attr) {
+        attr.setStyle({
+            background: "transparent",
+        })
     }
 
     setData(data) {
@@ -166,7 +172,9 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
             return <FeaturePath feature={feature} d={path}/>;
         });
 
-        return [<SVG.Group>
+        return [
+            <SVG.Group>
+                <SVG.Path fill="#eee" d={this.makePath({type: "Sphere"})} />
                 {paths}
             </SVG.Group>,
             this.getGraticule(),
