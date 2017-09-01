@@ -1,17 +1,31 @@
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mundipedia',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+    "default": {
+        # "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django.contrib.gis.db.backends.postgis",
+        "NAME": "mundipedia",
+        "USER": "mundipedia",
+        "PASSWORD": "mundipedia",
+        "HOST": "127.0.0.1",
+        "PORT": "5432",
     },
 }
+
+REDIS_CONNECTION = {
+   "host": "localhost",
+   "port": 6379,
+   "db": 0,
+   "password": None,
+}
+
+REDIS_CONNECTION_WEBSOCKETS = REDIS_CONNECTION
+REDIS_CONNECTION_CACHING = REDIS_CONNECTION
+REDIS_CONNECTION_LOGGING = REDIS_CONNECTION
+REDIS_CONNECTION_SERVICES = REDIS_CONNECTION
+REDIS_CONNECTION_JOBS = REDIS_CONNECTION
 
 DEFAULT_HTTP_PROTOCOL = "http"
 
@@ -22,4 +36,6 @@ STATIC_FILE_WATCHERS = [
 ]
 
 WEBSOCKET_HEARTBEAT_INTERVAL = 30
-WEBSOCKET_HEARTBEAT = "--hrtbeet--"
+WEBSOCKET_HEARTBEAT = "my-heartbeat-will-go-on"
+
+AUTH_PASSWORD_VALIDATORS = []

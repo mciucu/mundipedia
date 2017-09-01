@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "establishment.webapp",
 
     "mundipediaapp",
+    "historicaldata",
 ]
 
 MIDDLEWARE = [

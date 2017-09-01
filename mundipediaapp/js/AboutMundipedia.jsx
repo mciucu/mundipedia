@@ -275,6 +275,7 @@ export class TeamSection extends UI.Element {
             job: "Research Collaborator",
         }, {
             name: "Mircea Pavel",
+            image: "",
             job: "Research Collaborator",
         }, {
             name: "Marian Iancu",
