@@ -1,6 +1,5 @@
 import {Dispatchable} from "../../stemjs/src/base/Dispatcher";
 import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, registerStyle, CheckboxInput} from "ui/UI";
-import {Ajax} from "base/Ajax";
 import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
 import D3PathString from "d3-geo/src/path/string";
 import {FAIcon} from "FontAwesome";
@@ -84,18 +83,11 @@ class FeaturePath extends SVG.Path {
     }
 }
 
-function getPreferredDimensions() {
-    const themeProperties = Theme.Global.getProperties();
-
-    return {
-        height: window.innerHeight - (themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + themeProperties.GLOBAL_YEAR_SELECT_HEIGHT + 25),
-        width: window.innerWidth,
-    };
-}
-
 export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     getDefaultOptions(options) {
-        options = Object.assign(getPreferredDimensions(), {
+        options = Object.assign({
+            height: 600,
+            width: 800,
             showGraticule: true,
         }, options);
 
@@ -109,20 +101,6 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     setData(data) {
         this.data = data;
         this.redraw();
-    }
-
-    getCurrentYear() {
-        return this.options.currentYear || 1899;
-    }
-
-    setCurrentYear(currentYear) {
-        this.options.currentYear = currentYear;
-        this.loadCurrentYearData();
-    }
-
-    loadCurrentYearData() {
-        const fileName = "/static/json/world/" + this.getCurrentYear() + "-sm.json";
-        Ajax.getJSON(fileName).then(data => this.setData(data));
     }
 
     getProjection() {
@@ -222,13 +200,7 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     handleDragEnd() {
     }
 
-    setDimensions(dimensions) {
-        console.log(dimensions.height, dimensions.width);
-    }
-
     onMount() {
-        this.loadCurrentYearData();
-
         this.addDragListener({
             onStart: (event) => this.handleDragStart(),
             onDrag: (deltaX, deltaY, event) => this.handleDrag(),

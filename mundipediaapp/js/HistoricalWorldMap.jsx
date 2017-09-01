@@ -1,4 +1,6 @@
-import {UI, StyleSheet, styleRule, registerStyle, Select} from "UI";
+import {UI, StyleSheet, styleRule, registerStyle, Select, Theme} from "UI";
+import {Ajax} from "base/Ajax";
+
 import {enhance} from "Color";
 import {FAIcon} from "FontAwesome";
 
@@ -25,14 +27,14 @@ class HistoricalWorldMapTitle extends UI.Element {
         if (previousYearWithData + 1 === currentYear) {
             return ` in ${currentYear}`;
         } else {
-            return `between ${previousYearWithData + 1}-${currentYear}`;
+            return ` in ${previousYearWithData + 1}-${currentYear}`;
         }
     }
 
     render() {
         return (
             <div>
-                Geopolitical map of the world {this.getYearsInterval(this.options.currentYear)}
+                Map of the world {this.getYearsInterval(this.options.currentYear)}
             </div>
         );
     }
@@ -40,10 +42,39 @@ class HistoricalWorldMapTitle extends UI.Element {
 
 
 class HistoricalWorldMapStyle extends StyleSheet {
+    constructor() {
+        super({
+            updateOnResize: true
+        });
+    }
+
+    resizeWidthLimit = 720;
     menuWidth = 240;
     menuExtraPaddingVertical = 10;
     menuExtraPaddingHorizontal = 20;
+    toggleOptionsHeight = 50;
     boxShadowWidth = 5;
+
+    getYearSelectContainerWidth() {
+        if (window.innerWidth >= this.resizeWidthLimit) {
+            return `calc(100% - ${this.menuWidth})`;
+        }
+        return "100%";
+    }
+
+    getYearSelectContainerMarginTop() {
+        if (window.innerWidth >= this.resizeWidthLimit) {
+            return 5;
+        }
+        return `${this.toggleOptionsHeight}px`;
+    }
+
+    getYearSelectContainerPaddingLeft() {
+        if (window.innerWidth >= this.resizeWidthLimit) {
+            return this.menuWidth;
+        }
+        return this.menuExtraPaddingHorizontal;
+    }
 
     @styleRule
     container = {
@@ -53,12 +84,14 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     yearSelectContainer = {
-        width: "100%",
+        width: () => this.getYearSelectContainerWidth(),
+        marginTop: () => this.getYearSelectContainerMarginTop(),
+        paddingLeft: () => this.getYearSelectContainerPaddingLeft(),
+        paddingRight: this.menuExtraPaddingHorizontal,
         display: "flex",
-        justifyContent: "center",
+        justifyContent: "space-between",
         alignItems: "center",
-        marginTop: "10px",
-        marginBottom: "10px",
+        marginBottom: "15px",
         flexDirection: "row",
     };
 
@@ -99,7 +132,8 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     toggleOptions = {
-        padding: `${this.menuExtraPaddingVertical}px ${this.menuExtraPaddingHorizontal}px`,
+        height: this.toggleOptionsHeight,
+        padding: `0 ${this.menuExtraPaddingHorizontal}px`,
         backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
         fontSize: "22px !important",
         transition: "0.2s",
@@ -111,6 +145,7 @@ class HistoricalWorldMapStyle extends StyleSheet {
         width: this.menuWidth,
         display: "flex",
         justifyContent: "space-between",
+        alignItems: "center",
 
         ":hover": {
             backgroundColor: this.themeProperties.COLOR_PRIMARY,
@@ -152,6 +187,16 @@ class HistoricalWorldMapStyle extends StyleSheet {
             backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, -0.3),
             transition: "0.15s",
         },
+    };
+}
+
+
+function getPreferredDimensions() {
+    const themeProperties = Theme.Global.getProperties();
+
+    return {
+        height: window.innerHeight - (themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + themeProperties.GLOBAL_YEAR_SELECT_HEIGHT + 25),
+        width: window.innerWidth,
     };
 }
 
@@ -242,14 +287,13 @@ export class HistoricalWorldMap extends UI.Element {
                 {this.getMenuLabel()}
             </div>,
             <div className={this.styleSheet.yearSelectContainer}>
-                {/*<FAIcon ref="menuIcon" icon="bars" className={this.styleSheet.menuIcon} />,*/}
-                {/*<HistoricalWorldMapTitle ref="title"*/}
-                {/*years={self.WORLD_MAP_YEARS}*/}
-                {/*currentYear={currentYear}*/}
-                {/*className={this.styleSheet.historyWorldMapTitle} />*/}
                 <YearSelect values={self.WORLD_MAP_YEARS} value={currentYear} ref="yearSelect"/>
+                <HistoricalWorldMapTitle ref="title"
+                    years={self.WORLD_MAP_YEARS}
+                    currentYear={currentYear}
+                    className={this.styleSheet.historyWorldMapTitle} />
             </div>,
-            <HistoricalMap ref="map" />,
+            <HistoricalMap ref="map" {...getPreferredDimensions()} />,
         ]
     }
 
@@ -259,11 +303,23 @@ export class HistoricalWorldMap extends UI.Element {
 
     setCurrentYear(currentYear) {
         this.options.currentYear = currentYear;
-        this.map.setCurrentYear(currentYear);
         this.title.setCurrentYear(currentYear);
     }
 
+    loadCurrentYearData() {
+        const year = this.yearSelect.getCurrentValue();
+        const fileName = "/static/json/world/" + year + "-sm.json";
+
+        Ajax.getJSON(fileName).then(data => {
+            this.map.setData(data);
+
+            this.setCurrentYear(this.yearSelect.getCurrentValue());
+        });
+    }
+
     onMount() {
+        this.loadCurrentYearData();
+
         this.menuIcon.addClickListener((event) => {
             event.stopPropagation();
             this.toggleMenu();
@@ -274,7 +330,7 @@ export class HistoricalWorldMap extends UI.Element {
         });
 
         this.yearSelect.addChangeListener(() => {
-            this.setCurrentYear(this.yearSelect.getCurrentValue());
+            this.loadCurrentYearData();
         });
 
         this.drawGraticuleContainer.addClickListener(() => {
