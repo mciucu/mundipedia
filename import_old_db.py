@@ -78,6 +78,25 @@ def load_entities_from_db():
             print("Created entity: ", entity.__dict__)
 
 
+def fix_event_date(event):
+    event_date_dict = {
+        77: "1 Jan 811 BC",
+        1911: "22 Apr 1889",
+        2722: "1 Jan 1975",
+        3493: "1 Jan 1988",
+        4313: "1 Apr 1979",
+        4386: "2 Mar 1864",
+    }
+
+    try:
+        event.get_date()  # Test consistency
+    except:
+        print("Bad date for event " + str(event.legacy_id) + " - " + event.date_start)
+        event.date_start = event_date_dict[event.legacy_id]
+
+    event.get_date()
+
+
 def load_events_from_db():
     print("Inserting events")
     cur = conn.cursor()
@@ -108,25 +127,29 @@ def load_events_from_db():
             print("WARNING: Missing start date for event " + str(ev_id), event_old)
             continue
 
-        new_ev = Event.objects.get_or_create(id=ev_id, defaults={"name": ev_name, "type": ev_type, "date_start": ev_start, "date_end": ev_end, "entity": ev_entity, "comment": ev_comm})[0]
+        new_ev, created = Event.objects.get_or_create(legacy_id=ev_id, defaults={
+            "name": ev_name,
+            "type": ev_type,
+            "date_start": ev_start,
+            "date_end": ev_end,
+            "entity": ev_entity,
+            "comment": ev_comm
+        })
         new_ev.name = ev_name
         new_ev.date_start = ev_start
         new_ev.date_end = ev_end
         new_ev.entity = ev_entity
         new_ev.comment = ev_comm
-        new_ev.save()
 
-        try:
-            new_ev.get_date()  # Test consistency
-        except:
-            print("Bad date for event " + str(new_ev.id) + " - " + new_ev.date_start)
-        #new_ev.save()
+        fix_event_date(new_ev)
+
+        new_ev.save()
 
 
 def load_names_from_db():
     cur = conn.cursor()
 
-    cur.execute("""SELECT * from names""")
+    cur.execute("""SELECT * from names order by \"ID\"""")
     names_db = cur.fetchall()
     for row in names_db:
         name_db = DBObject(cur, row)
@@ -139,12 +162,12 @@ def load_names_from_db():
             continue
 
         try:
-            name_db.entity = Entity.objects.get(id = name_db.EntityID)
+            name_db.entity = Entity.objects.get(legacy_id=name_db.EntityID)
         except:
             print("Can't find entity " + str(name_db.EntityID) + " for name with id " + str(name_db.ID))
             continue
         try:
-            name_db.event = Event.objects.get(id=name_db.EventID)
+            name_db.event = Event.objects.get(legacy_id=name_db.EventID)
         except:
             print("Can't find event " + str(name_db.EventID) + " for name with id " + str(name_db.ID))
             continue
@@ -157,29 +180,28 @@ def load_names_from_db():
         name.save()
 
 
-
 def load_official_currency():
     print("Loading official currency")
     cur = conn.cursor()
 
-    cur.execute("""SELECT * from official_currency""")
+    cur.execute("""SELECT * from official_currency order by \"ID\"""")
     for row in cur.fetchall():
         official_currency_db = DBObject(cur, row)
 
         try:
-            official_currency_db.entity = Entity.objects.get(id=official_currency_db.EntityID)
+            official_currency_db.entity = Entity.objects.get(legacy_id=official_currency_db.EntityID)
         except:
             print("Missing entity id = " + str(official_currency_db.EntityID) + " for currency id = " + str(official_currency_db.ID))
             continue
 
         try:
-            official_currency_db.event = Event.objects.get(id=official_currency_db.EventID)
+            official_currency_db.event = Event.objects.get(legacy_id=official_currency_db.EventID)
         except:
             print("Missing event id = " + str(official_currency_db.EventID) + " for currency id = " + str(official_currency_db.ID))
             continue
 
         try:
-            official_currency_db.currency = Entity.objects.get(id=official_currency_db.CurrencyID)
+            official_currency_db.currency = Entity.objects.get(legacy_id=official_currency_db.CurrencyID)
         except:
             print("Missing currency obj id = " + str(official_currency_db.CurrencyID) + " for currency id = " + str(official_currency_db.ID))
             continue
@@ -193,7 +215,7 @@ def load_gov():
     print("Loading gov types")
     cur = conn.cursor()
 
-    cur.execute("""SELECT * from gov_codes""")
+    cur.execute("""SELECT * from gov_codes order by \"ID\"""")
     for row in cur.fetchall():
         gov_obj = DBObject(cur, row)
         gov_type = GovernmentType.objects.get_or_create(id=gov_obj.ID, defaults={"desc": gov_obj.Description})[0]
@@ -203,18 +225,18 @@ def load_gov():
     print("Loading gov properties")
     cur = conn.cursor()
 
-    cur.execute("""SELECT * from government""")
+    cur.execute("""SELECT * from government order by \"ID\"""")
     for row in cur.fetchall():
         gov_obj = DBObject(cur, row)
 
         try:
-            gov_obj.entity = Entity.objects.get(id=gov_obj.EntityID)
+            gov_obj.entity = Entity.objects.get(legacy_id=gov_obj.EntityID)
         except:
             print("Missing entity id = " + str(gov_obj.EntityID) + " for gov prop id = " + str(gov_obj.ID))
             continue
 
         try:
-            gov_obj.event = Event.objects.get(id=gov_obj.EventID)
+            gov_obj.event = Event.objects.get(legacy_id=gov_obj.EventID)
         except:
             print("Missing event id = " + str(gov_obj.EventID) + " for gov prop id = " + str(gov_obj.ID))
             continue
@@ -225,34 +247,33 @@ def load_gov():
             print("Missing gov obj id = " + str(gov_obj.GovType) + " for gov prop id = " + str(gov_obj.ID))
             continue
 
-        gov = Government.objects.get_or_create(entity=gov_obj.entity, event=gov_obj.event, defaults={"type": gov_obj.gov})[0]
+        gov = EntityGovernment.objects.get_or_create(entity=gov_obj.entity, event=gov_obj.event, defaults={"type": gov_obj.gov})[0]
         gov.type = gov_obj.gov
         gov.save()
-
 
 
 def load_religious_information():
     print("Loading religious demographics")
     cur = conn.cursor()
 
-    cur.execute("""SELECT * from official_religion""")
+    cur.execute("""SELECT * from official_religion order by \"ID\"""")
     for row in cur.fetchall():
         religion_obj = DBObject(cur, row)
 
         try:
-            religion_obj.entity = Entity.objects.get(id=religion_obj.EntityID)
+            religion_obj.entity = Entity.objects.get(legacy_id=religion_obj.EntityID)
         except:
             print("Missing entity id = " + str(religion_obj.EntityID) + " for religion prop id = " + str(religion_obj.ID))
             continue
 
         try:
-            religion_obj.event = Event.objects.get(id=religion_obj.EventID)
+            religion_obj.event = Event.objects.get(legacy_id=religion_obj.EventID)
         except:
             print("Missing event id = " + str(religion_obj.EventID) + " for religion prop id = " + str(religion_obj.ID))
             continue
 
         try:
-            religion_obj.rel = Entity.objects.get(id=religion_obj.ReligionID)
+            religion_obj.rel = Entity.objects.get(legacy_id=religion_obj.ReligionID)
         except:
             print("Missing religion obj id = " + str(religion_obj.ReligionID) + " for religion prop id = " + str(religion_obj.ID))
             continue
@@ -261,30 +282,31 @@ def load_religious_information():
         religion_info.percentage = religion_obj.Percentage
         religion_info.save()
 
+
 def load_demographics():
     print("Loading  demographics")
     cur = conn.cursor()
 
-    cur.execute("""SELECT * from demography""")
+    cur.execute("""SELECT * from demography order by \"ID\"""")
 
     for row in cur.fetchall():
         pop_obj = DBObject(cur, row)
         #print(pop_obj.__dict__)
 
         # try:
-        #     religion_obj.entity = Entity.objects.get(id=religion_obj.EntityID)
+        #     religion_obj.entity = Entity.objects.get(legacy_id=religion_obj.EntityID)
         # except:
         #     print("Missing entity id = " + str(religion_obj.EntityID) + " for religion prop id = " + str(religion_obj.ID))
         #     continue
         #
         # try:
-        #     religion_obj.event = Event.objects.get(id=religion_obj.EventID)
+        #     religion_obj.event = Event.objects.get(legacy_id=religion_obj.EventID)
         # except:
         #     print("Missing event id = " + str(religion_obj.EventID) + " for religion prop id = " + str(religion_obj.ID))
         #     continue
         #
         # try:
-        #     religion_obj.rel = Entity.objects.get(id=religion_obj.ReligionID)
+        #     religion_obj.rel = Entity.objects.get(legacy_id=religion_obj.ReligionID)
         # except:
         #     print("Missing religion obj id = " + str(religion_obj.ReligionID) + " for religion prop id = " + str(religion_obj.ID))
         #     continue
@@ -294,32 +316,33 @@ def load_demographics():
         # religion_info.save()
 
 
-
 def load_official_language():
     print("Loading official language info")
     cur = conn.cursor()
 
-    cur.execute("""SELECT * from official_language""")
+    cur.execute("""SELECT * from official_language order by \"ID\"""")
     for row in cur.fetchall():
         lang_obj = DBObject(cur, row)
 
         try:
-            lang_obj.entity = Entity.objects.get(id=lang_obj.EntityID)
+            lang_obj.entity = Entity.objects.get(legacy_id=lang_obj.EntityID)
         except:
             print("Missing entity id = " + str(lang_obj.EntityID) + " for language prop id = " + str(lang_obj.ID))
             continue
 
         try:
-            lang_obj.event = Event.objects.get(id=lang_obj.EventID)
+            lang_obj.event = Event.objects.get(legacy_id=lang_obj.EventID)
         except:
             print("Missing event id = " + str(lang_obj.EventID) + " for language prop id = " + str(lang_obj.ID))
             continue
 
         try:
-            lang_obj.lang = Entity.objects.get(id=lang_obj.LanguageID)
+            lang_obj.lang = Entity.objects.get(legacy_id=lang_obj.LanguageID)
         except:
             print("Missing lang obj id = " + str(lang_obj.LanguageID) + " for religion prop id = " + str(lang_obj.ID))
             continue
+
+        print(lang_obj.entity, lang_obj.event, lang_obj.lang)
 
         lang_info, created = EntityLanguage.objects.get_or_create(entity=lang_obj.entity, event=lang_obj.event, language=lang_obj.lang)
         lang_info.percentage = None
@@ -327,10 +350,10 @@ def load_official_language():
 
 
 def load_official_script():
-    pass
+    print("Not implemented")
 
 
-#load_entities_from_db()
+# load_entities_from_db()
 load_events_from_db()
 # load_names_from_db()
 # load_official_currency()
@@ -339,8 +362,5 @@ load_events_from_db()
 # load_gov()
 # load_religious_information()
 # load_demographics()
+# load_official_script()
 
-#ent = Entity.objects.get(id=14)
-#for gov in Government.get_versions(ent):
-#    print(str(gov.entity.id) + " -- " + str(gov.event.date_start) + " -- " + str(gov.event.name) + " -> " + str(gov.type.desc))
-#print(Government.get_versions(ent))

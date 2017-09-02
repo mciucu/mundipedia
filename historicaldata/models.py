@@ -18,7 +18,7 @@ class SourceType(models.Model):
 
 class Source(StreamObjectMixin):
     type = models.ForeignKey(SourceType, related_name="+")
-    meta_source = models.ForeignKey(MetaSource, related_name="+")
+    meta_source = models.ForeignKey(MetaSource, related_name="+", null=True, blank=True)
     desc = models.TextField()
     url = models.URLField(null=True)
 
@@ -41,7 +41,7 @@ class Entity(StreamObjectMixin):
     legacy_id = models.IntegerField(unique=True, null=True, blank=True)
 
     def __str__(self):
-        return "Entity " + str(self.id) + " [" + self.name + "]"
+        return "Entity " + str(self.id) + " [" + self.comment + "]"
 
     @classmethod
     def get_legacy(cls, legacy_id):
@@ -66,7 +66,7 @@ class Event(StreamObjectMixin):
     legacy_id = models.IntegerField(unique=True, null=True, blank=True)
 
     def __str__(self):
-        return "Event " +  self.id + " [" + self.name +"]"
+        return "Event " + str(self.id) + " [" + self.name +"]"
 
     #TODO: change to conversion to datetime, to be able to compare with date
     def __lt__(self, other):
@@ -77,8 +77,7 @@ class Event(StreamObjectMixin):
 
     @staticmethod
     def parse_date(date_str):
-        month_dict = {"Jan": 0, "January": 0, "Ian": 0,
-                      "Feb": 1, "Mar": 2, "Apr": 3, "May": 4, "Jun": 5, "Jul": 6, "Aug": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dec": 11}
+        month_dict = {"Jan": 0, "Feb": 1, "Mar": 2, "Apr": 3, "May": 4, "Jun": 5, "Jul": 6, "Aug": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dec": 11}
         parts = date_str.split()
         day = 0
         month = 0
@@ -107,7 +106,14 @@ class Event(StreamObjectMixin):
         return day + month * 32 + year * 400
 
     def get_date(self):
-        return Event.parse_date(self.date_start)
+        try:
+            return Event.parse_date(self.date_start)
+        except Exception as e:
+            try:
+                return Event.parse_date("1 Jan " + self.date_start)
+            except:
+                pass
+            raise e
 
 
 def first_after(values, date):
@@ -130,6 +136,9 @@ class EntityProperty(StreamObjectMixin):
         abstract = True
         unique_together = ("entity", "event")
 
+    def __le__(self, other):
+        return self.is_before(other)
+
     def get_date(self):
         return self.event.get_date()
 
@@ -138,8 +147,8 @@ class EntityProperty(StreamObjectMixin):
 
     @classmethod
     def get_versions(cls, entity):
-        rez = list(cls.objects.filter(entity=entity))
-        rez.sort()
+        rez = list(cls.objects.filter(entity=entity).select_related("event", "entity"))
+        rez.sort(key=lambda o: o.event)
         return rez
 
     @classmethod
@@ -166,32 +175,35 @@ class EntityLanguage(EntityProperty):
     language = models.ForeignKey(Entity, related_name="+")
     percent = models.FloatField(null=True)
 
+    class Meta:
+        unique_together = ()
+
 
 class EntityScript(EntityProperty):
     script = models.ForeignKey(Entity, related_name="+")
 
 
-class Border(EntityPropertySourced):
+class EntityBorder(EntityPropertySourced):
     """
     Models for the borders of a specific entity
     """
-    area = models.BigIntegerField(null=True)
-    perimeter = models.BigIntegerField(null=True)
+    area = models.BigIntegerField(null=True, blank=True)
+    perimeter = models.BigIntegerField(null=True, blank=True)
     centroid = models.PointField()
     geom = models.GeometryField()
 
-    label_rank = models.IntegerField()
-    label_poz = models.MultiPointField()
+    label_rank = models.IntegerField(null=True, blank=True)
+    label_poz = models.MultiPointField(null=True, blank=True)
 
 
-class Demographics(EntityPropertySourced):
+class EntityDemographics(EntityPropertySourced):
     value = models.BigIntegerField()
 
     def __str__(self):
         return self.entity.id + " - " + self.value
 
 
-class GDP(EntityPropertySourced):
+class EntityGDP(EntityPropertySourced):
     value = models.BigIntegerField()
     currency = models.ForeignKey(Entity, related_name="+")
 
@@ -201,7 +213,7 @@ class GovernmentType(StreamObjectMixin):
     parent_type = models.ForeignKey("self", related_name="+", null=True)
 
 
-class Government(EntityProperty):
+class EntityGovernment(EntityProperty):
     type = models.ForeignKey(GovernmentType, related_name="+")
 
 
@@ -209,15 +221,24 @@ class ReligionDemographic(EntityProperty):
     religion = models.ForeignKey(Entity, related_name="+")
     percentage = models.DecimalField(max_digits=7, decimal_places=4)
 
+    class Meta:
+        unique_together = ()
+
 
 class EthnicDemographic(EntityPropertySourced):
     ethnic_group = models.ForeignKey(Entity, related_name="+")
     percentage = models.DecimalField(null=False, max_digits=7, decimal_places=4)
 
+    class Meta:
+        unique_together = ()
+
 
 class OfficialCurrency(EntityProperty):
     currency = models.ForeignKey(Entity, related_name="+")
     symbol = models.CharField(max_length=2, null=True)
+
+    def get_name(self):
+        return self.currency.comment
 
 
 class CapitalCity(EntityProperty):
