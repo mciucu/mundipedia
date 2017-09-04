@@ -3,6 +3,7 @@ import {
     Form,
     Image,
     Input,
+    Level,
     Link,
     StyleSheet,
     SubmitInput,
@@ -379,7 +380,9 @@ class FeedbackFormStyle extends StyleSheet {
 
     @styleRule
     feedbackForm = {
-
+        width: 350,
+        maxWidth: "96%",
+        margin: "0 auto",
     };
 
     @styleRule
@@ -450,31 +453,89 @@ class FeedbackFormStyle extends StyleSheet {
         transition: "0.25s",
 
         ":hover": {
-            border: `2px solid ${enhance(this.themeProperties.COLOR_PRIMARY, 0.3)}`,
+            borderColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
             transition: "0.25s",
         },
         ":focus": {
-            border: `2px solid ${enhance(this.themeProperties.COLOR_PRIMARY, 0.3)}`,
+            borderColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
             transition: "0.25s",
             outline: "0",
         },
-        ":disabled": {
-            border: `2px solid ${enhance(this.themeProperties.COLOR_SUCCESS, 0.3)}`,
-            transition: "0.25s",
-        }
     };
 
     @styleRule
-    feedbackSent = {
+    submitInputSending = {
+        borderColor: enhance(this.themeProperties.COLOR_WARNING, 0.3),
+        ":hover": {
+            borderColor: enhance(this.themeProperties.COLOR_WARNING, 0.3),
+        },
+    };
 
+    @styleRule
+    submitInputSuccess = {
+        borderColor: enhance(this.themeProperties.COLOR_SUCCESS, 0.3),
+        ":hover": {
+            borderColor: enhance(this.themeProperties.COLOR_SUCCESS, 0.3),
+        },
+    };
+
+    @styleRule
+    submitInputError = {
+        borderColor: enhance(this.themeProperties.COLOR_DANGER, 0.3),
+        ":hover": {
+            borderColor: enhance(this.themeProperties.COLOR_DANGER, 0.3),
+        },
     };
 }
 
 
 @registerStyle(FeedbackFormStyle)
 class FeedbackForm extends UI.Element {
+    getDefaultOptions(options) {
+        return {
+            formState: 0,
+        }
+    }
+
     extraNodeAttributes(attr) {
         attr.addClass(this.styleSheet.feedbackForm);
+    }
+
+    isDisabled() {
+        return this.options.formState > 0;
+    }
+
+    setFormState(value) {
+        this.options.formState = value;
+        this.redraw();
+    }
+
+    getButtonAttributes() {
+        const {formState} = this.options;
+        const defaultClassName = this.styleSheet.submitInput;
+
+        if (formState === 0) {
+            return {
+                value: "Submit",
+                className: defaultClassName,
+            };
+        }
+        if (formState === 1) {
+            return {
+                value: "Sending...",
+                className: defaultClassName + this.styleSheet.submitInputSending,
+            };
+        }
+        if (formState === 2) {
+            return {
+                value: "Thank you!",
+                className: defaultClassName + this.styleSheet.submitInputSuccess,
+            };
+        }
+        return {
+            value: "Sorry, you exceeded your quota of sending feedbacks",
+            className: defaultClassName + this.styleSheet.submitInputError,
+        };
     }
 
     render() {
@@ -484,7 +545,9 @@ class FeedbackForm extends UI.Element {
                     <label className={this.styleSheet.label}>
                         Name
                     </label>
-                    <Input ref="nameInput" className={this.styleSheet.input} disabled={this.posted} />
+                    <Input ref="nameInput"
+                           className={this.styleSheet.input}
+                           disabled={this.isDisabled()} />
                 </div>
                 {
                     !USER.isAuthenticated ?
@@ -492,7 +555,9 @@ class FeedbackForm extends UI.Element {
                         <label className={this.styleSheet.label}>
                             Email
                         </label>
-                        <EmailInput ref="emailInput" className={this.styleSheet.input} disabled={this.posted} />
+                        <EmailInput ref="emailInput"
+                                    className={this.styleSheet.input}
+                                    disabled={this.isDisabled()} />
                     </div> :
                     null
                 }
@@ -500,9 +565,13 @@ class FeedbackForm extends UI.Element {
                     <label className={this.styleSheet.label}>
                         Message
                     </label>
-                    <TextArea ref="messageInput" className={this.styleSheet.input + this.styleSheet.contactTextArea} disabled={this.posted} />
+                    <TextArea ref="messageInput"
+                              className={this.styleSheet.input + this.styleSheet.contactTextArea}
+                              disabled={this.isDisabled()} />
                 </div>
-                <SubmitInput value={this.posted ? "Thank you!" : "Submit"} className={this.styleSheet.submitInput} disabled={this.posted} />
+                <SubmitInput {...this.getButtonAttributes()}
+                             disabled={this.isDisabled()}
+                             onClick={() => this.submitMessage()} />
             </Form>
         ];
     }
@@ -514,20 +583,16 @@ class FeedbackForm extends UI.Element {
             message: this.messageInput.getValue(),
         };
 
-        Ajax.postJSON("/send_feedback/", data).then(() =>
-            console.log("Ok", () =>
-                console.log("Failed ", ...arguments)
-            )
-        );
-    }
+        this.setFormState(1); // Sending...
 
-    onMount() {
-        this.feedbackForm.addNodeListener("submit", (event) => {
-            this.submitMessage();
-            this.posted = true;
-            this.redraw();
-            event.preventDefault();
-        });
+        Ajax.postJSON("/send_feedback/", data).then(
+            () => {
+                this.setFormState(2); // Thank you!
+            },
+            () => {
+                this.setFormState(3); // Sorry, you already sent in the last 6 hours
+            }
+        );
     }
 }
 
