@@ -19,24 +19,24 @@ class YearSelectStyle extends StyleSheet {
     button = {
         height: this.height,
         width: this.width / 4,
-        backgroundColor: "#fff",
+        backgroundColor: this.themeProperties.COLOR_BACKGROUND,
         border: "0",
         transition: "0.15s",
         ":hover": {
-            backgroundColor: "#fff",
+            backgroundColor: this.themeProperties.COLOR_BACKGROUND,
             color: this.themeProperties.COLOR_PRIMARY,
             transition: "0.15s",
         },
         ":active": {
-            backgroundColor: "#fff",
+            backgroundColor: this.themeProperties.COLOR_BACKGROUND,
             transition: "0.15s",
         },
         ":focus": {
-            backgroundColor: "#fff",
+            backgroundColor: this.themeProperties.COLOR_BACKGROUND,
             transition: "0.15s",
         },
         ":active:focus": {
-            backgroundColor: "#fff",
+            backgroundColor: this.themeProperties.COLOR_BACKGROUND,
             transition: "0.15s",
         }
     };
@@ -51,6 +51,7 @@ class YearSelectStyle extends StyleSheet {
         outline: "none",
         borderBottom: "2px solid #000",
         transition: "0.15s",
+        backgroundColor: this.themeProperties.COLOR_BACKGROUND,
         ":hover": {
             borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
             color: this.themeProperties.COLOR_PRIMARY,

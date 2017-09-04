@@ -1,4 +1,18 @@
-import {UI, registerStyle, Link, StyleSheet, styleRule, Image, Theme} from "ui/UI";
+import {
+    EmailInput,
+    Form,
+    Image,
+    Input,
+    Link,
+    StyleSheet,
+    SubmitInput,
+    TextArea,
+    Theme,
+    UI,
+    registerStyle,
+    styleRule,
+} from "ui/UI";
+import {Ajax} from "Ajax";
 import {MundipediaLogo} from "./MundipediaLogo";
 
 import {FAIcon} from "FontAwesome";
@@ -336,6 +350,11 @@ class AboutSection extends UI.Element {
 
 class AboutPageStyle extends StyleSheet {
     @styleRule
+    aboutPage = {
+        backgroundColor: this.themeProperties.COLOR_BACKGROUND,
+    };
+
+    @styleRule
     container = {
         width: "920px",
         padding: "0 15px",
@@ -346,105 +365,273 @@ class AboutPageStyle extends StyleSheet {
     @styleRule
     title = {
         fontSize: "46px",
-        marginTop: "50px",
+        paddingTop: "50px",
         textAlign: "center",
     };
 }
+
+
+class FeedbackFormStyle extends StyleSheet {
+    marginBottom = 10;
+    padding = 15;
+    width = 300;
+    inputHeight = 35;
+
+    @styleRule
+    feedbackForm = {
+
+    };
+
+    @styleRule
+    feedback = {
+
+    };
+
+    @styleRule
+    field = {
+
+    };
+
+    @styleRule
+    label = {
+        display: "block",
+        fontSize: "18px",
+        marginBottom: this.marginBottom,
+        fontWeight: "600",
+    };
+
+    @styleRule
+    input = {
+        width: "90%",
+        maxWidth: this.width,
+        borderRadius: "0px !important",
+        height: this.inputHeight,
+        lineHeight: this.inputHeight,
+        fontSize: "16px",
+        fontFamily: this.themeProperties.FONT_FAMILY_SANS_SERIF,
+        paddingLeft: this.padding,
+        marginBottom: this.marginBottom,
+        letterSpacing: "0.2px",
+        border: "0",
+        border: "2px solid #ddd",
+        transition: "0.25s",
+
+        outline: "0",
+        ":focus": {
+            border: `2px solid ${enhance(this.themeProperties.COLOR_PRIMARY, 0.3)}`,
+            transition: "0.25s",
+        },
+        ":hover": {
+            border: `2px solid ${enhance(this.themeProperties.COLOR_PRIMARY, 0.3)}`,
+            transition: "0.25s",
+        },
+        ":active": {
+            border: `2px solid ${enhance(this.themeProperties.COLOR_PRIMARY, 0.3)}`,
+            transition: "0.25s",
+        },
+    };
+
+    @styleRule
+    contactTextArea = {
+        height: "175px",
+        lineHeight: "initial",
+        padding: this.padding,
+    };
+
+    @styleRule
+    submitInput = {
+        padding: "5px 15px",
+        fontSize: "18px",
+        fontFamily: this.themeProperties.FONT_FAMILY_SANS_SERIF,
+        backgroundColor: "#fff",
+        border: "0",
+        border: "2px solid #ddd",
+        fontWeight: "600",
+        transition: "0.25s",
+
+        ":hover": {
+            border: `2px solid ${enhance(this.themeProperties.COLOR_PRIMARY, 0.3)}`,
+            transition: "0.25s",
+        },
+        ":focus": {
+            border: `2px solid ${enhance(this.themeProperties.COLOR_PRIMARY, 0.3)}`,
+            transition: "0.25s",
+            outline: "0",
+        },
+        ":disabled": {
+            border: `2px solid ${enhance(this.themeProperties.COLOR_SUCCESS, 0.3)}`,
+            transition: "0.25s",
+        }
+    };
+
+    @styleRule
+    feedbackSent = {
+
+    };
+}
+
+
+@registerStyle(FeedbackFormStyle)
+class FeedbackForm extends UI.Element {
+    extraNodeAttributes(attr) {
+        attr.addClass(this.styleSheet.feedbackForm);
+    }
+
+    render() {
+        return [
+            <Form ref="feedbackForm">
+                <div className={this.styleSheet.field}>
+                    <label className={this.styleSheet.label}>
+                        Name
+                    </label>
+                    <Input ref="nameInput" className={this.styleSheet.input} disabled={this.posted} />
+                </div>
+                {
+                    !USER.isAuthenticated ?
+                    <div className={this.styleSheet.field}>
+                        <label className={this.styleSheet.label}>
+                            Email
+                        </label>
+                        <EmailInput ref="emailInput" className={this.styleSheet.input} disabled={this.posted} />
+                    </div> :
+                    null
+                }
+                <div className={this.styleSheet.field}>
+                    <label className={this.styleSheet.label}>
+                        Message
+                    </label>
+                    <TextArea ref="messageInput" className={this.styleSheet.input + this.styleSheet.contactTextArea} disabled={this.posted} />
+                </div>
+                <SubmitInput value={this.posted ? "Thank you!" : "Submit"} className={this.styleSheet.submitInput} disabled={this.posted} />
+            </Form>
+        ];
+    }
+
+    submitMessage() {
+        let data = {
+            name: this.nameInput.getValue(),
+            email: (this.emailInput && this.emailInput.getValue()) || null,
+            message: this.messageInput.getValue(),
+        };
+
+        Ajax.postJSON("/send_feedback/", data).then(() =>
+            console.log("Ok", () =>
+                console.log("Failed ", ...arguments)
+            )
+        );
+    }
+
+    onMount() {
+        this.feedbackForm.addNodeListener("submit", (event) => {
+            this.submitMessage();
+            this.posted = true;
+            this.redraw();
+            event.preventDefault();
+        });
+    }
+}
+
 
 // Just change the TeamSection, it should get an array of information
 // about the cards and should map that info in some result value and return it
 @registerStyle(AboutPageStyle)
 export class AboutPage extends UI.Element {
     extraNodeAttributes(attr) {
-        attr.addClass(this.styleSheet.container);
+        attr.addClass(this.styleSheet.aboutPage);
     }
 
     render() {
         return [
-            /*<MundipediaLogo size={150}/>,*/
-            <div className={this.styleSheet.title}>
-                <MundipediaLogo size={120} />
-                <span>
-                    Mundipedia
-                </span>
-            </div>,
-            <AboutSection title="About us"
-                          message={[
-                              <p>
-                                  We’re a non-profit institution with the purpose of collecting, standardizing
-                                  and visualizing information about the state of the world, currently and historically.
-                              </p>,
-                              <p>
-                                  Mundipedia was born because there was a need fora centralized database for historical
-                                  information. It’s intended not just as a historical map of the world, where you can
-                                  just slide to what year you want. It’s intended to show information like historical GDP,
-                                  populations, the areas where certain languages are spoken.
-                              </p>,
-                              <p>
-                                  In short, we want to put a memorable visual representation on top of the world’s historical
-                                  information while also acting as the curators of this data.
-                              </p>,
-                              <p>
-                                  Everything that we’ll collect will be made freely available to anyone, at first through our
-                                  website and later on through a standardized API.
-                              </p>
-                          ]}
-                          hasLogo={false} />,
-            <AboutSection title="Aren’t there other websites that do this?"
-                          message={[
-                              <p>
-                                  There’s little information that’s not on the internet somewhere. It’s in a multitude of different
-                                  formats thought: scanned maps, spreadsheets, yet untranslated cuneiform tablets, you name it. The
-                                  solution we want to be is a platform that gathers all that data and offers a single format for every
-                                  type of data.
-                              </p>
-                          ]}
-                          /*hasLogo*/ />,
-            <AboutSection title="We’re not a wiki (yet)"
-                          message={[
-                              <p>
-                                  We don’t accept user data right now, but that doesn’t mean we don’t want to in the future. One of the
-                                  main principles of Mundipedia is that the way information is presented can be more important than the
-                                  actual information. Every single type of data that we’ll store has a different optimal way of presenting
-                                  it, and that’s why at first we want the people that are inputing the data to be close to the decisions
-                                  of how it’s displayed.
-                              </p>,
-                              <p>
-                                  Using crowdsourcing to generate data has become a panacea for many content platforms, many forgetting how
-                                  important it is to have a system in place that enforces consistency and quality. Don’t misunderstand us,
-                                  openness to all voices and sources is extremely important, but we first want to set up an infrastructure
-                                  that will make sure the end-user hears only a single coherent and high quality voice.
-                              </p>,
-                              <p>
-                                  Over time our software will mature, and we plan on opening up for contributors, first to accredited users
-                                  and then hopefully to everyone.
-                              </p>
-                          ]} />,
-            <AboutSection title="How we’re funded"
-                          message={[
-                              <p>
-                                  We don’t have any income right now, and we’ll be accepting donations soon. We’re still looking for ways to
-                                  be funded, but whatever happens though, we will stand by our key principles:
-                              </p>,
-                              <p>
-                                  <li>
-                                      All of our information will remain forever free and without copyright limitations to usage.
-                                  </li>
-                                  <li>
-                                      We will never have banners or ads of any kind on our website.
-                                  </li>
-                                  <li>
-                                      We will not compromise our content or direction for sponsorships.
-                                  </li>
-                              </p>
-                          ]} />,
-            <AboutSection title="Contact us for more"
-                          message={[
-                              <p>
-                                  Write to us at <strong>contact@mundipedia.org</strong> if you’ve got any thoughts you want to send our way.
-                              </p>
-                          ]} />,
-            <TeamSection />,
+            <div className={this.styleSheet.container}>
+                <div className={this.styleSheet.title}>
+                    <MundipediaLogo size={120} />
+                    <span>
+                        Mundipedia
+                    </span>
+                </div>
+                <AboutSection title="About us"
+                              message={[
+                                  <p>
+                                      We’re a non-profit institution with the purpose of collecting, standardizing
+                                      and visualizing information about the state of the world, currently and historically.
+                                  </p>,
+                                  <p>
+                                      Mundipedia was born because there was a need fora centralized database for historical
+                                      information. It’s intended not just as a historical map of the world, where you can
+                                      just slide to what year you want. It’s intended to show information like historical GDP,
+                                      populations, the areas where certain languages are spoken.
+                                  </p>,
+                                  <p>
+                                      In short, we want to put a memorable visual representation on top of the world’s historical
+                                      information while also acting as the curators of this data.
+                                  </p>,
+                                  <p>
+                                      Everything that we’ll collect will be made freely available to anyone, at first through our
+                                      website and later on through a standardized API.
+                                  </p>
+                              ]}
+                              hasLogo={false} />
+                <AboutSection title="Aren’t there other websites that do this?"
+                              message={[
+                                  <p>
+                                      There’s little information that’s not on the internet somewhere. It’s in a multitude of different
+                                      formats thought: scanned maps, spreadsheets, yet untranslated cuneiform tablets, you name it. The
+                                      solution we want to be is a platform that gathers all that data and offers a single format for every
+                                      type of data.
+                                  </p>
+                              ]}
+                              /*hasLogo*/ />
+                <AboutSection title="We’re not a wiki (yet)"
+                              message={[
+                                  <p>
+                                      We don’t accept user data right now, but that doesn’t mean we don’t want to in the future. One of the
+                                      main principles of Mundipedia is that the way information is presented can be more important than the
+                                      actual information. Every single type of data that we’ll store has a different optimal way of presenting
+                                      it, and that’s why at first we want the people that are inputing the data to be close to the decisions
+                                      of how it’s displayed.
+                                  </p>,
+                                  <p>
+                                      Using crowdsourcing to generate data has become a panacea for many content platforms, many forgetting how
+                                      important it is to have a system in place that enforces consistency and quality. Don’t misunderstand us,
+                                      openness to all voices and sources is extremely important, but we first want to set up an infrastructure
+                                      that will make sure the end-user hears only a single coherent and high quality voice.
+                                  </p>,
+                                  <p>
+                                      Over time our software will mature, and we plan on opening up for contributors, first to accredited users
+                                      and then hopefully to everyone.
+                                  </p>
+                              ]} />
+                <AboutSection title="How we’re funded"
+                              message={[
+                                  <p>
+                                      We don’t have any income right now, and we’ll be accepting donations soon. We’re still looking for ways to
+                                      be funded, but whatever happens though, we will stand by our key principles:
+                                  </p>,
+                                  <p>
+                                      <li>
+                                          All of our information will remain forever free and without copyright limitations to usage.
+                                      </li>
+                                      <li>
+                                          We will never have banners or ads of any kind on our website.
+                                      </li>
+                                      <li>
+                                          We will not compromise our content or direction for sponsorships.
+                                      </li>
+                                  </p>
+                              ]} />
+                <AboutSection title="Contact us for more"
+                              message={[
+                                  <p>
+                                      Write to us at <strong>contact@mundipedia.org</strong> if you’ve got any thoughts you want to send our way.
+                                  </p>
+                              ]} />
+                <FeedbackForm />
+                <AboutSection title="Our team"
+                              message={[
+                                  <TeamSection />
+                              ]}
+                              hasLogo={false} />
+            </div>
         ]
     }
 }

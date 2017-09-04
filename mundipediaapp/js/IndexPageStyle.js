@@ -10,6 +10,7 @@ export class IndexPageStyle extends StyleSheet {
         // justifyContent: "center",
         alignItems: "center",
         flexDirection: "column",
+        backgroundColor: this.themeProperties.COLOR_BACKGROUND,
     };
 
     @styleRule

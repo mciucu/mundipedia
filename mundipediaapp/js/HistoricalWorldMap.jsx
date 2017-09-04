@@ -80,7 +80,6 @@ class HistoricalWorldMapStyle extends StyleSheet {
     container = {
         // width: "1200px",
         width: "100%",
-        background: "#f3f4f5"
     };
 
     @styleRule
