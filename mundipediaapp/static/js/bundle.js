@@ -11,7 +11,118 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 
 
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
 
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
 
 
 
@@ -1230,6 +1341,19 @@ var NodeAttributes = function () {
             }
         }
     }, {
+        key: "applyStyleToNode",
+        value: function applyStyleToNode(key, value, node) {
+            if (typeof value === "function") {
+                value = value();
+            }
+            if ((value instanceof Number || typeof value === "number") && value != 0 && defaultToPixelsAttributes.has(dashCase(key))) {
+                value = value + "px";
+            }
+            if (node && node.style[key] !== value) {
+                node.style[key] = value;
+            }
+        }
+    }, {
         key: "setStyle",
         value: function setStyle(key, value, node) {
             if (!(typeof key === "string" || key instanceof String)) {
@@ -1267,15 +1391,7 @@ var NodeAttributes = function () {
             }
             this.style = this.style || {};
             this.style[key] = value;
-            if (typeof value === "function") {
-                value = value();
-            }
-            if ((value instanceof Number || typeof value === "number") && value != 0 && defaultToPixelsAttributes.has(dashCase(key))) {
-                value = value + "px";
-            }
-            if (node && node.style[key] !== value) {
-                node.style[key] = value;
-            }
+            this.applyStyleToNode(key, value, node);
         }
     }, {
         key: "removeStyle",
@@ -1414,10 +1530,6 @@ var NodeAttributes = function () {
         key: "apply",
         value: function apply(node, attributesMap) {
             var addedAttributes = {};
-            var whitelistedAttributes = this.whitelistedAttributes || {};
-
-            // First update existing node attributes and delete old ones
-            // TODO: optimize to not run this if the node was freshly created
             var nodeAttributes = node.attributes;
             for (var i = nodeAttributes.length - 1; i >= 0; i--) {
                 var attr = nodeAttributes[i];
@@ -1463,11 +1575,7 @@ var NodeAttributes = function () {
             node.removeAttribute("style");
             if (this.style) {
                 for (var _key2 in this.style) {
-                    var _value = this.style[_key2];
-                    if (typeof _value === "function") {
-                        _value = _value();
-                    }
-                    node.style[_key2] = _value;
+                    this.applyStyleToNode(_key2, this.style[_key2], node);
                 }
             }
         }
@@ -3542,6 +3650,1531 @@ var Draggable = function Draggable(BaseClass) {
     }(BaseClass);
 };
 
+var COLORS_BY_NAME = {
+    aliceblue: "#f0f8ff",
+    antiquewhite: "#faebd7",
+    aqua: "#00ffff",
+    aquamarine: "#7fffd4",
+    azure: "#f0ffff",
+    beige: "#f5f5dc",
+    bisque: "#ffe4c4",
+    black: "#000000",
+    blanchedalmond: "#ffebcd",
+    blue: "#0000ff",
+    blueviolet: "#8a2be2",
+    brown: "#a52a2a",
+    burlywood: "#deb887",
+    cadetblue: "#5f9ea0",
+    chartreuse: "#7fff00",
+    chocolate: "#d2691e",
+    coral: "#ff7f50",
+    cornflowerblue: "#6495ed",
+    cornsilk: "#fff8dc",
+    crimson: "#dc143c",
+    cyan: "#00ffff",
+    darkblue: "#00008b",
+    darkcyan: "#008b8b",
+    darkgoldenrod: "#b8860b",
+    darkgray: "#a9a9a9",
+    darkgreen: "#006400",
+    darkkhaki: "#bdb76b",
+    darkmagenta: "#8b008b",
+    darkolivegreen: "#556b2f",
+    darkorange: "#ff8c00",
+    darkorchid: "#9932cc",
+    darkred: "#8b0000",
+    darksalmon: "#e9967a",
+    darkseagreen: "#8fbc8f",
+    darkslateblue: "#483d8b",
+    darkslategray: "#2f4f4f",
+    darkturquoise: "#00ced1",
+    darkviolet: "#9400d3",
+    deeppink: "#ff1493",
+    deepskyblue: "#00bfff",
+    dimgray: "#696969",
+    dodgerblue: "#1e90ff",
+    firebrick: "#b22222",
+    floralwhite: "#fffaf0",
+    forestgreen: "#228b22",
+    fuchsia: "#ff00ff",
+    gainsboro: "#dcdcdc",
+    ghostwhite: "#f8f8ff",
+    gold: "#ffd700",
+    goldenrod: "#daa520",
+    gray: "#808080",
+    green: "#008000",
+    greenyellow: "#adff2f",
+    honeydew: "#f0fff0",
+    hotpink: "#ff69b4",
+    indianred: "#cd5c5c",
+    indigo: "#4b0082",
+    ivory: "#fffff0",
+    khaki: "#f0e68c",
+    lavender: "#e6e6fa",
+    lavenderblush: "#fff0f5",
+    lawngreen: "#7cfc00",
+    lemonchiffon: "#fffacd",
+    lightblue: "#add8e6",
+    lightcoral: "#f08080",
+    lightcyan: "#e0ffff",
+    lightgoldenrodyellow: "#fafad2",
+    lightgray: "#d3d3d3",
+    lightgreen: "#90ee90",
+    lightpink: "#ffb6c1",
+    lightsalmon: "#ffa07a",
+    lightseagreen: "#20b2aa",
+    lightskyblue: "#87cefa",
+    lightslategray: "#778899",
+    lightsteelblue: "#b0c4de",
+    lightyellow: "#ffffe0",
+    lime: "#00ff00",
+    limegreen: "#32cd32",
+    linen: "#faf0e6",
+    magenta: "#ff00ff",
+    maroon: "#800000",
+    mediumaquamarine: "#66cdaa",
+    mediumblue: "#0000cd",
+    mediumorchid: "#ba55d3",
+    mediumpurple: "#9370db",
+    mediumseagreen: "#3cb371",
+    mediumslateblue: "#7b68ee",
+    mediumspringgreen: "#00fa9a",
+    mediumturquoise: "#48d1cc",
+    mediumvioletred: "#c71585",
+    midnightblue: "#191970",
+    mintcream: "#f5fffa",
+    mistyrose: "#ffe4e1",
+    moccasin: "#ffe4b5",
+    navajowhite: "#ffdead",
+    navy: "#000080",
+    oldlace: "#fdf5e6",
+    olive: "#808000",
+    olivedrab: "#6b8e23",
+    orange: "#ffa500",
+    orangered: "#ff4500",
+    orchid: "#da70d6",
+    palegoldenrod: "#eee8aa",
+    palegreen: "#98fb98",
+    paleturquoise: "#afeeee",
+    palevioletred: "#db7093",
+    papayawhip: "#ffefd5",
+    peachpuff: "#ffdab9",
+    peru: "#cd853f",
+    pink: "#ffc0cb",
+    plum: "#dda0dd",
+    powderblue: "#b0e0e6",
+    purple: "#800080",
+    red: "#ff0000",
+    rosybrown: "#bc8f8f",
+    royalblue: "#4169e1",
+    saddlebrown: "#8b4513",
+    salmon: "#fa8072",
+    sandybrown: "#f4a460",
+    seagreen: "#2e8b57",
+    seashell: "#fff5ee",
+    sienna: "#a0522d",
+    silver: "#c0c0c0",
+    skyblue: "#87ceeb",
+    slateblue: "#6a5acd",
+    slategray: "#708090",
+    snow: "#fffafa",
+    springgreen: "#00ff7f",
+    steelblue: "#4682b4",
+    tan: "#d2b48c",
+    teal: "#008080",
+    thistle: "#d8bfd8",
+    tomato: "#ff6347",
+    turquoise: "#40e0d0",
+    violet: "#ee82ee",
+    wheat: "#f5deb3",
+    white: "#ffffff",
+    whitesmoke: "#f5f5f5",
+    yellow: "#ffff00",
+    yellowgreen: "#9acd32"
+};
+
+/*
+ * This class contains methods for operating with colors. Its objects are kept in hsva format with normalized
+ * attributes (each attribute has value between 0 and 1 inclusive), and can be converted from/to rgba.
+ */
+
+var Color = function () {
+    function Color(color) {
+        classCallCheck(this, Color);
+
+        if (color) {
+            this.setColor(color);
+        }
+    }
+
+    createClass(Color, [{
+        key: "setColor",
+        value: function setColor(color) {
+            this.color = this.constructor.parseColor(color);
+        }
+    }, {
+        key: "getColor",
+        value: function getColor() {
+            var rgba = this.getRgba();
+            return "rgba(" + rgba[0] + ", " + rgba[1] + ", " + rgba[2] + ", " + rgba[3] + ")";
+        }
+
+        /*
+         * @param color A color string of the types: native name, hex3, hex6, rgb, rgba, hsl, hsla
+         *              or a Color object, or a hsla color array
+         */
+
+    }], [{
+        key: "parseColor",
+        value: function parseColor(color) {
+            if (color instanceof Color) {
+                return color.color;
+            } else if (color instanceof Array) {
+                // Add the alpha parameter at the end
+                if (color.length === 3) {
+                    color.push(1);
+                }
+                return color;
+            }
+
+            color = color.trim().toLowerCase();
+
+            // Check if color is given by name
+            if (COLORS_BY_NAME.hasOwnProperty(color)) {
+                color = COLORS_BY_NAME[color];
+            }
+
+            var values = [];
+
+            // Check for hex3 (e.g. "#f00")
+            var hex3 = color.match(/^#([0-9a-f]{3})$/i);
+            if (hex3) {
+                values = [parseInt(hex3[1].charAt(0), 16) * 0x11, parseInt(hex3[1].charAt(1), 16) * 0x11, parseInt(hex3[1].charAt(2), 16) * 0x11, 1];
+            }
+
+            // Check for hex6 (e.g. "#ff0000")
+            var hex6 = color.match(/^#([0-9a-f]{6})$/i);
+            if (hex6) {
+                values = [parseInt(hex6[1].substr(0, 2), 16), parseInt(hex6[1].substr(2, 2), 16), parseInt(hex6[1].substr(4, 2), 16), 1];
+            }
+
+            // Check for rgba (e.g. "rgba(255, 0, 0, 0.5)")
+            var rgba = color.match(/^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+.*\d*)\s*\)$/i);
+            if (rgba) {
+                values = [parseInt(rgba[1]), parseInt(rgba[2]), parseInt(rgba[3]), parseFloat(rgba[4])];
+            }
+
+            // Check for rgb (e.g. "rgb(255, 0, 0)")
+            var rgb = color.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+            if (rgb) {
+                values = [parseInt(rgb[1]), parseInt(rgb[2]), parseInt(rgb[3]), 1];
+            }
+            return values;
+        }
+
+        // TODO: this should be implemented as a factory that generates an interpolator object, that just takes in a t
+
+    }, {
+        key: "interpolate",
+        value: function interpolate(firstColor, secondColor) {
+            var t = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.5;
+
+            var firstColorArray = Color.parseColor(firstColor);
+            var secondColorArray = Color.parseColor(secondColor);
+
+            return Color.convertToRgba([parseInt(firstColorArray[0] * (1 - t) + secondColorArray[0] * t), parseInt(firstColorArray[1] * (1 - t) + secondColorArray[1] * t), parseInt(firstColorArray[2] * (1 - t) + secondColorArray[2] * t), parseInt(firstColorArray[3] * (1 - t) + secondColorArray[3] * t)]);
+        }
+    }, {
+        key: "convertToRgba",
+        value: function convertToRgba(rgba) {
+            return "rgba(" + rgba[0] + ", " + rgba[1] + ", " + rgba[2] + ", " + rgba[3] + ")";
+        }
+    }, {
+        key: "isLight",
+        value: function isLight(color) {
+            var values = Color.parseColor(color);
+            return values[0] * 0.3 + values[1] * 0.59 + values[2] * 0.11 > 188;
+        }
+    }]);
+    return Color;
+}();
+
+function lighten(color, amount) {
+    if (amount >= 0) {
+        return Color.interpolate(color, "#fff", amount);
+    } else {
+        return darken(color, -amount);
+    }
+}
+
+function darken(color, amount) {
+    if (amount >= 0) {
+        var rgba = Color.parseColor(Color.interpolate(color, "#000", amount));
+        for (var i = 0; i < 3; i += 1) {
+            var root = Math.pow(255 - rgba[i], 0.7);
+            rgba[i] = parseInt(rgba[i] - root * amount);
+            if (rgba[i] < 0) {
+                rgba[i] = 0;
+            }
+        }
+        return Color.convertToRgba(rgba);
+    } else {
+        return lighten(color, -amount);
+    }
+}
+
+function enhance(color, amount) {
+    if (Color.isLight(color)) {
+        return darken(color, amount);
+    } else {
+        return lighten(color, amount);
+    }
+}
+
+function buildColors(color) {
+    var dark = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+
+    var colors = [];
+    var darkenPercents = void 0;
+    if (!dark) {
+        darkenPercents = [0.1, 0, -0.2, -0.3, -0.35, -0.2, -1];
+    } else if (Color.isLight(color)) {
+        darkenPercents = [0.05, 0, 0.05, 0.1, 0.15, 0.3, 0.8];
+    } else {
+        darkenPercents = [-0.3, 0, 0.1, 0.2, 0.23, 0.1, -1];
+    }
+    for (var i = 0; i < darkenPercents.length; i += 1) {
+        colors.push(darken(color, darkenPercents[i]));
+    }
+    return colors;
+}
+
+function getInstance(styleSheet) {
+    if (typeof styleSheet === "function") {
+        if (typeof styleSheet.getInstance === "function") {
+            styleSheet = styleSheet.getInstance();
+        } else {
+            styleSheet = styleSheet();
+        }
+    }
+    return styleSheet;
+}
+
+function getInstanceForObject(obj) {
+    if (!obj) {
+        return null;
+    }
+    var styleSheet = obj.theme && obj.theme.get(obj) || obj.styleSheet;
+    return getInstance(styleSheet);
+}
+
+var Theme = function (_Dispatchable) {
+    inherits(Theme, _Dispatchable);
+
+    function Theme() {
+        var name = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "";
+        classCallCheck(this, Theme);
+
+        var _this = possibleConstructorReturn(this, (Theme.__proto__ || Object.getPrototypeOf(Theme)).call(this));
+
+        _this.styleSheetSymbol = Symbol("Theme" + name);
+        _this.classSet = new Set();
+        _this.styleSheetSet = new Set();
+        _this.properties = {};
+        return _this;
+    }
+
+    createClass(Theme, [{
+        key: "register",
+        value: function register(cls, styleSheet) {
+            cls.theme = this;
+            if (!cls.styleSheet) {
+                cls.styleSheet = styleSheet;
+            }
+            this.set(cls, styleSheet);
+        }
+    }, {
+        key: "set",
+        value: function set$$1(cls, styleSheet) {
+            cls[this.styleSheetSymbol] = styleSheet;
+            this.classSet.add(cls);
+        }
+    }, {
+        key: "get",
+        value: function get$$1(cls) {
+            if (!(typeof cls === "function")) {
+                cls = cls.constructor;
+            }
+            return cls[this.styleSheetSymbol];
+        }
+    }, {
+        key: "getProperties",
+        value: function getProperties() {
+            return this.properties;
+        }
+    }, {
+        key: "getProperty",
+        value: function getProperty(key, defaultValue) {
+            return this.properties[key] || defaultValue;
+        }
+    }, {
+        key: "setProperties",
+        value: function setProperties(properties) {
+            var update = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+
+            Object.assign(this.properties, properties);
+            if (update) {
+                this.updateStyleSheets();
+            }
+        }
+    }, {
+        key: "setProperty",
+        value: function setProperty(key, value) {
+            this.properties[key] = value;
+        }
+    }, {
+        key: "getAllStyleSheets",
+        value: function getAllStyleSheets() {
+            var styleSheetSet = new Set(this.styleSheetSet);
+            var _iteratorNormalCompletion = true;
+            var _didIteratorError = false;
+            var _iteratorError = undefined;
+
+            try {
+                for (var _iterator = this.classSet.values()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var cls = _step.value;
+
+                    styleSheetSet.add(this.get(cls));
+                }
+            } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                        _iterator.return();
+                    }
+                } finally {
+                    if (_didIteratorError) {
+                        throw _iteratorError;
+                    }
+                }
+            }
+
+            return Array.from(styleSheetSet).map(function (styleSheet) {
+                if (styleSheet.getInstance) {
+                    return styleSheet.getInstance();
+                }
+                return styleSheet;
+            });
+        }
+    }, {
+        key: "addStyleSheet",
+        value: function addStyleSheet(styleSheet) {
+            this.styleSheetSet.add(styleSheet);
+        }
+    }, {
+        key: "removeStyleSheet",
+        value: function removeStyleSheet(styleSheet) {
+            this.styleSheetSet.delete(styleSheet);
+        }
+    }, {
+        key: "updateStyleSheets",
+        value: function updateStyleSheets() {
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+
+            try {
+                for (var _iterator2 = this.getAllStyleSheets()[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var styleSheet = _step2.value;
+
+                    if (styleSheet.update) {
+                        styleSheet.update();
+                    }
+                }
+            } catch (err) {
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
+                    }
+                } finally {
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
+                    }
+                }
+            }
+        }
+    }], [{
+        key: "register",
+        value: function register(cls, styleSheet) {
+            var _Global;
+
+            return (_Global = this.Global).register.apply(_Global, arguments);
+        }
+    }, {
+        key: "get",
+        value: function get$$1(cls) {
+            var _Global2;
+
+            return (_Global2 = this.Global).get.apply(_Global2, arguments);
+        }
+    }, {
+        key: "addStyleSheet",
+        value: function addStyleSheet(styleSheet) {
+            this.Global.addStyleSheet(styleSheet);
+        }
+    }]);
+    return Theme;
+}(Dispatchable);
+
+Theme.Global = new Theme("Global");
+
+UI.Element.prototype.getStyleSheet = function styleSheetGetter() {
+    return getInstanceForObject(this.options) || getInstanceForObject(this.constructor);
+};
+
+function registerStyle(styleClass) {
+    var theme = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Theme.Global;
+
+    return function (target) {
+        theme.register(target, styleClass);
+    };
+}
+
+StyleSheet.theme = Theme.Global;
+
+var _class3$1;
+var _descriptor8$1;
+var _descriptor9$1;
+var _class5;
+var _descriptor10$1;
+var _descriptor11$1;
+var _descriptor12$1;
+var _descriptor13$1;
+var _descriptor14$1;
+var _class7$1;
+var _descriptor15$1;
+var _descriptor16$1;
+
+function _initDefineProp$2(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+        writable: descriptor.writable,
+        value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+}
+
+function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+        desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
+
+    if ('value' in desc || desc.initializer) {
+        desc.writable = true;
+    }
+
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+        return decorator(target, property, desc) || desc;
+    }, desc);
+
+    if (context && desc.initializer !== void 0) {
+        desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+        desc.initializer = undefined;
+    }
+
+    if (desc.initializer === void 0) {
+        Object['define' + 'Property'](target, property, desc);
+        desc = null;
+    }
+
+    return desc;
+}
+
+// TODO: export these properly, don't use a namespace here
+var GlobalStyle = {};
+
+Theme.Global.setProperties({
+    COLOR_PLAIN: "#fff",
+    COLOR_PLAIN_ALTERNATIVE: "#eee",
+    COLOR_GRAY: "#777",
+    COLOR_PRIMARY: "#337ab7",
+    COLOR_SECONDARY: "#358ba4",
+    COLOR_SUCCESS: "#5cb85c",
+    COLOR_INFO: "#5bc0de",
+    COLOR_WARNING: "#f0ad4e",
+    COLOR_DANGER: "#d9534f",
+
+    FONT_SIZE_EXTRA_SMALL: "9px",
+    FONT_SIZE_SMALL: "10px",
+    FONT_SIZE_DEFAULT: "12px",
+    FONT_SIZE_LARGE: "17px",
+    FONT_SIZE_EXTRA_LARGE: "21px",
+
+    BASE_BORDER_RADIUS: 0,
+    BASE_BOX_SHADOW: "0px 0px 10px rgb(160, 162, 168)",
+    BASE_BORDER_WIDTH: 0,
+    BASE_BORDER_STYLE: "solid",
+    BASE_BORDER_COLOR: "#ddd",
+
+    BUTTON_BORDER_RADIUS: "0.2rem",
+
+    CARD_PANEL_HEADER_HEIGHT: 30,
+    CARD_PANEL_HEADER_HEIGHT_LARGE: 40,
+    CARD_PANEL_HEADING_PADDING: 10,
+    CARD_PANEL_HEADING_PADDING_LARGE: 20,
+    CARD_PANEL_TEXT_TRANSFORM: "inherit",
+
+    ROW_LIST_ROW_HEIGHT: 30,
+    ROW_LIST_ROW_HEIGHT_LARGE: 40,
+    ROW_LIST_ROW_PADDING: 10,
+    ROW_LIST_ROW_PADDING_LARGE: 20,
+    ROW_LIST_ROW_BORDER_WIDTH: 1,
+
+    FONT_FAMILY_SANS_SERIF: "Lato, 'Segoe UI', 'Lucida Sans Unicode', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+    FONT_FAMILY_SERIF: "serif",
+    FONT_FAMILY_MONOSPACE: "'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace",
+
+    NAV_MANAGER_NAVBAR_HEIGHT: 50,
+    NAV_MANAGER_BOX_SHADOW_NAV_MANAGER: "0px 0px 10px rgb(0, 0, 0)",
+    NAV_MANAGER_BOX_SHADOW_SIDE_PANEL: "0px 0px 10px #202e3e",
+
+    MAIN_CONTAINER_EXTRA_PADDING_TOP_DESKTOP: 0,
+    MAIN_CONTAINER_EXTRA_PADDING_TOP_MOBILE: 0,
+    MAIN_CONTAINER_EXTRA_PADDING_BOTTOM_DESKTOP: 0,
+    MAIN_CONTAINER_EXTRA_PADDING_BOTTOM_MOBILE: 0
+});
+
+var BasicLevelSizeStyleSheet = function (_StyleSheet) {
+    inherits(BasicLevelSizeStyleSheet, _StyleSheet);
+
+    function BasicLevelSizeStyleSheet() {
+        classCallCheck(this, BasicLevelSizeStyleSheet);
+        return possibleConstructorReturn(this, (BasicLevelSizeStyleSheet.__proto__ || Object.getPrototypeOf(BasicLevelSizeStyleSheet)).apply(this, arguments));
+    }
+
+    createClass(BasicLevelSizeStyleSheet, [{
+        key: "Level",
+        value: function Level$$1(level) {
+            if (this[level]) {
+                return this[level];
+            }
+            var _iteratorNormalCompletion = true;
+            var _didIteratorError = false;
+            var _iteratorError = undefined;
+
+            try {
+                for (var _iterator = Object.keys(Level)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var type = _step.value;
+
+                    if (level == Level[type]) {
+                        return this[type];
+                    }
+                }
+            } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                        _iterator.return();
+                    }
+                } finally {
+                    if (_didIteratorError) {
+                        throw _iteratorError;
+                    }
+                }
+            }
+
+            return "";
+        }
+    }, {
+        key: "Size",
+        value: function Size$$1(size) {
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+
+            try {
+                for (var _iterator2 = Object.keys(Size)[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var type = _step2.value;
+
+                    if (size == Size[type]) {
+                        return this[type];
+                    }
+                }
+            } catch (err) {
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
+                    }
+                } finally {
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
+                    }
+                }
+            }
+
+            return "";
+        }
+    }]);
+    return BasicLevelSizeStyleSheet;
+}(StyleSheet);
+
+var BasicLevelStyleSheet = function BasicLevelStyleSheet(colorToStyleFunction) {
+    var _desc, _value, _class, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7;
+
+    return _class = function (_BasicLevelSizeStyleS) {
+        inherits(BasicLevelStyleClass, _BasicLevelSizeStyleS);
+
+        function BasicLevelStyleClass() {
+            var _ref;
+
+            var _temp, _this2, _ret;
+
+            classCallCheck(this, BasicLevelStyleClass);
+
+            for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+                args[_key] = arguments[_key];
+            }
+
+            return _ret = (_temp = (_this2 = possibleConstructorReturn(this, (_ref = BasicLevelStyleClass.__proto__ || Object.getPrototypeOf(BasicLevelStyleClass)).call.apply(_ref, [this].concat(args))), _this2), _initDefineProp$2(_this2, "PRIMARY", _descriptor, _this2), _initDefineProp$2(_this2, "SECONDARY", _descriptor2, _this2), _initDefineProp$2(_this2, "PLAIN", _descriptor3, _this2), _initDefineProp$2(_this2, "SUCCESS", _descriptor4, _this2), _initDefineProp$2(_this2, "INFO", _descriptor5, _this2), _initDefineProp$2(_this2, "WARNING", _descriptor6, _this2), _initDefineProp$2(_this2, "DANGER", _descriptor7, _this2), _temp), possibleConstructorReturn(_this2, _ret);
+        }
+
+        createClass(BasicLevelStyleClass, [{
+            key: "colorStyleRule",
+            value: function colorStyleRule(color, textColor) {
+                if (!textColor) {
+                    textColor = enhance(color, 1);
+                }
+                return colorToStyleFunction(color, textColor);
+            }
+        }]);
+        return BasicLevelStyleClass;
+    }(BasicLevelSizeStyleSheet), (_descriptor = _applyDecoratedDescriptor$2(_class.prototype, "PRIMARY", [styleRule], {
+        enumerable: true,
+        initializer: function initializer() {
+            return this.colorStyleRule(this.themeProperties.COLOR_PRIMARY);
+        }
+    }), _descriptor2 = _applyDecoratedDescriptor$2(_class.prototype, "SECONDARY", [styleRule], {
+        enumerable: true,
+        initializer: function initializer() {
+            return this.colorStyleRule(this.themeProperties.COLOR_SECONDARY);
+        }
+    }), _descriptor3 = _applyDecoratedDescriptor$2(_class.prototype, "PLAIN", [styleRule], {
+        enumerable: true,
+        initializer: function initializer() {
+            return this.colorStyleRule(this.themeProperties.COLOR_PLAIN);
+        }
+    }), _descriptor4 = _applyDecoratedDescriptor$2(_class.prototype, "SUCCESS", [styleRule], {
+        enumerable: true,
+        initializer: function initializer() {
+            return this.colorStyleRule(this.themeProperties.COLOR_SUCCESS);
+        }
+    }), _descriptor5 = _applyDecoratedDescriptor$2(_class.prototype, "INFO", [styleRule], {
+        enumerable: true,
+        initializer: function initializer() {
+            return this.colorStyleRule(this.themeProperties.COLOR_INFO);
+        }
+    }), _descriptor6 = _applyDecoratedDescriptor$2(_class.prototype, "WARNING", [styleRule], {
+        enumerable: true,
+        initializer: function initializer() {
+            return this.colorStyleRule(this.themeProperties.COLOR_WARNING);
+        }
+    }), _descriptor7 = _applyDecoratedDescriptor$2(_class.prototype, "DANGER", [styleRule], {
+        enumerable: true,
+        initializer: function initializer() {
+            return this.colorStyleRule(this.themeProperties.COLOR_DANGER);
+        }
+    })), _class;
+};
+
+var FlexContainerStyle = (_class3$1 = function (_StyleSheet2) {
+    inherits(FlexContainerStyle, _StyleSheet2);
+
+    function FlexContainerStyle() {
+        var _ref2;
+
+        var _temp2, _this3, _ret2;
+
+        classCallCheck(this, FlexContainerStyle);
+
+        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+            args[_key2] = arguments[_key2];
+        }
+
+        return _ret2 = (_temp2 = (_this3 = possibleConstructorReturn(this, (_ref2 = FlexContainerStyle.__proto__ || Object.getPrototypeOf(FlexContainerStyle)).call.apply(_ref2, [this].concat(args))), _this3), _initDefineProp$2(_this3, "HORIZONTAL", _descriptor8$1, _this3), _initDefineProp$2(_this3, "VERTICAL", _descriptor9$1, _this3), _temp2), possibleConstructorReturn(_this3, _ret2);
+    }
+
+    createClass(FlexContainerStyle, [{
+        key: "Orientation",
+        value: function Orientation$$1(orientation) {
+            var _iteratorNormalCompletion3 = true;
+            var _didIteratorError3 = false;
+            var _iteratorError3 = undefined;
+
+            try {
+                for (var _iterator3 = Object.keys(Orientation)[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                    var type = _step3.value;
+
+                    if (orientation == Orientation[type]) {
+                        return this[type];
+                    }
+                }
+            } catch (err) {
+                _didIteratorError3 = true;
+                _iteratorError3 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                        _iterator3.return();
+                    }
+                } finally {
+                    if (_didIteratorError3) {
+                        throw _iteratorError3;
+                    }
+                }
+            }
+        }
+    }]);
+    return FlexContainerStyle;
+}(StyleSheet), (_descriptor8$1 = _applyDecoratedDescriptor$2(_class3$1.prototype, "HORIZONTAL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            display: "flex",
+            ">*": {
+                marginLeft: "20px",
+                flex: "1"
+            },
+            ">:first-child": {
+                marginLeft: "0px"
+            }
+        };
+    }
+}), _descriptor9$1 = _applyDecoratedDescriptor$2(_class3$1.prototype, "VERTICAL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            display: "flex",
+            flexDirection: "column",
+            ">*": {
+                marginTop: "20px",
+                flex: "1"
+            },
+            ">:first-child": {
+                marginTop: "0px"
+            }
+        };
+    }
+})), _class3$1);
+var ContainerStyle = (_class5 = function (_StyleSheet3) {
+    inherits(ContainerStyle, _StyleSheet3);
+
+    function ContainerStyle() {
+        var _ref3;
+
+        var _temp3, _this4, _ret3;
+
+        classCallCheck(this, ContainerStyle);
+
+        for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+            args[_key3] = arguments[_key3];
+        }
+
+        return _ret3 = (_temp3 = (_this4 = possibleConstructorReturn(this, (_ref3 = ContainerStyle.__proto__ || Object.getPrototypeOf(ContainerStyle)).call.apply(_ref3, [this].concat(args))), _this4), _initDefineProp$2(_this4, "EXTRA_SMALL", _descriptor10$1, _this4), _initDefineProp$2(_this4, "SMALL", _descriptor11$1, _this4), _initDefineProp$2(_this4, "MEDIUM", _descriptor12$1, _this4), _initDefineProp$2(_this4, "LARGE", _descriptor13$1, _this4), _initDefineProp$2(_this4, "EXTRA_LARGE", _descriptor14$1, _this4), _temp3), possibleConstructorReturn(_this4, _ret3);
+    }
+
+    createClass(ContainerStyle, [{
+        key: "getSizeStyle",
+        value: function getSizeStyle(mobilePixels, desktopPercent) {
+            return {
+                margin: Device.isMobileDevice() ? "0 " + mobilePixels + "px" : "0% " + desktopPercent + "%"
+            };
+        }
+    }, {
+        key: "Size",
+        value: function Size$$1(size) {
+            var _iteratorNormalCompletion4 = true;
+            var _didIteratorError4 = false;
+            var _iteratorError4 = undefined;
+
+            try {
+                for (var _iterator4 = Object.keys(Size)[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                    var type = _step4.value;
+
+                    if (size == Size[type]) {
+                        return this[type];
+                    }
+                }
+            } catch (err) {
+                _didIteratorError4 = true;
+                _iteratorError4 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                        _iterator4.return();
+                    }
+                } finally {
+                    if (_didIteratorError4) {
+                        throw _iteratorError4;
+                    }
+                }
+            }
+        }
+    }]);
+    return ContainerStyle;
+}(StyleSheet), (_descriptor10$1 = _applyDecoratedDescriptor$2(_class5.prototype, "EXTRA_SMALL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return this.getSizeStyle(6, 15);
+    }
+}), _descriptor11$1 = _applyDecoratedDescriptor$2(_class5.prototype, "SMALL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return this.getSizeStyle(4, 10);
+    }
+}), _descriptor12$1 = _applyDecoratedDescriptor$2(_class5.prototype, "MEDIUM", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return this.getSizeStyle(4, 6);
+    }
+}), _descriptor13$1 = _applyDecoratedDescriptor$2(_class5.prototype, "LARGE", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return this.getSizeStyle(2, 3);
+    }
+}), _descriptor14$1 = _applyDecoratedDescriptor$2(_class5.prototype, "EXTRA_LARGE", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return this.getSizeStyle(2, 1);
+    }
+})), _class5);
+var Utils = (_class7$1 = function (_StyleSheet4) {
+    inherits(Utils, _StyleSheet4);
+
+    function Utils() {
+        var _ref4;
+
+        var _temp4, _this5, _ret4;
+
+        classCallCheck(this, Utils);
+
+        for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+            args[_key4] = arguments[_key4];
+        }
+
+        return _ret4 = (_temp4 = (_this5 = possibleConstructorReturn(this, (_ref4 = Utils.__proto__ || Object.getPrototypeOf(Utils)).call.apply(_ref4, [this].concat(args))), _this5), _initDefineProp$2(_this5, "fullHeight", _descriptor15$1, _this5), _initDefineProp$2(_this5, "hidden", _descriptor16$1, _this5), _temp4), possibleConstructorReturn(_this5, _ret4);
+    }
+
+    return Utils;
+}(StyleSheet), (_descriptor15$1 = _applyDecoratedDescriptor$2(_class7$1.prototype, "fullHeight", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            height: "100%"
+        };
+    }
+}), _descriptor16$1 = _applyDecoratedDescriptor$2(_class7$1.prototype, "hidden", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            display: "hidden"
+        };
+    }
+})), _class7$1);
+
+
+GlobalStyle.FlexContainer = FlexContainerStyle.getInstance();
+GlobalStyle.Container = ContainerStyle.getInstance();
+GlobalStyle.Utils = Utils.getInstance();
+
+var _class$1;
+var _descriptor$1;
+var _descriptor2;
+var _descriptor3;
+var _descriptor4;
+var _descriptor5;
+var _descriptor6;
+var _dec$1;
+var _class3;
+var _class4;
+var _descriptor7;
+var _descriptor8;
+var _descriptor9;
+var _descriptor10;
+var _descriptor11;
+var _descriptor12;
+var _dec2;
+var _class6;
+var _class7;
+var _descriptor13;
+var _descriptor14;
+var _descriptor15;
+var _descriptor16;
+var _descriptor17;
+var _descriptor18;
+var _descriptor19;
+var _descriptor20;
+var _descriptor21;
+var _dec3;
+var _class9;
+
+function _initDefineProp$1(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+        writable: descriptor.writable,
+        value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+}
+
+function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+        desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
+
+    if ('value' in desc || desc.initializer) {
+        desc.writable = true;
+    }
+
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+        return decorator(target, property, desc) || desc;
+    }, desc);
+
+    if (context && desc.initializer !== void 0) {
+        desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+        desc.initializer = undefined;
+    }
+
+    if (desc.initializer === void 0) {
+        Object['define' + 'Property'](target, property, desc);
+        desc = null;
+    }
+
+    return desc;
+}
+
+var SimpleStyledElement = function (_UI$Element) {
+    inherits(SimpleStyledElement, _UI$Element);
+
+    function SimpleStyledElement() {
+        classCallCheck(this, SimpleStyledElement);
+        return possibleConstructorReturn(this, (SimpleStyledElement.__proto__ || Object.getPrototypeOf(SimpleStyledElement)).apply(this, arguments));
+    }
+
+    createClass(SimpleStyledElement, [{
+        key: "getLevel",
+        value: function getLevel() {
+            return this.options.level || this.parent && this.parent.getLevel && this.parent.getLevel();
+        }
+    }, {
+        key: "setLevel",
+        value: function setLevel(level) {
+            this.updateOptions({ level: level });
+        }
+    }, {
+        key: "getSize",
+        value: function getSize() {
+            return this.options.size || this.parent && this.parent.getSize && this.parent.getSize();
+        }
+    }, {
+        key: "setSize",
+        value: function setSize(size) {
+            this.updateOptions({ size: size });
+        }
+    }]);
+    return SimpleStyledElement;
+}(UI.Element);
+
+var IconableInterface = function (_SimpleStyledElement) {
+    inherits(IconableInterface, _SimpleStyledElement);
+
+    function IconableInterface() {
+        classCallCheck(this, IconableInterface);
+        return possibleConstructorReturn(this, (IconableInterface.__proto__ || Object.getPrototypeOf(IconableInterface)).apply(this, arguments));
+    }
+
+    createClass(IconableInterface, [{
+        key: "render",
+        value: function render() {
+            return [this.beforeChildren(), this.getLabel(), get(IconableInterface.prototype.__proto__ || Object.getPrototypeOf(IconableInterface.prototype), "render", this).call(this)];
+        }
+    }, {
+        key: "getLabel",
+        value: function getLabel() {
+            return this.options.label != null ? this.options.label : "";
+        }
+    }, {
+        key: "setLabel",
+        value: function setLabel(label) {
+            this.updateOptions({ label: label });
+        }
+
+        //TODO: this should live in a base iconable class, of which you'd only use this.beforeChildren
+
+    }, {
+        key: "getFaIcon",
+        value: function getFaIcon() {
+            return this.options.faIcon;
+        }
+    }, {
+        key: "setFaIcon",
+        value: function setFaIcon(value) {
+            this.options.faIcon = value;
+            this.redraw();
+        }
+    }, {
+        key: "beforeChildren",
+        value: function beforeChildren() {
+            if (!this.getFaIcon()) {
+                return null;
+            }
+            var iconOptions = {
+                className: "fa fa-" + this.getFaIcon()
+            };
+            if (this.getLabel()) {
+                iconOptions.style = {
+                    marginRight: "5px"
+                };
+            }
+
+            return UI.createElement("span", iconOptions);
+        }
+    }]);
+    return IconableInterface;
+}(SimpleStyledElement);
+
+var labelColorToStyle = function labelColorToStyle(color) {
+    var colors = buildColors(color);
+    var darker = {
+        backgroundColor: colors[2],
+        color: colors[6],
+        textDecoration: "none"
+    };
+    var regular = {
+        backgroundColor: colors[1],
+        borderColor: colors[5],
+        color: colors[6]
+    };
+    return Object.assign({}, regular, {
+        ":hover": darker,
+        ":hover:disabled": regular,
+        ":focus": darker,
+        ":active": darker
+    });
+};
+
+var LabelStyle = (_class$1 = function (_BasicLevelStyleSheet) {
+    inherits(LabelStyle, _BasicLevelStyleSheet);
+
+    function LabelStyle() {
+        var _ref;
+
+        var _temp, _this3, _ret;
+
+        classCallCheck(this, LabelStyle);
+
+        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+        }
+
+        return _ret = (_temp = (_this3 = possibleConstructorReturn(this, (_ref = LabelStyle.__proto__ || Object.getPrototypeOf(LabelStyle)).call.apply(_ref, [this].concat(args))), _this3), _initDefineProp$1(_this3, "DEFAULT", _descriptor$1, _this3), _initDefineProp$1(_this3, "EXTRA_SMALL", _descriptor2, _this3), _initDefineProp$1(_this3, "SMALL", _descriptor3, _this3), _initDefineProp$1(_this3, "MEDIUM", _descriptor4, _this3), _initDefineProp$1(_this3, "LARGE", _descriptor5, _this3), _initDefineProp$1(_this3, "EXTRA_LARGE", _descriptor6, _this3), _temp), possibleConstructorReturn(_this3, _ret);
+    }
+
+    return LabelStyle;
+}(BasicLevelStyleSheet(labelColorToStyle)), (_descriptor$1 = _applyDecoratedDescriptor$1(_class$1.prototype, "DEFAULT", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return [{
+            fontWeight: "bold",
+            border: "0.1em solid transparent",
+            padding: "0.07em 0.4em",
+            borderRadius: "0.3em",
+            textAlign: "center",
+            whiteSpace: "nowrap",
+            verticalAlign: "bottom",
+            lineHeight: 4 / 3 + "",
+            display: "inline-block",
+            touchAction: "manipulation",
+            ":disabled": {
+                opacity: "0.7",
+                cursor: "not-allowed"
+            }
+        }, {
+            "font-size": "12px"
+        }, this.colorStyleRule(this.themeProperties.COLOR_GRAY)];
+    }
+}), _descriptor2 = _applyDecoratedDescriptor$1(_class$1.prototype, "EXTRA_SMALL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "10px",
+            padding: "0.05em 0.2em",
+            borderWidth: "0.05em"
+        };
+    }
+}), _descriptor3 = _applyDecoratedDescriptor$1(_class$1.prototype, "SMALL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "10px"
+        };
+    }
+}), _descriptor4 = _applyDecoratedDescriptor$1(_class$1.prototype, "MEDIUM", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {};
+    }
+}), _descriptor5 = _applyDecoratedDescriptor$1(_class$1.prototype, "LARGE", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "14px"
+        };
+    }
+}), _descriptor6 = _applyDecoratedDescriptor$1(_class$1.prototype, "EXTRA_LARGE", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "17px",
+            padding: "0.05em 0.2em"
+        };
+    }
+})), _class$1);
+
+var Label = (_dec$1 = registerStyle(LabelStyle), _dec$1(_class3 = function (_UI$Primitive) {
+    inherits(Label, _UI$Primitive);
+
+    function Label() {
+        classCallCheck(this, Label);
+        return possibleConstructorReturn(this, (Label.__proto__ || Object.getPrototypeOf(Label)).apply(this, arguments));
+    }
+
+    createClass(Label, [{
+        key: "extraNodeAttributes",
+        value: function extraNodeAttributes(attr) {
+            attr.addClass(this.styleSheet.DEFAULT);
+
+            if (this.getSize()) {
+                attr.addClass(this.styleSheet.Size(this.getSize()));
+            }
+
+            if (this.getLevel()) {
+                attr.addClass(this.styleSheet.Level(this.getLevel()));
+            }
+        }
+    }]);
+    return Label;
+}(UI.Primitive(IconableInterface, "span"))) || _class3);
+
+
+var badgeColorToStyle = function badgeColorToStyle(color) {
+    var colors = buildColors(color);
+    return {
+        backgroundColor: colors[1],
+        borderColor: colors[5],
+        color: colors[6]
+    };
+};
+
+var BadgeStyle = (_class4 = function (_BasicLevelStyleSheet2) {
+    inherits(BadgeStyle, _BasicLevelStyleSheet2);
+
+    function BadgeStyle() {
+        var _ref2;
+
+        var _temp2, _this5, _ret2;
+
+        classCallCheck(this, BadgeStyle);
+
+        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+            args[_key2] = arguments[_key2];
+        }
+
+        return _ret2 = (_temp2 = (_this5 = possibleConstructorReturn(this, (_ref2 = BadgeStyle.__proto__ || Object.getPrototypeOf(BadgeStyle)).call.apply(_ref2, [this].concat(args))), _this5), _initDefineProp$1(_this5, "DEFAULT", _descriptor7, _this5), _initDefineProp$1(_this5, "EXTRA_SMALL", _descriptor8, _this5), _initDefineProp$1(_this5, "SMALL", _descriptor9, _this5), _initDefineProp$1(_this5, "MEDIUM", _descriptor10, _this5), _initDefineProp$1(_this5, "LARGE", _descriptor11, _this5), _initDefineProp$1(_this5, "EXTRA_LARGE", _descriptor12, _this5), _temp2), possibleConstructorReturn(_this5, _ret2);
+    }
+
+    return BadgeStyle;
+}(BasicLevelStyleSheet(badgeColorToStyle)), (_descriptor7 = _applyDecoratedDescriptor$1(_class4.prototype, "DEFAULT", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return [{
+            display: "inline-block",
+            padding: "0.25em 0.55em",
+            fontWeight: "700",
+            lineHeight: "1",
+            color: "#fff",
+            textAlign: "center",
+            whiteSpace: "nowrap",
+            verticalAlign: "middle",
+            backgroundColor: "#777",
+            borderRadius: "0.8em"
+        }, {
+            "font-size": "12px"
+        }, this.colorStyleRule(this.themeProperties.COLOR_GRAY)];
+    }
+}), _descriptor8 = _applyDecoratedDescriptor$1(_class4.prototype, "EXTRA_SMALL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "10px",
+            padding: "0.1em 0.2em"
+        };
+    }
+}), _descriptor9 = _applyDecoratedDescriptor$1(_class4.prototype, "SMALL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "10px"
+        };
+    }
+}), _descriptor10 = _applyDecoratedDescriptor$1(_class4.prototype, "MEDIUM", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {};
+    }
+}), _descriptor11 = _applyDecoratedDescriptor$1(_class4.prototype, "LARGE", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "14px"
+        };
+    }
+}), _descriptor12 = _applyDecoratedDescriptor$1(_class4.prototype, "EXTRA_LARGE", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "17px",
+            padding: "0.1em 0.2em"
+        };
+    }
+})), _class4);
+
+var Badge = (_dec2 = registerStyle(BadgeStyle), _dec2(_class6 = function (_UI$Primitive2) {
+    inherits(Badge, _UI$Primitive2);
+
+    function Badge() {
+        classCallCheck(this, Badge);
+        return possibleConstructorReturn(this, (Badge.__proto__ || Object.getPrototypeOf(Badge)).apply(this, arguments));
+    }
+
+    createClass(Badge, [{
+        key: "extraNodeAttributes",
+        value: function extraNodeAttributes(attr) {
+            attr.addClass(this.styleSheet.DEFAULT);
+
+            if (this.getSize()) {
+                attr.addClass(this.styleSheet.Size(this.getSize()));
+            }
+
+            if (this.getLevel()) {
+                attr.addClass(this.styleSheet.Level(this.getLevel()));
+            }
+        }
+    }]);
+    return Badge;
+}(UI.Primitive(IconableInterface, "span"))) || _class6);
+
+
+var progressBarColorToStyle = function progressBarColorToStyle(color) {
+    var colors = buildColors(color);
+    return {
+        backgroundColor: colors[1]
+    };
+};
+
+var ProgressBarStyle = (_class7 = function (_BasicLevelStyleSheet3) {
+    inherits(ProgressBarStyle, _BasicLevelStyleSheet3);
+
+    function ProgressBarStyle() {
+        var _ref3;
+
+        var _temp3, _this7, _ret3;
+
+        classCallCheck(this, ProgressBarStyle);
+
+        for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+            args[_key3] = arguments[_key3];
+        }
+
+        return _ret3 = (_temp3 = (_this7 = possibleConstructorReturn(this, (_ref3 = ProgressBarStyle.__proto__ || Object.getPrototypeOf(ProgressBarStyle)).call.apply(_ref3, [this].concat(args))), _this7), _initDefineProp$1(_this7, "container", _descriptor13, _this7), _initDefineProp$1(_this7, "DEFAULT", _descriptor14, _this7), _initDefineProp$1(_this7, "striped", _descriptor15, _this7), _initDefineProp$1(_this7, "active", _descriptor16, _this7), _initDefineProp$1(_this7, "EXTRA_SMALL", _descriptor17, _this7), _initDefineProp$1(_this7, "SMALL", _descriptor18, _this7), _initDefineProp$1(_this7, "MEDIUM", _descriptor19, _this7), _initDefineProp$1(_this7, "LARGE", _descriptor20, _this7), _initDefineProp$1(_this7, "EXTRA_LARGE", _descriptor21, _this7), _temp3), possibleConstructorReturn(_this7, _ret3);
+    }
+
+    return ProgressBarStyle;
+}(BasicLevelStyleSheet(progressBarColorToStyle)), (_descriptor13 = _applyDecoratedDescriptor$1(_class7.prototype, "container", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            height: "20px",
+            marginBottom: "20px",
+            overflow: "hidden",
+            backgroundColor: "#f5f5f5",
+            borderRadius: "4px",
+            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, .1)"
+        };
+    }
+}), _descriptor14 = _applyDecoratedDescriptor$1(_class7.prototype, "DEFAULT", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return [{
+            float: "left",
+            width: "0",
+            height: "100%",
+            lineHeight: "20px",
+            color: "#fff",
+            textAlign: "center",
+            backgroundColor: "#337ab7",
+            boxShadow: "inset 0 -1px 0 rgba(0, 0, 0, .15)",
+            transition: "width .6s ease",
+            fontColor: "#ffffff"
+        }, {
+            fontSize: "12px"
+        }, this.colorStyleRule(this.themeProperties.COLOR_PRIMARY)];
+    }
+}), _descriptor15 = _applyDecoratedDescriptor$1(_class7.prototype, "striped", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            backgroundImage: "linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent)",
+            backgroundSize: "40px 40px"
+        };
+    }
+}), _descriptor16 = _applyDecoratedDescriptor$1(_class7.prototype, "active", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            animation: "progress-bar-stripes 2s linear infinite"
+        };
+    }
+}), _descriptor17 = _applyDecoratedDescriptor$1(_class7.prototype, "EXTRA_SMALL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "8px"
+        };
+    }
+}), _descriptor18 = _applyDecoratedDescriptor$1(_class7.prototype, "SMALL", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "10px"
+        };
+    }
+}), _descriptor19 = _applyDecoratedDescriptor$1(_class7.prototype, "MEDIUM", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {};
+    }
+}), _descriptor20 = _applyDecoratedDescriptor$1(_class7.prototype, "LARGE", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "14px"
+        };
+    }
+}), _descriptor21 = _applyDecoratedDescriptor$1(_class7.prototype, "EXTRA_LARGE", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            fontSize: "17px",
+            padding: "0.1em 0.2em"
+        };
+    }
+})), _class7);
+var ProgressBar = (_dec3 = registerStyle(ProgressBarStyle), _dec3(_class9 = function (_SimpleStyledElement2) {
+    inherits(ProgressBar, _SimpleStyledElement2);
+
+    function ProgressBar() {
+        classCallCheck(this, ProgressBar);
+        return possibleConstructorReturn(this, (ProgressBar.__proto__ || Object.getPrototypeOf(ProgressBar)).apply(this, arguments));
+    }
+
+    createClass(ProgressBar, [{
+        key: "extraNodeAttributes",
+        value: function extraNodeAttributes(attr) {
+            attr.addClass(this.styleSheet.container);
+        }
+    }, {
+        key: "render",
+        value: function render() {
+            var valueInPercent = (this.options.value || 0) * 100;
+            var orientation = Orientation.HORIZONTAL;
+            if (this.options.hasOwnProperty("orientation")) {
+                orientation = this.options.orientation;
+            }
+            var barStyle = void 0;
+            if (orientation === Orientation.HORIZONTAL) {
+                barStyle = {
+                    width: valueInPercent + "%",
+                    height: this.options.height + "px"
+                };
+            } else {
+                barStyle = {
+                    height: valueInPercent + "%",
+                    width: "5px"
+                };
+            }
+            var barOptions = {
+                className: this.styleSheet.DEFAULT,
+                style: barStyle
+            };
+
+            if (this.options.disableTransition) {
+                Object.assign(barOptions.style, {
+                    transition: "none"
+                });
+            }
+
+            if (this.options.level) {
+                barOptions.className += " " + this.styleSheet.Level(this.getLevel());
+            }
+            if (this.options.striped) {
+                barOptions.className += " " + this.styleSheet.striped;
+            }
+            if (this.options.active) {
+                barOptions.className += " " + this.styleSheet.active;
+            }
+            if (this.options.color) {
+                barOptions.style.backgroundColor = this.options.color;
+            }
+
+            return UI.createElement(
+                "div",
+                barOptions,
+                UI.createElement(
+                    "span",
+                    null,
+                    this.options.label
+                )
+            );
+        }
+    }, {
+        key: "set",
+        value: function set$$1(value) {
+            if (value < 0) value = 0;else if (value > 1) value = 1;
+            this.options.value = value;
+            this.redraw();
+        }
+    }]);
+    return ProgressBar;
+}(SimpleStyledElement)) || _class9);
+
 // TODO: this file existed to hold generic classes in a period of fast prototyping, has a lot of old code
 // A very simple class, all this does is implement the `getTitle()` method
 
@@ -3592,7 +5225,7 @@ var SlideBar = function (_Draggable) {
     }, {
         key: "render",
         value: function render() {
-            return [UI.createElement(UI.ProgressBar, { ref: "progressBar", active: "true", value: this.options.value, disableTransition: true,
+            return [UI.createElement(ProgressBar, { ref: "progressBar", active: "true", value: this.options.value, disableTransition: true,
                 orientation: this.getOrientation(),
                 style: Object.assign({
                     position: "relative"
@@ -4272,12 +5905,12 @@ var TimePassedSpan = function (_UI$Primitive5) {
 
 // TODO: deprecate this, to use lazyInit decorators
 
-var _class$2;
-var _descriptor$1;
-var _descriptor2;
-var _descriptor3;
+var _class$3;
+var _descriptor$2;
+var _descriptor2$1;
+var _descriptor3$1;
 
-function _initDefineProp$1(target, property, descriptor, context) {
+function _initDefineProp$3(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -4287,7 +5920,7 @@ function _initDefineProp$1(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -4316,7 +5949,7 @@ function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, c
     return desc;
 }
 
-var InputStyle = (_class$2 = function (_StyleSheet) {
+var InputStyle = (_class$3 = function (_StyleSheet) {
     inherits(InputStyle, _StyleSheet);
 
     function InputStyle() {
@@ -4330,11 +5963,11 @@ var InputStyle = (_class$2 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = InputStyle.__proto__ || Object.getPrototypeOf(InputStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$1(_this, "inputElement", _descriptor$1, _this), _initDefineProp$1(_this, "checkboxInput", _descriptor2, _this), _initDefineProp$1(_this, "select", _descriptor3, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = InputStyle.__proto__ || Object.getPrototypeOf(InputStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$3(_this, "inputElement", _descriptor$2, _this), _initDefineProp$3(_this, "checkboxInput", _descriptor2$1, _this), _initDefineProp$3(_this, "select", _descriptor3$1, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return InputStyle;
-}(StyleSheet), (_descriptor$1 = _applyDecoratedDescriptor$1(_class$2.prototype, "inputElement", [styleRule], {
+}(StyleSheet), (_descriptor$2 = _applyDecoratedDescriptor$3(_class$3.prototype, "inputElement", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -4350,7 +5983,7 @@ var InputStyle = (_class$2 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor2 = _applyDecoratedDescriptor$1(_class$2.prototype, "checkboxInput", [styleRule], {
+}), _descriptor2$1 = _applyDecoratedDescriptor$3(_class$3.prototype, "checkboxInput", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -4360,217 +5993,19 @@ var InputStyle = (_class$2 = function (_StyleSheet) {
             marginRight: "0.5em"
         };
     }
-}), _descriptor3 = _applyDecoratedDescriptor$1(_class$2.prototype, "select", [styleRule], {
+}), _descriptor3$1 = _applyDecoratedDescriptor$3(_class$3.prototype, "select", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             height: "2.12em"
         };
     }
-})), _class$2);
+})), _class$3);
 
-function getInstance(styleSheet) {
-    if (typeof styleSheet === "function") {
-        if (typeof styleSheet.getInstance === "function") {
-            styleSheet = styleSheet.getInstance();
-        } else {
-            styleSheet = styleSheet();
-        }
-    }
-    return styleSheet;
-}
+var _dec$2;
+var _class$2;
 
-function getInstanceForObject(obj) {
-    if (!obj) {
-        return null;
-    }
-    var styleSheet = obj.theme && obj.theme.get(obj) || obj.styleSheet;
-    return getInstance(styleSheet);
-}
-
-var Theme = function (_Dispatchable) {
-    inherits(Theme, _Dispatchable);
-
-    function Theme() {
-        var name = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "";
-        classCallCheck(this, Theme);
-
-        var _this = possibleConstructorReturn(this, (Theme.__proto__ || Object.getPrototypeOf(Theme)).call(this));
-
-        _this.styleSheetSymbol = Symbol("Theme" + name);
-        _this.classSet = new Set();
-        _this.styleSheetSet = new Set();
-        _this.properties = {};
-        return _this;
-    }
-
-    createClass(Theme, [{
-        key: "register",
-        value: function register(cls, styleSheet) {
-            cls.theme = this;
-            if (!cls.styleSheet) {
-                cls.styleSheet = styleSheet;
-            }
-            this.set(cls, styleSheet);
-        }
-    }, {
-        key: "set",
-        value: function set$$1(cls, styleSheet) {
-            cls[this.styleSheetSymbol] = styleSheet;
-            this.classSet.add(cls);
-        }
-    }, {
-        key: "get",
-        value: function get$$1(cls) {
-            if (!(typeof cls === "function")) {
-                cls = cls.constructor;
-            }
-            return cls[this.styleSheetSymbol];
-        }
-    }, {
-        key: "getProperties",
-        value: function getProperties() {
-            return this.properties;
-        }
-    }, {
-        key: "getProperty",
-        value: function getProperty(key, defaultValue) {
-            return this.properties[key] || defaultValue;
-        }
-    }, {
-        key: "setProperties",
-        value: function setProperties(properties) {
-            var update = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
-            Object.assign(this.properties, properties);
-            if (update) {
-                this.updateStyleSheets();
-            }
-        }
-    }, {
-        key: "setProperty",
-        value: function setProperty(key, value) {
-            this.properties[key] = value;
-        }
-    }, {
-        key: "getAllStyleSheets",
-        value: function getAllStyleSheets() {
-            var styleSheetSet = new Set(this.styleSheetSet);
-            var _iteratorNormalCompletion = true;
-            var _didIteratorError = false;
-            var _iteratorError = undefined;
-
-            try {
-                for (var _iterator = this.classSet.values()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                    var cls = _step.value;
-
-                    styleSheetSet.add(this.get(cls));
-                }
-            } catch (err) {
-                _didIteratorError = true;
-                _iteratorError = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion && _iterator.return) {
-                        _iterator.return();
-                    }
-                } finally {
-                    if (_didIteratorError) {
-                        throw _iteratorError;
-                    }
-                }
-            }
-
-            return Array.from(styleSheetSet).map(function (styleSheet) {
-                if (styleSheet.getInstance) {
-                    return styleSheet.getInstance();
-                }
-                return styleSheet;
-            });
-        }
-    }, {
-        key: "addStyleSheet",
-        value: function addStyleSheet(styleSheet) {
-            this.styleSheetSet.add(styleSheet);
-        }
-    }, {
-        key: "removeStyleSheet",
-        value: function removeStyleSheet(styleSheet) {
-            this.styleSheetSet.delete(styleSheet);
-        }
-    }, {
-        key: "updateStyleSheets",
-        value: function updateStyleSheets() {
-            var _iteratorNormalCompletion2 = true;
-            var _didIteratorError2 = false;
-            var _iteratorError2 = undefined;
-
-            try {
-                for (var _iterator2 = this.getAllStyleSheets()[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                    var styleSheet = _step2.value;
-
-                    if (styleSheet.update) {
-                        styleSheet.update();
-                    }
-                }
-            } catch (err) {
-                _didIteratorError2 = true;
-                _iteratorError2 = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                        _iterator2.return();
-                    }
-                } finally {
-                    if (_didIteratorError2) {
-                        throw _iteratorError2;
-                    }
-                }
-            }
-        }
-    }], [{
-        key: "register",
-        value: function register(cls, styleSheet) {
-            var _Global;
-
-            return (_Global = this.Global).register.apply(_Global, arguments);
-        }
-    }, {
-        key: "get",
-        value: function get$$1(cls) {
-            var _Global2;
-
-            return (_Global2 = this.Global).get.apply(_Global2, arguments);
-        }
-    }, {
-        key: "addStyleSheet",
-        value: function addStyleSheet(styleSheet) {
-            this.Global.addStyleSheet(styleSheet);
-        }
-    }]);
-    return Theme;
-}(Dispatchable);
-
-Theme.Global = new Theme("Global");
-
-UI.Element.prototype.getStyleSheet = function styleSheetGetter() {
-    return getInstanceForObject(this.options) || getInstanceForObject(this.constructor);
-};
-
-function registerStyle(styleClass) {
-    var theme = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Theme.Global;
-
-    return function (target) {
-        theme.register(target, styleClass);
-    };
-}
-
-StyleSheet.theme = Theme.Global;
-
-var _dec$1;
-var _class$1;
-
-var InputableElement = (_dec$1 = registerStyle(InputStyle), _dec$1(_class$1 = function (_UI$Element) {
+var InputableElement = (_dec$2 = registerStyle(InputStyle), _dec$2(_class$2 = function (_UI$Element) {
     inherits(InputableElement, _UI$Element);
 
     function InputableElement() {
@@ -4586,7 +6021,7 @@ var InputableElement = (_dec$1 = registerStyle(InputStyle), _dec$1(_class$1 = fu
         }
     }]);
     return InputableElement;
-}(UI.Element)) || _class$1);
+}(UI.Element)) || _class$2);
 
 var Input = function (_UI$Primitive) {
     inherits(Input, _UI$Primitive);
@@ -4973,15 +6408,15 @@ var Select = function (_UI$Primitive3) {
     return Select;
 }(UI.Primitive(InputableElement, "select"));
 
-var _class$4;
-var _descriptor$2;
-var _descriptor2$1;
-var _descriptor3$1;
-var _descriptor4;
-var _descriptor5;
-var _descriptor6;
+var _class$5;
+var _descriptor$3;
+var _descriptor2$2;
+var _descriptor3$2;
+var _descriptor4$1;
+var _descriptor5$1;
+var _descriptor6$1;
 
-function _initDefineProp$2(target, property, descriptor, context) {
+function _initDefineProp$4(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -4991,7 +6426,7 @@ function _initDefineProp$2(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -5020,7 +6455,7 @@ function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, c
     return desc;
 }
 
-var FormStyle = (_class$4 = function (_StyleSheet) {
+var FormStyle = (_class$5 = function (_StyleSheet) {
     inherits(FormStyle, _StyleSheet);
 
     function FormStyle() {
@@ -5034,29 +6469,29 @@ var FormStyle = (_class$4 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FormStyle.__proto__ || Object.getPrototypeOf(FormStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$2(_this, "form", _descriptor$2, _this), _initDefineProp$2(_this, "formGroup", _descriptor2$1, _this), _initDefineProp$2(_this, "formField", _descriptor3$1, _this), _initDefineProp$2(_this, "sameLine", _descriptor4, _this), _this.separatedLineInputStyle = {
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FormStyle.__proto__ || Object.getPrototypeOf(FormStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$4(_this, "form", _descriptor$3, _this), _initDefineProp$4(_this, "formGroup", _descriptor2$2, _this), _initDefineProp$4(_this, "formField", _descriptor3$2, _this), _initDefineProp$4(_this, "sameLine", _descriptor4$1, _this), _this.separatedLineInputStyle = {
             marginRight: "0.5em",
             width: "100%",
             height: "2.4em"
-        }, _initDefineProp$2(_this, "separatedLine", _descriptor5, _this), _initDefineProp$2(_this, "hasError", _descriptor6, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$4(_this, "separatedLine", _descriptor5$1, _this), _initDefineProp$4(_this, "hasError", _descriptor6$1, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return FormStyle;
-}(StyleSheet), (_descriptor$2 = _applyDecoratedDescriptor$2(_class$4.prototype, "form", [styleRule], {
+}(StyleSheet), (_descriptor$3 = _applyDecoratedDescriptor$4(_class$5.prototype, "form", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             margin: "0 auto"
         };
     }
-}), _descriptor2$1 = _applyDecoratedDescriptor$2(_class$4.prototype, "formGroup", [styleRule], {
+}), _descriptor2$2 = _applyDecoratedDescriptor$4(_class$5.prototype, "formGroup", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             marginBottom: "10px"
         };
     }
-}), _descriptor3$1 = _applyDecoratedDescriptor$2(_class$4.prototype, "formField", [styleRule], {
+}), _descriptor3$2 = _applyDecoratedDescriptor$4(_class$5.prototype, "formField", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -5078,7 +6513,7 @@ var FormStyle = (_class$4 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor4 = _applyDecoratedDescriptor$2(_class$4.prototype, "sameLine", [styleRule], {
+}), _descriptor4$1 = _applyDecoratedDescriptor$4(_class$5.prototype, "sameLine", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -5096,7 +6531,7 @@ var FormStyle = (_class$4 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor5 = _applyDecoratedDescriptor$2(_class$4.prototype, "separatedLine", [styleRule], {
+}), _descriptor5$1 = _applyDecoratedDescriptor$4(_class$5.prototype, "separatedLine", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -5113,21 +6548,21 @@ var FormStyle = (_class$4 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor6 = _applyDecoratedDescriptor$2(_class$4.prototype, "hasError", [styleRule], {
+}), _descriptor6$1 = _applyDecoratedDescriptor$4(_class$5.prototype, "hasError", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             color: "#a94442"
         };
     }
-})), _class$4);
+})), _class$5);
 
-var _dec$2;
-var _class$3;
-var _dec2;
+var _dec$3;
+var _class$4;
+var _dec2$1;
 var _class2;
 
-var Form = (_dec$2 = registerStyle(FormStyle), _dec$2(_class$3 = function (_UI$Primitive) {
+var Form = (_dec$3 = registerStyle(FormStyle), _dec$3(_class$4 = function (_UI$Primitive) {
     inherits(Form, _UI$Primitive);
 
     function Form() {
@@ -5150,8 +6585,8 @@ var Form = (_dec$2 = registerStyle(FormStyle), _dec$2(_class$3 = function (_UI$P
         }
     }]);
     return Form;
-}(UI.Primitive("form"))) || _class$3);
-var FormGroup = (_dec2 = registerStyle(FormStyle), _dec2(_class2 = function (_UI$Element) {
+}(UI.Primitive("form"))) || _class$4);
+var FormGroup = (_dec2$1 = registerStyle(FormStyle), _dec2$1(_class2 = function (_UI$Element) {
     inherits(FormGroup, _UI$Element);
 
     function FormGroup() {
@@ -5339,25 +6774,6 @@ SVG.Element = function (_UI$Element) {
                 this.node.stemElement = this;
             }
             return this.node;
-        }
-    }, {
-        key: "getDefaultOptions",
-        value: function getDefaultOptions() {
-            return {};
-        }
-    }, {
-        key: "setOptions",
-        value: function setOptions(options) {
-            if (typeof this.getDefaultOptions === "function") {
-                var defaultOptions = this.getDefaultOptions(options);
-                // TODO: consider this deep copy, seems really shady!
-                var goodRef = options.ref;
-                options = deepCopy({}, defaultOptions, options);
-                if (goodRef) {
-                    options.ref = goodRef;
-                }
-            }
-            get(SVGElement.prototype.__proto__ || Object.getPrototypeOf(SVGElement.prototype), "setOptions", this).call(this, options);
         }
     }, {
         key: "getScreenCoordinatedForPoint",
@@ -6742,305 +8158,6 @@ var TransitionList = function () {
     return TransitionList;
 }();
 
-var COLORS_BY_NAME = {
-    aliceblue: "#f0f8ff",
-    antiquewhite: "#faebd7",
-    aqua: "#00ffff",
-    aquamarine: "#7fffd4",
-    azure: "#f0ffff",
-    beige: "#f5f5dc",
-    bisque: "#ffe4c4",
-    black: "#000000",
-    blanchedalmond: "#ffebcd",
-    blue: "#0000ff",
-    blueviolet: "#8a2be2",
-    brown: "#a52a2a",
-    burlywood: "#deb887",
-    cadetblue: "#5f9ea0",
-    chartreuse: "#7fff00",
-    chocolate: "#d2691e",
-    coral: "#ff7f50",
-    cornflowerblue: "#6495ed",
-    cornsilk: "#fff8dc",
-    crimson: "#dc143c",
-    cyan: "#00ffff",
-    darkblue: "#00008b",
-    darkcyan: "#008b8b",
-    darkgoldenrod: "#b8860b",
-    darkgray: "#a9a9a9",
-    darkgreen: "#006400",
-    darkkhaki: "#bdb76b",
-    darkmagenta: "#8b008b",
-    darkolivegreen: "#556b2f",
-    darkorange: "#ff8c00",
-    darkorchid: "#9932cc",
-    darkred: "#8b0000",
-    darksalmon: "#e9967a",
-    darkseagreen: "#8fbc8f",
-    darkslateblue: "#483d8b",
-    darkslategray: "#2f4f4f",
-    darkturquoise: "#00ced1",
-    darkviolet: "#9400d3",
-    deeppink: "#ff1493",
-    deepskyblue: "#00bfff",
-    dimgray: "#696969",
-    dodgerblue: "#1e90ff",
-    firebrick: "#b22222",
-    floralwhite: "#fffaf0",
-    forestgreen: "#228b22",
-    fuchsia: "#ff00ff",
-    gainsboro: "#dcdcdc",
-    ghostwhite: "#f8f8ff",
-    gold: "#ffd700",
-    goldenrod: "#daa520",
-    gray: "#808080",
-    green: "#008000",
-    greenyellow: "#adff2f",
-    honeydew: "#f0fff0",
-    hotpink: "#ff69b4",
-    indianred: "#cd5c5c",
-    indigo: "#4b0082",
-    ivory: "#fffff0",
-    khaki: "#f0e68c",
-    lavender: "#e6e6fa",
-    lavenderblush: "#fff0f5",
-    lawngreen: "#7cfc00",
-    lemonchiffon: "#fffacd",
-    lightblue: "#add8e6",
-    lightcoral: "#f08080",
-    lightcyan: "#e0ffff",
-    lightgoldenrodyellow: "#fafad2",
-    lightgray: "#d3d3d3",
-    lightgreen: "#90ee90",
-    lightpink: "#ffb6c1",
-    lightsalmon: "#ffa07a",
-    lightseagreen: "#20b2aa",
-    lightskyblue: "#87cefa",
-    lightslategray: "#778899",
-    lightsteelblue: "#b0c4de",
-    lightyellow: "#ffffe0",
-    lime: "#00ff00",
-    limegreen: "#32cd32",
-    linen: "#faf0e6",
-    magenta: "#ff00ff",
-    maroon: "#800000",
-    mediumaquamarine: "#66cdaa",
-    mediumblue: "#0000cd",
-    mediumorchid: "#ba55d3",
-    mediumpurple: "#9370db",
-    mediumseagreen: "#3cb371",
-    mediumslateblue: "#7b68ee",
-    mediumspringgreen: "#00fa9a",
-    mediumturquoise: "#48d1cc",
-    mediumvioletred: "#c71585",
-    midnightblue: "#191970",
-    mintcream: "#f5fffa",
-    mistyrose: "#ffe4e1",
-    moccasin: "#ffe4b5",
-    navajowhite: "#ffdead",
-    navy: "#000080",
-    oldlace: "#fdf5e6",
-    olive: "#808000",
-    olivedrab: "#6b8e23",
-    orange: "#ffa500",
-    orangered: "#ff4500",
-    orchid: "#da70d6",
-    palegoldenrod: "#eee8aa",
-    palegreen: "#98fb98",
-    paleturquoise: "#afeeee",
-    palevioletred: "#db7093",
-    papayawhip: "#ffefd5",
-    peachpuff: "#ffdab9",
-    peru: "#cd853f",
-    pink: "#ffc0cb",
-    plum: "#dda0dd",
-    powderblue: "#b0e0e6",
-    purple: "#800080",
-    red: "#ff0000",
-    rosybrown: "#bc8f8f",
-    royalblue: "#4169e1",
-    saddlebrown: "#8b4513",
-    salmon: "#fa8072",
-    sandybrown: "#f4a460",
-    seagreen: "#2e8b57",
-    seashell: "#fff5ee",
-    sienna: "#a0522d",
-    silver: "#c0c0c0",
-    skyblue: "#87ceeb",
-    slateblue: "#6a5acd",
-    slategray: "#708090",
-    snow: "#fffafa",
-    springgreen: "#00ff7f",
-    steelblue: "#4682b4",
-    tan: "#d2b48c",
-    teal: "#008080",
-    thistle: "#d8bfd8",
-    tomato: "#ff6347",
-    turquoise: "#40e0d0",
-    violet: "#ee82ee",
-    wheat: "#f5deb3",
-    white: "#ffffff",
-    whitesmoke: "#f5f5f5",
-    yellow: "#ffff00",
-    yellowgreen: "#9acd32"
-};
-
-/*
- * This class contains methods for operating with colors. Its objects are kept in hsva format with normalized
- * attributes (each attribute has value between 0 and 1 inclusive), and can be converted from/to rgba.
- */
-
-var Color = function () {
-    function Color(color) {
-        classCallCheck(this, Color);
-
-        if (color) {
-            this.setColor(color);
-        }
-    }
-
-    createClass(Color, [{
-        key: "setColor",
-        value: function setColor(color) {
-            this.color = this.constructor.parseColor(color);
-        }
-    }, {
-        key: "getColor",
-        value: function getColor() {
-            var rgba = this.getRgba();
-            return "rgba(" + rgba[0] + ", " + rgba[1] + ", " + rgba[2] + ", " + rgba[3] + ")";
-        }
-
-        /*
-         * @param color A color string of the types: native name, hex3, hex6, rgb, rgba, hsl, hsla
-         *              or a Color object, or a hsla color array
-         */
-
-    }], [{
-        key: "parseColor",
-        value: function parseColor(color) {
-            if (color instanceof Color) {
-                return color.color;
-            } else if (color instanceof Array) {
-                // Add the alpha parameter at the end
-                if (color.length === 3) {
-                    color.push(1);
-                }
-                return color;
-            }
-
-            color = color.trim().toLowerCase();
-
-            // Check if color is given by name
-            if (COLORS_BY_NAME.hasOwnProperty(color)) {
-                color = COLORS_BY_NAME[color];
-            }
-
-            var values = [];
-
-            // Check for hex3 (e.g. "#f00")
-            var hex3 = color.match(/^#([0-9a-f]{3})$/i);
-            if (hex3) {
-                values = [parseInt(hex3[1].charAt(0), 16) * 0x11, parseInt(hex3[1].charAt(1), 16) * 0x11, parseInt(hex3[1].charAt(2), 16) * 0x11, 1];
-            }
-
-            // Check for hex6 (e.g. "#ff0000")
-            var hex6 = color.match(/^#([0-9a-f]{6})$/i);
-            if (hex6) {
-                values = [parseInt(hex6[1].substr(0, 2), 16), parseInt(hex6[1].substr(2, 2), 16), parseInt(hex6[1].substr(4, 2), 16), 1];
-            }
-
-            // Check for rgba (e.g. "rgba(255, 0, 0, 0.5)")
-            var rgba = color.match(/^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+.*\d*)\s*\)$/i);
-            if (rgba) {
-                values = [parseInt(rgba[1]), parseInt(rgba[2]), parseInt(rgba[3]), parseFloat(rgba[4])];
-            }
-
-            // Check for rgb (e.g. "rgb(255, 0, 0)")
-            var rgb = color.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
-            if (rgb) {
-                values = [parseInt(rgb[1]), parseInt(rgb[2]), parseInt(rgb[3]), 1];
-            }
-            return values;
-        }
-
-        // TODO: this should be implemented as a factory that generates an interpolator object, that just takes in a t
-
-    }, {
-        key: "interpolate",
-        value: function interpolate(firstColor, secondColor) {
-            var t = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.5;
-
-            var firstColorArray = Color.parseColor(firstColor);
-            var secondColorArray = Color.parseColor(secondColor);
-
-            return Color.convertToRgba([parseInt(firstColorArray[0] * (1 - t) + secondColorArray[0] * t), parseInt(firstColorArray[1] * (1 - t) + secondColorArray[1] * t), parseInt(firstColorArray[2] * (1 - t) + secondColorArray[2] * t), parseInt(firstColorArray[3] * (1 - t) + secondColorArray[3] * t)]);
-        }
-    }, {
-        key: "convertToRgba",
-        value: function convertToRgba(rgba) {
-            return "rgba(" + rgba[0] + ", " + rgba[1] + ", " + rgba[2] + ", " + rgba[3] + ")";
-        }
-    }, {
-        key: "isLight",
-        value: function isLight(color) {
-            var values = Color.parseColor(color);
-            return values[0] * 0.3 + values[1] * 0.59 + values[2] * 0.11 > 188;
-        }
-    }]);
-    return Color;
-}();
-
-function lighten(color, amount) {
-    if (amount >= 0) {
-        return Color.interpolate(color, "#fff", amount);
-    } else {
-        return darken(color, -amount);
-    }
-}
-
-function darken(color, amount) {
-    if (amount >= 0) {
-        var rgba = Color.parseColor(Color.interpolate(color, "#000", amount));
-        for (var i = 0; i < 3; i += 1) {
-            var root = Math.pow(255 - rgba[i], 0.7);
-            rgba[i] = parseInt(rgba[i] - root * amount);
-            if (rgba[i] < 0) {
-                rgba[i] = 0;
-            }
-        }
-        return Color.convertToRgba(rgba);
-    } else {
-        return lighten(color, -amount);
-    }
-}
-
-function enhance(color, amount) {
-    if (Color.isLight(color)) {
-        return darken(color, amount);
-    } else {
-        return lighten(color, amount);
-    }
-}
-
-function buildColors(color) {
-    var dark = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
-    var colors = [];
-    var darkenPercents = void 0;
-    if (!dark) {
-        darkenPercents = [0.1, 0, -0.2, -0.3, -0.35, -0.2, -1];
-    } else if (Color.isLight(color)) {
-        darkenPercents = [0.05, 0, 0.05, 0.1, 0.15, 0.3, 0.8];
-    } else {
-        darkenPercents = [-0.3, 0, 0.1, 0.2, 0.23, 0.1, -1];
-    }
-    for (var i = 0; i < darkenPercents.length; i += 1) {
-        colors.push(darken(color, darkenPercents[i]));
-    }
-    return colors;
-}
-
 SVG.AnimatedSVG = function (_SVG$SVGRoot) {
     inherits(AnimatedSVG, _SVG$SVGRoot);
 
@@ -7186,1034 +8303,6 @@ SVG.Text.prototype.changeFillTransition = function (color, duration) {
         dependsOn: dependsOn
     });
 };
-
-var _class3$1;
-var _descriptor8$1;
-var _descriptor9$1;
-var _class5;
-var _descriptor10$1;
-var _descriptor11$1;
-var _descriptor12$1;
-var _descriptor13$1;
-var _descriptor14$1;
-var _class7$1;
-var _descriptor15$1;
-var _descriptor16$1;
-
-function _initDefineProp$4(target, property, descriptor, context) {
-    if (!descriptor) return;
-    Object.defineProperty(target, property, {
-        enumerable: descriptor.enumerable,
-        configurable: descriptor.configurable,
-        writable: descriptor.writable,
-        value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-    });
-}
-
-function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
-    var desc = {};
-    Object['ke' + 'ys'](descriptor).forEach(function (key) {
-        desc[key] = descriptor[key];
-    });
-    desc.enumerable = !!desc.enumerable;
-    desc.configurable = !!desc.configurable;
-
-    if ('value' in desc || desc.initializer) {
-        desc.writable = true;
-    }
-
-    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-        return decorator(target, property, desc) || desc;
-    }, desc);
-
-    if (context && desc.initializer !== void 0) {
-        desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-        desc.initializer = undefined;
-    }
-
-    if (desc.initializer === void 0) {
-        Object['define' + 'Property'](target, property, desc);
-        desc = null;
-    }
-
-    return desc;
-}
-
-// TODO: export these properly, don't use a namespace here
-var GlobalStyle = {};
-
-Theme.Global.setProperties({
-    COLOR_PLAIN: "#fff",
-    COLOR_PLAIN_ALTERNATIVE: "#eee",
-    COLOR_GRAY: "#777",
-    COLOR_PRIMARY: "#337ab7",
-    COLOR_SECONDARY: "#358ba4",
-    COLOR_SUCCESS: "#5cb85c",
-    COLOR_INFO: "#5bc0de",
-    COLOR_WARNING: "#f0ad4e",
-    COLOR_DANGER: "#d9534f",
-
-    FONT_SIZE_EXTRA_SMALL: "9px",
-    FONT_SIZE_SMALL: "10px",
-    FONT_SIZE_DEFAULT: "12px",
-    FONT_SIZE_LARGE: "17px",
-    FONT_SIZE_EXTRA_LARGE: "21px",
-
-    BASE_BORDER_RADIUS: 0,
-    BASE_BOX_SHADOW: "0px 0px 10px rgb(160, 162, 168)",
-    BASE_BORDER_WIDTH: 0,
-    BASE_BORDER_STYLE: "solid",
-    BASE_BORDER_COLOR: "#ddd",
-
-    BUTTON_BORDER_RADIUS: "0.2rem",
-
-    CARD_PANEL_HEADER_HEIGHT: 30,
-    CARD_PANEL_HEADER_HEIGHT_LARGE: 40,
-    CARD_PANEL_HEADING_PADDING: 10,
-    CARD_PANEL_HEADING_PADDING_LARGE: 20,
-    CARD_PANEL_TEXT_TRANSFORM: "inherit",
-
-    ROW_LIST_ROW_HEIGHT: 30,
-    ROW_LIST_ROW_HEIGHT_LARGE: 40,
-    ROW_LIST_ROW_PADDING: 10,
-    ROW_LIST_ROW_PADDING_LARGE: 20,
-    ROW_LIST_ROW_BORDER_WIDTH: 1,
-
-    FONT_FAMILY_SANS_SERIF: "Lato, 'Segoe UI', 'Lucida Sans Unicode', 'Helvetica Neue', Helvetica, Arial, sans-serif",
-    FONT_FAMILY_SERIF: "serif",
-    FONT_FAMILY_MONOSPACE: "'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace",
-
-    NAV_MANAGER_NAVBAR_HEIGHT: 50,
-    NAV_MANAGER_BOX_SHADOW_NAV_MANAGER: "0px 0px 10px rgb(0, 0, 0)",
-    NAV_MANAGER_BOX_SHADOW_SIDE_PANEL: "0px 0px 10px #202e3e",
-
-    MAIN_CONTAINER_EXTRA_PADDING_TOP_DESKTOP: 0,
-    MAIN_CONTAINER_EXTRA_PADDING_TOP_MOBILE: 0,
-    MAIN_CONTAINER_EXTRA_PADDING_BOTTOM_DESKTOP: 0,
-    MAIN_CONTAINER_EXTRA_PADDING_BOTTOM_MOBILE: 0
-});
-
-var BasicLevelSizeStyleSheet = function (_StyleSheet) {
-    inherits(BasicLevelSizeStyleSheet, _StyleSheet);
-
-    function BasicLevelSizeStyleSheet() {
-        classCallCheck(this, BasicLevelSizeStyleSheet);
-        return possibleConstructorReturn(this, (BasicLevelSizeStyleSheet.__proto__ || Object.getPrototypeOf(BasicLevelSizeStyleSheet)).apply(this, arguments));
-    }
-
-    createClass(BasicLevelSizeStyleSheet, [{
-        key: "Level",
-        value: function Level$$1(level) {
-            if (this[level]) {
-                return this[level];
-            }
-            var _iteratorNormalCompletion = true;
-            var _didIteratorError = false;
-            var _iteratorError = undefined;
-
-            try {
-                for (var _iterator = Object.keys(Level)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                    var type = _step.value;
-
-                    if (level == Level[type]) {
-                        return this[type];
-                    }
-                }
-            } catch (err) {
-                _didIteratorError = true;
-                _iteratorError = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion && _iterator.return) {
-                        _iterator.return();
-                    }
-                } finally {
-                    if (_didIteratorError) {
-                        throw _iteratorError;
-                    }
-                }
-            }
-
-            return "";
-        }
-    }, {
-        key: "Size",
-        value: function Size$$1(size) {
-            var _iteratorNormalCompletion2 = true;
-            var _didIteratorError2 = false;
-            var _iteratorError2 = undefined;
-
-            try {
-                for (var _iterator2 = Object.keys(Size)[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                    var type = _step2.value;
-
-                    if (size == Size[type]) {
-                        return this[type];
-                    }
-                }
-            } catch (err) {
-                _didIteratorError2 = true;
-                _iteratorError2 = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                        _iterator2.return();
-                    }
-                } finally {
-                    if (_didIteratorError2) {
-                        throw _iteratorError2;
-                    }
-                }
-            }
-
-            return "";
-        }
-    }]);
-    return BasicLevelSizeStyleSheet;
-}(StyleSheet);
-
-var BasicLevelStyleSheet = function BasicLevelStyleSheet(colorToStyleFunction) {
-    var _desc, _value, _class, _descriptor, _descriptor2, _descriptor3, _descriptor4, _descriptor5, _descriptor6, _descriptor7;
-
-    return _class = function (_BasicLevelSizeStyleS) {
-        inherits(BasicLevelStyleClass, _BasicLevelSizeStyleS);
-
-        function BasicLevelStyleClass() {
-            var _ref;
-
-            var _temp, _this2, _ret;
-
-            classCallCheck(this, BasicLevelStyleClass);
-
-            for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-                args[_key] = arguments[_key];
-            }
-
-            return _ret = (_temp = (_this2 = possibleConstructorReturn(this, (_ref = BasicLevelStyleClass.__proto__ || Object.getPrototypeOf(BasicLevelStyleClass)).call.apply(_ref, [this].concat(args))), _this2), _initDefineProp$4(_this2, "PRIMARY", _descriptor, _this2), _initDefineProp$4(_this2, "SECONDARY", _descriptor2, _this2), _initDefineProp$4(_this2, "PLAIN", _descriptor3, _this2), _initDefineProp$4(_this2, "SUCCESS", _descriptor4, _this2), _initDefineProp$4(_this2, "INFO", _descriptor5, _this2), _initDefineProp$4(_this2, "WARNING", _descriptor6, _this2), _initDefineProp$4(_this2, "DANGER", _descriptor7, _this2), _temp), possibleConstructorReturn(_this2, _ret);
-        }
-
-        createClass(BasicLevelStyleClass, [{
-            key: "colorStyleRule",
-            value: function colorStyleRule(color, textColor) {
-                if (!textColor) {
-                    textColor = enhance(color, 1);
-                }
-                return colorToStyleFunction(color, textColor);
-            }
-        }]);
-        return BasicLevelStyleClass;
-    }(BasicLevelSizeStyleSheet), (_descriptor = _applyDecoratedDescriptor$4(_class.prototype, "PRIMARY", [styleRule], {
-        enumerable: true,
-        initializer: function initializer() {
-            return this.colorStyleRule(this.themeProperties.COLOR_PRIMARY);
-        }
-    }), _descriptor2 = _applyDecoratedDescriptor$4(_class.prototype, "SECONDARY", [styleRule], {
-        enumerable: true,
-        initializer: function initializer() {
-            return this.colorStyleRule(this.themeProperties.COLOR_SECONDARY);
-        }
-    }), _descriptor3 = _applyDecoratedDescriptor$4(_class.prototype, "PLAIN", [styleRule], {
-        enumerable: true,
-        initializer: function initializer() {
-            return this.colorStyleRule(this.themeProperties.COLOR_PLAIN);
-        }
-    }), _descriptor4 = _applyDecoratedDescriptor$4(_class.prototype, "SUCCESS", [styleRule], {
-        enumerable: true,
-        initializer: function initializer() {
-            return this.colorStyleRule(this.themeProperties.COLOR_SUCCESS);
-        }
-    }), _descriptor5 = _applyDecoratedDescriptor$4(_class.prototype, "INFO", [styleRule], {
-        enumerable: true,
-        initializer: function initializer() {
-            return this.colorStyleRule(this.themeProperties.COLOR_INFO);
-        }
-    }), _descriptor6 = _applyDecoratedDescriptor$4(_class.prototype, "WARNING", [styleRule], {
-        enumerable: true,
-        initializer: function initializer() {
-            return this.colorStyleRule(this.themeProperties.COLOR_WARNING);
-        }
-    }), _descriptor7 = _applyDecoratedDescriptor$4(_class.prototype, "DANGER", [styleRule], {
-        enumerable: true,
-        initializer: function initializer() {
-            return this.colorStyleRule(this.themeProperties.COLOR_DANGER);
-        }
-    })), _class;
-};
-
-var FlexContainerStyle = (_class3$1 = function (_StyleSheet2) {
-    inherits(FlexContainerStyle, _StyleSheet2);
-
-    function FlexContainerStyle() {
-        var _ref2;
-
-        var _temp2, _this3, _ret2;
-
-        classCallCheck(this, FlexContainerStyle);
-
-        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-            args[_key2] = arguments[_key2];
-        }
-
-        return _ret2 = (_temp2 = (_this3 = possibleConstructorReturn(this, (_ref2 = FlexContainerStyle.__proto__ || Object.getPrototypeOf(FlexContainerStyle)).call.apply(_ref2, [this].concat(args))), _this3), _initDefineProp$4(_this3, "HORIZONTAL", _descriptor8$1, _this3), _initDefineProp$4(_this3, "VERTICAL", _descriptor9$1, _this3), _temp2), possibleConstructorReturn(_this3, _ret2);
-    }
-
-    createClass(FlexContainerStyle, [{
-        key: "Orientation",
-        value: function Orientation$$1(orientation) {
-            var _iteratorNormalCompletion3 = true;
-            var _didIteratorError3 = false;
-            var _iteratorError3 = undefined;
-
-            try {
-                for (var _iterator3 = Object.keys(Orientation)[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                    var type = _step3.value;
-
-                    if (orientation == Orientation[type]) {
-                        return this[type];
-                    }
-                }
-            } catch (err) {
-                _didIteratorError3 = true;
-                _iteratorError3 = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
-                        _iterator3.return();
-                    }
-                } finally {
-                    if (_didIteratorError3) {
-                        throw _iteratorError3;
-                    }
-                }
-            }
-        }
-    }]);
-    return FlexContainerStyle;
-}(StyleSheet), (_descriptor8$1 = _applyDecoratedDescriptor$4(_class3$1.prototype, "HORIZONTAL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            display: "flex",
-            ">*": {
-                marginLeft: "20px",
-                flex: "1"
-            },
-            ">:first-child": {
-                marginLeft: "0px"
-            }
-        };
-    }
-}), _descriptor9$1 = _applyDecoratedDescriptor$4(_class3$1.prototype, "VERTICAL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            display: "flex",
-            flexDirection: "column",
-            ">*": {
-                marginTop: "20px",
-                flex: "1"
-            },
-            ">:first-child": {
-                marginTop: "0px"
-            }
-        };
-    }
-})), _class3$1);
-var ContainerStyle = (_class5 = function (_StyleSheet3) {
-    inherits(ContainerStyle, _StyleSheet3);
-
-    function ContainerStyle() {
-        var _ref3;
-
-        var _temp3, _this4, _ret3;
-
-        classCallCheck(this, ContainerStyle);
-
-        for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-            args[_key3] = arguments[_key3];
-        }
-
-        return _ret3 = (_temp3 = (_this4 = possibleConstructorReturn(this, (_ref3 = ContainerStyle.__proto__ || Object.getPrototypeOf(ContainerStyle)).call.apply(_ref3, [this].concat(args))), _this4), _initDefineProp$4(_this4, "EXTRA_SMALL", _descriptor10$1, _this4), _initDefineProp$4(_this4, "SMALL", _descriptor11$1, _this4), _initDefineProp$4(_this4, "MEDIUM", _descriptor12$1, _this4), _initDefineProp$4(_this4, "LARGE", _descriptor13$1, _this4), _initDefineProp$4(_this4, "EXTRA_LARGE", _descriptor14$1, _this4), _temp3), possibleConstructorReturn(_this4, _ret3);
-    }
-
-    createClass(ContainerStyle, [{
-        key: "getSizeStyle",
-        value: function getSizeStyle(mobilePixels, desktopPercent) {
-            return {
-                margin: Device.isMobileDevice() ? "0 " + mobilePixels + "px" : "0% " + desktopPercent + "%"
-            };
-        }
-    }, {
-        key: "Size",
-        value: function Size$$1(size) {
-            var _iteratorNormalCompletion4 = true;
-            var _didIteratorError4 = false;
-            var _iteratorError4 = undefined;
-
-            try {
-                for (var _iterator4 = Object.keys(Size)[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-                    var type = _step4.value;
-
-                    if (size == Size[type]) {
-                        return this[type];
-                    }
-                }
-            } catch (err) {
-                _didIteratorError4 = true;
-                _iteratorError4 = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion4 && _iterator4.return) {
-                        _iterator4.return();
-                    }
-                } finally {
-                    if (_didIteratorError4) {
-                        throw _iteratorError4;
-                    }
-                }
-            }
-        }
-    }]);
-    return ContainerStyle;
-}(StyleSheet), (_descriptor10$1 = _applyDecoratedDescriptor$4(_class5.prototype, "EXTRA_SMALL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return this.getSizeStyle(6, 15);
-    }
-}), _descriptor11$1 = _applyDecoratedDescriptor$4(_class5.prototype, "SMALL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return this.getSizeStyle(4, 10);
-    }
-}), _descriptor12$1 = _applyDecoratedDescriptor$4(_class5.prototype, "MEDIUM", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return this.getSizeStyle(4, 6);
-    }
-}), _descriptor13$1 = _applyDecoratedDescriptor$4(_class5.prototype, "LARGE", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return this.getSizeStyle(2, 3);
-    }
-}), _descriptor14$1 = _applyDecoratedDescriptor$4(_class5.prototype, "EXTRA_LARGE", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return this.getSizeStyle(2, 1);
-    }
-})), _class5);
-var Utils = (_class7$1 = function (_StyleSheet4) {
-    inherits(Utils, _StyleSheet4);
-
-    function Utils() {
-        var _ref4;
-
-        var _temp4, _this5, _ret4;
-
-        classCallCheck(this, Utils);
-
-        for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
-            args[_key4] = arguments[_key4];
-        }
-
-        return _ret4 = (_temp4 = (_this5 = possibleConstructorReturn(this, (_ref4 = Utils.__proto__ || Object.getPrototypeOf(Utils)).call.apply(_ref4, [this].concat(args))), _this5), _initDefineProp$4(_this5, "fullHeight", _descriptor15$1, _this5), _initDefineProp$4(_this5, "hidden", _descriptor16$1, _this5), _temp4), possibleConstructorReturn(_this5, _ret4);
-    }
-
-    return Utils;
-}(StyleSheet), (_descriptor15$1 = _applyDecoratedDescriptor$4(_class7$1.prototype, "fullHeight", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            height: "100%"
-        };
-    }
-}), _descriptor16$1 = _applyDecoratedDescriptor$4(_class7$1.prototype, "hidden", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            display: "hidden"
-        };
-    }
-})), _class7$1);
-
-
-GlobalStyle.FlexContainer = FlexContainerStyle.getInstance();
-GlobalStyle.Container = ContainerStyle.getInstance();
-GlobalStyle.Utils = Utils.getInstance();
-
-var _class$5;
-var _descriptor$3;
-var _descriptor2$2;
-var _descriptor3$2;
-var _descriptor4$1;
-var _descriptor5$1;
-var _descriptor6$1;
-var _dec$3;
-var _class3;
-var _class4;
-var _descriptor7;
-var _descriptor8;
-var _descriptor9;
-var _descriptor10;
-var _descriptor11;
-var _descriptor12;
-var _dec2$1;
-var _class6;
-var _class7;
-var _descriptor13;
-var _descriptor14;
-var _descriptor15;
-var _descriptor16;
-var _descriptor17;
-var _descriptor18;
-var _descriptor19;
-var _descriptor20;
-var _descriptor21;
-var _dec3;
-var _class9;
-
-function _initDefineProp$3(target, property, descriptor, context) {
-    if (!descriptor) return;
-    Object.defineProperty(target, property, {
-        enumerable: descriptor.enumerable,
-        configurable: descriptor.configurable,
-        writable: descriptor.writable,
-        value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-    });
-}
-
-function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
-    var desc = {};
-    Object['ke' + 'ys'](descriptor).forEach(function (key) {
-        desc[key] = descriptor[key];
-    });
-    desc.enumerable = !!desc.enumerable;
-    desc.configurable = !!desc.configurable;
-
-    if ('value' in desc || desc.initializer) {
-        desc.writable = true;
-    }
-
-    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-        return decorator(target, property, desc) || desc;
-    }, desc);
-
-    if (context && desc.initializer !== void 0) {
-        desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-        desc.initializer = undefined;
-    }
-
-    if (desc.initializer === void 0) {
-        Object['define' + 'Property'](target, property, desc);
-        desc = null;
-    }
-
-    return desc;
-}
-
-var SimpleStyledElement = function (_UI$Element) {
-    inherits(SimpleStyledElement, _UI$Element);
-
-    function SimpleStyledElement() {
-        classCallCheck(this, SimpleStyledElement);
-        return possibleConstructorReturn(this, (SimpleStyledElement.__proto__ || Object.getPrototypeOf(SimpleStyledElement)).apply(this, arguments));
-    }
-
-    createClass(SimpleStyledElement, [{
-        key: "getLevel",
-        value: function getLevel() {
-            return this.options.level || this.parent && this.parent.getLevel && this.parent.getLevel();
-        }
-    }, {
-        key: "setLevel",
-        value: function setLevel(level) {
-            this.updateOptions({ level: level });
-        }
-    }, {
-        key: "getSize",
-        value: function getSize() {
-            return this.options.size || this.parent && this.parent.getSize && this.parent.getSize();
-        }
-    }, {
-        key: "setSize",
-        value: function setSize(size) {
-            this.updateOptions({ size: size });
-        }
-    }]);
-    return SimpleStyledElement;
-}(UI.Element);
-
-var IconableInterface = function (_SimpleStyledElement) {
-    inherits(IconableInterface, _SimpleStyledElement);
-
-    function IconableInterface() {
-        classCallCheck(this, IconableInterface);
-        return possibleConstructorReturn(this, (IconableInterface.__proto__ || Object.getPrototypeOf(IconableInterface)).apply(this, arguments));
-    }
-
-    createClass(IconableInterface, [{
-        key: "render",
-        value: function render() {
-            return [this.beforeChildren(), this.getLabel(), get(IconableInterface.prototype.__proto__ || Object.getPrototypeOf(IconableInterface.prototype), "render", this).call(this)];
-        }
-    }, {
-        key: "getLabel",
-        value: function getLabel() {
-            return this.options.label != null ? this.options.label : "";
-        }
-    }, {
-        key: "setLabel",
-        value: function setLabel(label) {
-            this.updateOptions({ label: label });
-        }
-
-        //TODO: this should live in a base iconable class, of which you'd only use this.beforeChildren
-
-    }, {
-        key: "getFaIcon",
-        value: function getFaIcon() {
-            return this.options.faIcon;
-        }
-    }, {
-        key: "setFaIcon",
-        value: function setFaIcon(value) {
-            this.options.faIcon = value;
-            this.redraw();
-        }
-    }, {
-        key: "beforeChildren",
-        value: function beforeChildren() {
-            if (!this.getFaIcon()) {
-                return null;
-            }
-            var iconOptions = {
-                className: "fa fa-" + this.getFaIcon()
-            };
-            if (this.getLabel()) {
-                iconOptions.style = {
-                    marginRight: "5px"
-                };
-            }
-
-            return UI.createElement("span", iconOptions);
-        }
-    }]);
-    return IconableInterface;
-}(SimpleStyledElement);
-
-var labelColorToStyle = function labelColorToStyle(color) {
-    var colors = buildColors(color);
-    var darker = {
-        backgroundColor: colors[2],
-        color: colors[6],
-        textDecoration: "none"
-    };
-    var regular = {
-        backgroundColor: colors[1],
-        borderColor: colors[5],
-        color: colors[6]
-    };
-    return Object.assign({}, regular, {
-        ":hover": darker,
-        ":hover:disabled": regular,
-        ":focus": darker,
-        ":active": darker
-    });
-};
-
-var LabelStyle = (_class$5 = function (_BasicLevelStyleSheet) {
-    inherits(LabelStyle, _BasicLevelStyleSheet);
-
-    function LabelStyle() {
-        var _ref;
-
-        var _temp, _this3, _ret;
-
-        classCallCheck(this, LabelStyle);
-
-        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-            args[_key] = arguments[_key];
-        }
-
-        return _ret = (_temp = (_this3 = possibleConstructorReturn(this, (_ref = LabelStyle.__proto__ || Object.getPrototypeOf(LabelStyle)).call.apply(_ref, [this].concat(args))), _this3), _initDefineProp$3(_this3, "DEFAULT", _descriptor$3, _this3), _initDefineProp$3(_this3, "EXTRA_SMALL", _descriptor2$2, _this3), _initDefineProp$3(_this3, "SMALL", _descriptor3$2, _this3), _initDefineProp$3(_this3, "MEDIUM", _descriptor4$1, _this3), _initDefineProp$3(_this3, "LARGE", _descriptor5$1, _this3), _initDefineProp$3(_this3, "EXTRA_LARGE", _descriptor6$1, _this3), _temp), possibleConstructorReturn(_this3, _ret);
-    }
-
-    return LabelStyle;
-}(BasicLevelStyleSheet(labelColorToStyle)), (_descriptor$3 = _applyDecoratedDescriptor$3(_class$5.prototype, "DEFAULT", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return [{
-            fontWeight: "bold",
-            border: "0.1em solid transparent",
-            padding: "0.07em 0.4em",
-            borderRadius: "0.3em",
-            textAlign: "center",
-            whiteSpace: "nowrap",
-            verticalAlign: "bottom",
-            lineHeight: 4 / 3 + "",
-            display: "inline-block",
-            touchAction: "manipulation",
-            ":disabled": {
-                opacity: "0.7",
-                cursor: "not-allowed"
-            }
-        }, {
-            "font-size": "12px"
-        }, this.colorStyleRule(this.themeProperties.COLOR_GRAY)];
-    }
-}), _descriptor2$2 = _applyDecoratedDescriptor$3(_class$5.prototype, "EXTRA_SMALL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "10px",
-            padding: "0.05em 0.2em",
-            borderWidth: "0.05em"
-        };
-    }
-}), _descriptor3$2 = _applyDecoratedDescriptor$3(_class$5.prototype, "SMALL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "10px"
-        };
-    }
-}), _descriptor4$1 = _applyDecoratedDescriptor$3(_class$5.prototype, "MEDIUM", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {};
-    }
-}), _descriptor5$1 = _applyDecoratedDescriptor$3(_class$5.prototype, "LARGE", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "14px"
-        };
-    }
-}), _descriptor6$1 = _applyDecoratedDescriptor$3(_class$5.prototype, "EXTRA_LARGE", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "17px",
-            padding: "0.05em 0.2em"
-        };
-    }
-})), _class$5);
-
-var Label = (_dec$3 = registerStyle(LabelStyle), _dec$3(_class3 = function (_UI$Primitive) {
-    inherits(Label, _UI$Primitive);
-
-    function Label() {
-        classCallCheck(this, Label);
-        return possibleConstructorReturn(this, (Label.__proto__ || Object.getPrototypeOf(Label)).apply(this, arguments));
-    }
-
-    createClass(Label, [{
-        key: "extraNodeAttributes",
-        value: function extraNodeAttributes(attr) {
-            attr.addClass(this.styleSheet.DEFAULT);
-
-            if (this.getSize()) {
-                attr.addClass(this.styleSheet.Size(this.getSize()));
-            }
-
-            if (this.getLevel()) {
-                attr.addClass(this.styleSheet.Level(this.getLevel()));
-            }
-        }
-    }]);
-    return Label;
-}(UI.Primitive(IconableInterface, "span"))) || _class3);
-
-
-var badgeColorToStyle = function badgeColorToStyle(color) {
-    var colors = buildColors(color);
-    return {
-        backgroundColor: colors[1],
-        borderColor: colors[5],
-        color: colors[6]
-    };
-};
-
-var BadgeStyle = (_class4 = function (_BasicLevelStyleSheet2) {
-    inherits(BadgeStyle, _BasicLevelStyleSheet2);
-
-    function BadgeStyle() {
-        var _ref2;
-
-        var _temp2, _this5, _ret2;
-
-        classCallCheck(this, BadgeStyle);
-
-        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-            args[_key2] = arguments[_key2];
-        }
-
-        return _ret2 = (_temp2 = (_this5 = possibleConstructorReturn(this, (_ref2 = BadgeStyle.__proto__ || Object.getPrototypeOf(BadgeStyle)).call.apply(_ref2, [this].concat(args))), _this5), _initDefineProp$3(_this5, "DEFAULT", _descriptor7, _this5), _initDefineProp$3(_this5, "EXTRA_SMALL", _descriptor8, _this5), _initDefineProp$3(_this5, "SMALL", _descriptor9, _this5), _initDefineProp$3(_this5, "MEDIUM", _descriptor10, _this5), _initDefineProp$3(_this5, "LARGE", _descriptor11, _this5), _initDefineProp$3(_this5, "EXTRA_LARGE", _descriptor12, _this5), _temp2), possibleConstructorReturn(_this5, _ret2);
-    }
-
-    return BadgeStyle;
-}(BasicLevelStyleSheet(badgeColorToStyle)), (_descriptor7 = _applyDecoratedDescriptor$3(_class4.prototype, "DEFAULT", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return [{
-            display: "inline-block",
-            padding: "0.25em 0.55em",
-            fontWeight: "700",
-            lineHeight: "1",
-            color: "#fff",
-            textAlign: "center",
-            whiteSpace: "nowrap",
-            verticalAlign: "middle",
-            backgroundColor: "#777",
-            borderRadius: "0.8em"
-        }, {
-            "font-size": "12px"
-        }, this.colorStyleRule(this.themeProperties.COLOR_GRAY)];
-    }
-}), _descriptor8 = _applyDecoratedDescriptor$3(_class4.prototype, "EXTRA_SMALL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "10px",
-            padding: "0.1em 0.2em"
-        };
-    }
-}), _descriptor9 = _applyDecoratedDescriptor$3(_class4.prototype, "SMALL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "10px"
-        };
-    }
-}), _descriptor10 = _applyDecoratedDescriptor$3(_class4.prototype, "MEDIUM", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {};
-    }
-}), _descriptor11 = _applyDecoratedDescriptor$3(_class4.prototype, "LARGE", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "14px"
-        };
-    }
-}), _descriptor12 = _applyDecoratedDescriptor$3(_class4.prototype, "EXTRA_LARGE", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "17px",
-            padding: "0.1em 0.2em"
-        };
-    }
-})), _class4);
-
-var Badge = (_dec2$1 = registerStyle(BadgeStyle), _dec2$1(_class6 = function (_UI$Primitive2) {
-    inherits(Badge, _UI$Primitive2);
-
-    function Badge() {
-        classCallCheck(this, Badge);
-        return possibleConstructorReturn(this, (Badge.__proto__ || Object.getPrototypeOf(Badge)).apply(this, arguments));
-    }
-
-    createClass(Badge, [{
-        key: "extraNodeAttributes",
-        value: function extraNodeAttributes(attr) {
-            attr.addClass(this.styleSheet.DEFAULT);
-
-            if (this.getSize()) {
-                attr.addClass(this.styleSheet.Size(this.getSize()));
-            }
-
-            if (this.getLevel()) {
-                attr.addClass(this.styleSheet.Level(this.getLevel()));
-            }
-        }
-    }]);
-    return Badge;
-}(UI.Primitive(IconableInterface, "span"))) || _class6);
-
-
-var progressBarColorToStyle = function progressBarColorToStyle(color) {
-    var colors = buildColors(color);
-    return {
-        backgroundColor: colors[1]
-    };
-};
-
-var ProgressBarStyle = (_class7 = function (_BasicLevelStyleSheet3) {
-    inherits(ProgressBarStyle, _BasicLevelStyleSheet3);
-
-    function ProgressBarStyle() {
-        var _ref3;
-
-        var _temp3, _this7, _ret3;
-
-        classCallCheck(this, ProgressBarStyle);
-
-        for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-            args[_key3] = arguments[_key3];
-        }
-
-        return _ret3 = (_temp3 = (_this7 = possibleConstructorReturn(this, (_ref3 = ProgressBarStyle.__proto__ || Object.getPrototypeOf(ProgressBarStyle)).call.apply(_ref3, [this].concat(args))), _this7), _initDefineProp$3(_this7, "container", _descriptor13, _this7), _initDefineProp$3(_this7, "DEFAULT", _descriptor14, _this7), _initDefineProp$3(_this7, "striped", _descriptor15, _this7), _initDefineProp$3(_this7, "active", _descriptor16, _this7), _initDefineProp$3(_this7, "EXTRA_SMALL", _descriptor17, _this7), _initDefineProp$3(_this7, "SMALL", _descriptor18, _this7), _initDefineProp$3(_this7, "MEDIUM", _descriptor19, _this7), _initDefineProp$3(_this7, "LARGE", _descriptor20, _this7), _initDefineProp$3(_this7, "EXTRA_LARGE", _descriptor21, _this7), _temp3), possibleConstructorReturn(_this7, _ret3);
-    }
-
-    return ProgressBarStyle;
-}(BasicLevelStyleSheet(progressBarColorToStyle)), (_descriptor13 = _applyDecoratedDescriptor$3(_class7.prototype, "container", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            height: "20px",
-            marginBottom: "20px",
-            overflow: "hidden",
-            backgroundColor: "#f5f5f5",
-            borderRadius: "4px",
-            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, .1)"
-        };
-    }
-}), _descriptor14 = _applyDecoratedDescriptor$3(_class7.prototype, "DEFAULT", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return [{
-            float: "left",
-            width: "0",
-            height: "100%",
-            lineHeight: "20px",
-            color: "#fff",
-            textAlign: "center",
-            backgroundColor: "#337ab7",
-            boxShadow: "inset 0 -1px 0 rgba(0, 0, 0, .15)",
-            transition: "width .6s ease",
-            fontColor: "#ffffff"
-        }, {
-            fontSize: "12px"
-        }, this.colorStyleRule(this.themeProperties.COLOR_PRIMARY)];
-    }
-}), _descriptor15 = _applyDecoratedDescriptor$3(_class7.prototype, "striped", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            backgroundImage: "linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent)",
-            backgroundSize: "40px 40px"
-        };
-    }
-}), _descriptor16 = _applyDecoratedDescriptor$3(_class7.prototype, "active", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            animation: "progress-bar-stripes 2s linear infinite"
-        };
-    }
-}), _descriptor17 = _applyDecoratedDescriptor$3(_class7.prototype, "EXTRA_SMALL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "8px"
-        };
-    }
-}), _descriptor18 = _applyDecoratedDescriptor$3(_class7.prototype, "SMALL", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "10px"
-        };
-    }
-}), _descriptor19 = _applyDecoratedDescriptor$3(_class7.prototype, "MEDIUM", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {};
-    }
-}), _descriptor20 = _applyDecoratedDescriptor$3(_class7.prototype, "LARGE", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "14px"
-        };
-    }
-}), _descriptor21 = _applyDecoratedDescriptor$3(_class7.prototype, "EXTRA_LARGE", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            fontSize: "17px",
-            padding: "0.1em 0.2em"
-        };
-    }
-})), _class7);
-var ProgressBar = (_dec3 = registerStyle(ProgressBarStyle), _dec3(_class9 = function (_SimpleStyledElement2) {
-    inherits(ProgressBar, _SimpleStyledElement2);
-
-    function ProgressBar() {
-        classCallCheck(this, ProgressBar);
-        return possibleConstructorReturn(this, (ProgressBar.__proto__ || Object.getPrototypeOf(ProgressBar)).apply(this, arguments));
-    }
-
-    createClass(ProgressBar, [{
-        key: "extraNodeAttributes",
-        value: function extraNodeAttributes(attr) {
-            attr.addClass(this.styleSheet.container);
-        }
-    }, {
-        key: "render",
-        value: function render() {
-            var valueInPercent = (this.options.value || 0) * 100;
-            var orientation = Orientation.HORIZONTAL;
-            if (this.options.hasOwnProperty("orientation")) {
-                orientation = this.options.orientation;
-            }
-            var barStyle = void 0;
-            if (orientation === Orientation.HORIZONTAL) {
-                barStyle = {
-                    width: valueInPercent + "%",
-                    height: this.options.height + "px"
-                };
-            } else {
-                barStyle = {
-                    height: valueInPercent + "%",
-                    width: "5px"
-                };
-            }
-            var barOptions = {
-                className: this.styleSheet.DEFAULT,
-                style: barStyle
-            };
-
-            if (this.options.disableTransition) {
-                Object.assign(barOptions.style, {
-                    transition: "none"
-                });
-            }
-
-            if (this.options.level) {
-                barOptions.className += " " + this.styleSheet.Level(this.getLevel());
-            }
-            if (this.options.striped) {
-                barOptions.className += " " + this.styleSheet.striped;
-            }
-            if (this.options.active) {
-                barOptions.className += " " + this.styleSheet.active;
-            }
-            if (this.options.color) {
-                barOptions.style.backgroundColor = this.options.color;
-            }
-
-            return UI.createElement(
-                "div",
-                barOptions,
-                UI.createElement(
-                    "span",
-                    null,
-                    this.options.label
-                )
-            );
-        }
-    }, {
-        key: "set",
-        value: function set$$1(value) {
-            if (value < 0) value = 0;else if (value > 1) value = 1;
-            this.options.value = value;
-            this.redraw();
-        }
-    }]);
-    return ProgressBar;
-}(SimpleStyledElement)) || _class9);
 
 var Switcher = function (_UI$Element) {
     inherits(Switcher, _UI$Element);
@@ -10217,13 +10306,15 @@ if (window) {
 // Parse the headers from an xhr object, to return a native Headers object
 function parseHeaders(xhr) {
     var rawHeader = xhr.getAllResponseHeaders() || "";
+    var rawHeaderLines = rawHeader.split(/\r?\n/);
     var headers = new Headers();
+
     var _iteratorNormalCompletion = true;
     var _didIteratorError = false;
     var _iteratorError = undefined;
 
     try {
-        for (var _iterator = rawHeader.split(/\r?\n/)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        for (var _iterator = rawHeaderLines[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
             var line = _step.value;
 
             var parts = line.split(":");
@@ -10347,7 +10438,8 @@ var XHRPromise = function () {
             _this.promiseReject = reject;
 
             xhr.onload = function () {
-                var headers = parseHeaders(xhr);
+                var headers = _this.getResponseHeaders();
+
                 var body = xhr.response || xhr.responseText;
                 var responseInit = {
                     status: xhr.status,
@@ -10408,6 +10500,11 @@ var XHRPromise = function () {
     }
 
     createClass(XHRPromise, [{
+        key: "getResponseHeaders",
+        value: function getResponseHeaders() {
+            return parseHeaders(this.xhr);
+        }
+    }, {
         key: "send",
         value: function send(body) {
             this.getXHR().send(body);
@@ -10434,7 +10531,7 @@ var XHRPromise = function () {
                     var postprocessor = _step5.value;
 
                     try {
-                        payload = postprocessor(payload) || payload;
+                        payload = postprocessor(payload, this) || payload;
                     } catch (exception) {
                         this.reject(exception);
                         return;
@@ -10807,7 +10904,11 @@ var AjaxHandler = function () {
     }, {
         key: "getJSON",
         value: function getJSON(url, data) {
-            return this.get(url, { dataType: "json", data: data });
+            for (var _len2 = arguments.length, args = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+                args[_key2 - 2] = arguments[_key2];
+            }
+
+            return this.get.apply(this, [url, { dataType: "json", data: data }].concat(args));
         }
     }, {
         key: "post",
@@ -10817,7 +10918,11 @@ var AjaxHandler = function () {
     }, {
         key: "postJSON",
         value: function postJSON(url, data) {
-            return this.post(url, { dataType: "json", data: data });
+            for (var _len3 = arguments.length, args = Array(_len3 > 2 ? _len3 - 2 : 0), _key3 = 2; _key3 < _len3; _key3++) {
+                args[_key3 - 2] = arguments[_key3];
+            }
+
+            return this.post.apply(this, [url, { dataType: "json", data: data }].concat(args));
         }
     }, {
         key: "addPreprocessor",
@@ -12063,6 +12168,7 @@ function CollapsibleMixin(BaseClass) {
             key: "expand",
             value: function expand(panel) {
                 this.options.collapsed = false;
+                this.dispatch("expand");
                 var collapsibleStyle = this.getCollapsibleStyleSheet();
                 panel.addClass(collapsibleStyle.collapsing);
                 panel.removeClass("hidden");
@@ -12076,6 +12182,7 @@ function CollapsibleMixin(BaseClass) {
                 var _this2 = this;
 
                 this.options.collapsed = true;
+                this.dispatch("collapse");
                 var collapsibleStyle = this.getCollapsibleStyleSheet();
                 panel.addClass(collapsibleStyle.collapsing);
                 panel.addClass(collapsibleStyle.collapsed);
@@ -14214,8 +14321,6 @@ var Accordion = (_dec2$4 = registerStyle(AccordionStyle), _dec2$4(_class2$3 = fu
 
             try {
                 for (var _iterator7 = this.panels[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-                    var panel = _step7.value;
-
                     childrenStatus.push({
                         flex: 1,
                         collapsed: false
@@ -15267,6 +15372,11 @@ var CollapsibleTableRow = function (_CollapsibleMixin) {
             return true;
         }
     }, {
+        key: "getInitialCollapsedContent",
+        value: function getInitialCollapsedContent() {
+            return this.renderCollapsible(this.options.entry);
+        }
+    }, {
         key: "render",
         value: function render() {
             return [UI.createElement(
@@ -15284,7 +15394,7 @@ var CollapsibleTableRow = function (_CollapsibleMixin) {
                         "div",
                         { ref: "contentArea",
                             className: this.getCollapsibleStyleSheet().collapsed + " hidden" },
-                        this.renderCollapsible(this.options.entry)
+                        this.getInitialCollapsedContent()
                     )
                 )
             )];
@@ -15292,6 +15402,35 @@ var CollapsibleTableRow = function (_CollapsibleMixin) {
     }]);
     return CollapsibleTableRow;
 }(CollapsibleMixin(TableRow));
+
+var DelayedCollapsibleTableRow = function (_CollapsibleTableRow) {
+    inherits(DelayedCollapsibleTableRow, _CollapsibleTableRow);
+
+    function DelayedCollapsibleTableRow() {
+        classCallCheck(this, DelayedCollapsibleTableRow);
+        return possibleConstructorReturn(this, (DelayedCollapsibleTableRow.__proto__ || Object.getPrototypeOf(DelayedCollapsibleTableRow)).apply(this, arguments));
+    }
+
+    createClass(DelayedCollapsibleTableRow, [{
+        key: "toggle",
+        value: function toggle() {
+            if (!this._haveExpanded) {
+                this._haveExpanded = true;
+                UI.renderingStack.push(this);
+                this.contentArea.options.children = this.renderCollapsible(this.options.entry);
+                UI.renderingStack.pop();
+                this.contentArea.redraw();
+            }
+            get(DelayedCollapsibleTableRow.prototype.__proto__ || Object.getPrototypeOf(DelayedCollapsibleTableRow.prototype), "toggle", this).call(this);
+        }
+    }, {
+        key: "getInitialCollapsedContent",
+        value: function getInitialCollapsedContent() {
+            return [];
+        }
+    }]);
+    return DelayedCollapsibleTableRow;
+}(CollapsibleTableRow);
 
 function CollapsibleTableInterface(BaseTableClass) {
     return function (_BaseTableClass) {
@@ -15323,16 +15462,16 @@ function CollapsibleTableInterface(BaseTableClass) {
         }, {
             key: "getRowClass",
             value: function getRowClass() {
-                return UI.CollapsibleTableRow;
+                return CollapsibleTableRow;
             }
         }, {
             key: "setColumns",
             value: function setColumns(columns) {
-                var _this7 = this;
+                var _this8 = this;
 
                 var toggleColumn = {
                     value: function value(entry) {
-                        var rowClass = _this7.getRowClass(entry);
+                        var rowClass = _this8.getRowClass(entry);
                         // TODO: Fix it lad!
                         if (rowClass === CollapsibleTableRow || rowClass.prototype instanceof CollapsibleTableRow) {
                             return UI.createElement("a", { ref: "toggleButton",
@@ -16381,9 +16520,14 @@ var ServerTime = {
     getOffset: function getOffset() {
         return this.offset;
     },
-    setPageLoadTime: function setPageLoadTime(unixTime) {
-        var estimatedLatency = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+    set: function set(date) {
+        var onlyIfMissing = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
+        if (!onlyIfMissing || this.offset == null) {
+            this.offset = Date.now() - new StemDate(date);
+        }
+    },
+    setPageLoadTime: function setPageLoadTime(unixTime) {
         this.serverPageLoad = unixTime;
         this.offset = performance.timing.responseStart - unixTime * 1000;
     }
@@ -17386,7 +17530,8 @@ var IndexPageStyle = (_class$38 = function (_StyleSheet) {
             display: "flex",
             // justifyContent: "center",
             alignItems: "center",
-            flexDirection: "column"
+            flexDirection: "column",
+            backgroundColor: this.themeProperties.COLOR_BACKGROUND
         };
     }
 }), _descriptor2$14 = _applyDecoratedDescriptor$18(_class$38.prototype, "topContainer", [styleRule], {
@@ -17455,7 +17600,7 @@ function _add(adder, a, b) {
 }
 
 var epsilon = 1e-6;
-var epsilon2 = 1e-12;
+
 var pi = Math.PI;
 var halfPi = pi / 2;
 var quarterPi = pi / 4;
@@ -17592,66 +17737,6 @@ var geoStream = function (object, stream) {
 var areaRingSum = adder();
 
 var areaSum = adder();
-var lambda00;
-var phi00;
-var lambda0;
-var cosPhi0;
-var sinPhi0;
-
-var areaStream = {
-  point: noop,
-  lineStart: noop,
-  lineEnd: noop,
-  polygonStart: function polygonStart() {
-    areaRingSum.reset();
-    areaStream.lineStart = areaRingStart;
-    areaStream.lineEnd = areaRingEnd;
-  },
-  polygonEnd: function polygonEnd() {
-    var areaRing = +areaRingSum;
-    areaSum.add(areaRing < 0 ? tau + areaRing : areaRing);
-    this.lineStart = this.lineEnd = this.point = noop;
-  },
-  sphere: function sphere() {
-    areaSum.add(tau);
-  }
-};
-
-function areaRingStart() {
-  areaStream.point = areaPointFirst;
-}
-
-function areaRingEnd() {
-  areaPoint(lambda00, phi00);
-}
-
-function areaPointFirst(lambda, phi) {
-  areaStream.point = areaPoint;
-  lambda00 = lambda, phi00 = phi;
-  lambda *= radians, phi *= radians;
-  lambda0 = lambda, cosPhi0 = cos(phi = phi / 2 + quarterPi), sinPhi0 = sin(phi);
-}
-
-function areaPoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  phi = phi / 2 + quarterPi; // half the angular distance from south pole
-
-  // Spherical excess E for a spherical triangle with vertices: south pole,
-  // previous point, current point.  Uses a formula derived from Cagnoli’s
-  // theorem.  See Todhunter, Spherical Trig. (1871), Sec. 103, Eq. (2).
-  var dLambda = lambda - lambda0,
-      sdLambda = dLambda >= 0 ? 1 : -1,
-      adLambda = sdLambda * dLambda,
-      cosPhi = cos(phi),
-      sinPhi = sin(phi),
-      k = sinPhi0 * sinPhi,
-      u = cosPhi0 * cosPhi + k * cos(adLambda),
-      v = k * sdLambda * sin(adLambda);
-  areaRingSum.add(atan2(v, u));
-
-  // Advance the previous points.
-  lambda0 = lambda, cosPhi0 = cosPhi, sinPhi0 = sinPhi;
-}
 
 function spherical(cartesian) {
   return [atan2(cartesian[1], cartesian[0]), asin(cartesian[2])];
@@ -17687,321 +17772,7 @@ function cartesianNormalizeInPlace(d) {
   d[0] /= l, d[1] /= l, d[2] /= l;
 }
 
-var lambda0$1;
-var phi0;
-var lambda1;
-var phi1;
-var lambda2;
-var lambda00$1;
-var phi00$1;
-var p0;
 var deltaSum = adder();
-var ranges;
-var range;
-
-var boundsStream = {
-  point: boundsPoint,
-  lineStart: boundsLineStart,
-  lineEnd: boundsLineEnd,
-  polygonStart: function polygonStart() {
-    boundsStream.point = boundsRingPoint;
-    boundsStream.lineStart = boundsRingStart;
-    boundsStream.lineEnd = boundsRingEnd;
-    deltaSum.reset();
-    areaStream.polygonStart();
-  },
-  polygonEnd: function polygonEnd() {
-    areaStream.polygonEnd();
-    boundsStream.point = boundsPoint;
-    boundsStream.lineStart = boundsLineStart;
-    boundsStream.lineEnd = boundsLineEnd;
-    if (areaRingSum < 0) lambda0$1 = -(lambda1 = 180), phi0 = -(phi1 = 90);else if (deltaSum > epsilon) phi1 = 90;else if (deltaSum < -epsilon) phi0 = -90;
-    range[0] = lambda0$1, range[1] = lambda1;
-  }
-};
-
-function boundsPoint(lambda, phi) {
-  ranges.push(range = [lambda0$1 = lambda, lambda1 = lambda]);
-  if (phi < phi0) phi0 = phi;
-  if (phi > phi1) phi1 = phi;
-}
-
-function linePoint(lambda, phi) {
-  var p = cartesian([lambda * radians, phi * radians]);
-  if (p0) {
-    var normal = cartesianCross(p0, p),
-        equatorial = [normal[1], -normal[0], 0],
-        inflection = cartesianCross(equatorial, normal);
-    cartesianNormalizeInPlace(inflection);
-    inflection = spherical(inflection);
-    var delta = lambda - lambda2,
-        sign$$1 = delta > 0 ? 1 : -1,
-        lambdai = inflection[0] * degrees * sign$$1,
-        phii,
-        antimeridian = abs(delta) > 180;
-    if (antimeridian ^ (sign$$1 * lambda2 < lambdai && lambdai < sign$$1 * lambda)) {
-      phii = inflection[1] * degrees;
-      if (phii > phi1) phi1 = phii;
-    } else if (lambdai = (lambdai + 360) % 360 - 180, antimeridian ^ (sign$$1 * lambda2 < lambdai && lambdai < sign$$1 * lambda)) {
-      phii = -inflection[1] * degrees;
-      if (phii < phi0) phi0 = phii;
-    } else {
-      if (phi < phi0) phi0 = phi;
-      if (phi > phi1) phi1 = phi;
-    }
-    if (antimeridian) {
-      if (lambda < lambda2) {
-        if (angle(lambda0$1, lambda) > angle(lambda0$1, lambda1)) lambda1 = lambda;
-      } else {
-        if (angle(lambda, lambda1) > angle(lambda0$1, lambda1)) lambda0$1 = lambda;
-      }
-    } else {
-      if (lambda1 >= lambda0$1) {
-        if (lambda < lambda0$1) lambda0$1 = lambda;
-        if (lambda > lambda1) lambda1 = lambda;
-      } else {
-        if (lambda > lambda2) {
-          if (angle(lambda0$1, lambda) > angle(lambda0$1, lambda1)) lambda1 = lambda;
-        } else {
-          if (angle(lambda, lambda1) > angle(lambda0$1, lambda1)) lambda0$1 = lambda;
-        }
-      }
-    }
-  } else {
-    ranges.push(range = [lambda0$1 = lambda, lambda1 = lambda]);
-  }
-  if (phi < phi0) phi0 = phi;
-  if (phi > phi1) phi1 = phi;
-  p0 = p, lambda2 = lambda;
-}
-
-function boundsLineStart() {
-  boundsStream.point = linePoint;
-}
-
-function boundsLineEnd() {
-  range[0] = lambda0$1, range[1] = lambda1;
-  boundsStream.point = boundsPoint;
-  p0 = null;
-}
-
-function boundsRingPoint(lambda, phi) {
-  if (p0) {
-    var delta = lambda - lambda2;
-    deltaSum.add(abs(delta) > 180 ? delta + (delta > 0 ? 360 : -360) : delta);
-  } else {
-    lambda00$1 = lambda, phi00$1 = phi;
-  }
-  areaStream.point(lambda, phi);
-  linePoint(lambda, phi);
-}
-
-function boundsRingStart() {
-  areaStream.lineStart();
-}
-
-function boundsRingEnd() {
-  boundsRingPoint(lambda00$1, phi00$1);
-  areaStream.lineEnd();
-  if (abs(deltaSum) > epsilon) lambda0$1 = -(lambda1 = 180);
-  range[0] = lambda0$1, range[1] = lambda1;
-  p0 = null;
-}
-
-// Finds the left-right distance between two longitudes.
-// This is almost the same as (lambda1 - lambda0 + 360°) % 360°, except that we want
-// the distance between ±180° to be 360°.
-function angle(lambda0, lambda1) {
-  return (lambda1 -= lambda0) < 0 ? lambda1 + 360 : lambda1;
-}
-
-function rangeCompare(a, b) {
-  return a[0] - b[0];
-}
-
-function rangeContains(range, x) {
-  return range[0] <= range[1] ? range[0] <= x && x <= range[1] : x < range[0] || range[1] < x;
-}
-
-var bounds = function (feature) {
-  var i, n, a, b, merged, deltaMax, delta;
-
-  phi1 = lambda1 = -(lambda0$1 = phi0 = Infinity);
-  ranges = [];
-  geoStream(feature, boundsStream);
-
-  // First, sort ranges by their minimum longitudes.
-  if (n = ranges.length) {
-    ranges.sort(rangeCompare);
-
-    // Then, merge any ranges that overlap.
-    for (i = 1, a = ranges[0], merged = [a]; i < n; ++i) {
-      b = ranges[i];
-      if (rangeContains(a, b[0]) || rangeContains(a, b[1])) {
-        if (angle(a[0], b[1]) > angle(a[0], a[1])) a[1] = b[1];
-        if (angle(b[0], a[1]) > angle(a[0], a[1])) a[0] = b[0];
-      } else {
-        merged.push(a = b);
-      }
-    }
-
-    // Finally, find the largest gap between the merged ranges.
-    // The final bounding box will be the inverse of this gap.
-    for (deltaMax = -Infinity, n = merged.length - 1, i = 0, a = merged[n]; i <= n; a = b, ++i) {
-      b = merged[i];
-      if ((delta = angle(a[1], b[0])) > deltaMax) deltaMax = delta, lambda0$1 = b[0], lambda1 = a[1];
-    }
-  }
-
-  ranges = range = null;
-
-  return lambda0$1 === Infinity || phi0 === Infinity ? [[NaN, NaN], [NaN, NaN]] : [[lambda0$1, phi0], [lambda1, phi1]];
-};
-
-var W0;
-var W1;
-var X0;
-var Y0;
-var Z0;
-var X1;
-var Y1;
-var Z1;
-var X2;
-var Y2;
-var Z2;
-var lambda00$2;
-var phi00$2;
-var x0;
-var y0;
-var z0; // previous point
-
-var centroidStream = {
-  sphere: noop,
-  point: centroidPoint,
-  lineStart: centroidLineStart,
-  lineEnd: centroidLineEnd,
-  polygonStart: function polygonStart() {
-    centroidStream.lineStart = centroidRingStart;
-    centroidStream.lineEnd = centroidRingEnd;
-  },
-  polygonEnd: function polygonEnd() {
-    centroidStream.lineStart = centroidLineStart;
-    centroidStream.lineEnd = centroidLineEnd;
-  }
-};
-
-// Arithmetic mean of Cartesian vectors.
-function centroidPoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var cosPhi = cos(phi);
-  centroidPointCartesian(cosPhi * cos(lambda), cosPhi * sin(lambda), sin(phi));
-}
-
-function centroidPointCartesian(x, y, z) {
-  ++W0;
-  X0 += (x - X0) / W0;
-  Y0 += (y - Y0) / W0;
-  Z0 += (z - Z0) / W0;
-}
-
-function centroidLineStart() {
-  centroidStream.point = centroidLinePointFirst;
-}
-
-function centroidLinePointFirst(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var cosPhi = cos(phi);
-  x0 = cosPhi * cos(lambda);
-  y0 = cosPhi * sin(lambda);
-  z0 = sin(phi);
-  centroidStream.point = centroidLinePoint;
-  centroidPointCartesian(x0, y0, z0);
-}
-
-function centroidLinePoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var cosPhi = cos(phi),
-      x = cosPhi * cos(lambda),
-      y = cosPhi * sin(lambda),
-      z = sin(phi),
-      w = atan2(sqrt((w = y0 * z - z0 * y) * w + (w = z0 * x - x0 * z) * w + (w = x0 * y - y0 * x) * w), x0 * x + y0 * y + z0 * z);
-  W1 += w;
-  X1 += w * (x0 + (x0 = x));
-  Y1 += w * (y0 + (y0 = y));
-  Z1 += w * (z0 + (z0 = z));
-  centroidPointCartesian(x0, y0, z0);
-}
-
-function centroidLineEnd() {
-  centroidStream.point = centroidPoint;
-}
-
-// See J. E. Brock, The Inertia Tensor for a Spherical Triangle,
-// J. Applied Mechanics 42, 239 (1975).
-function centroidRingStart() {
-  centroidStream.point = centroidRingPointFirst;
-}
-
-function centroidRingEnd() {
-  centroidRingPoint(lambda00$2, phi00$2);
-  centroidStream.point = centroidPoint;
-}
-
-function centroidRingPointFirst(lambda, phi) {
-  lambda00$2 = lambda, phi00$2 = phi;
-  lambda *= radians, phi *= radians;
-  centroidStream.point = centroidRingPoint;
-  var cosPhi = cos(phi);
-  x0 = cosPhi * cos(lambda);
-  y0 = cosPhi * sin(lambda);
-  z0 = sin(phi);
-  centroidPointCartesian(x0, y0, z0);
-}
-
-function centroidRingPoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var cosPhi = cos(phi),
-      x = cosPhi * cos(lambda),
-      y = cosPhi * sin(lambda),
-      z = sin(phi),
-      cx = y0 * z - z0 * y,
-      cy = z0 * x - x0 * z,
-      cz = x0 * y - y0 * x,
-      m = sqrt(cx * cx + cy * cy + cz * cz),
-      w = asin(m),
-      // line weight = angle
-  v = m && -w / m; // area weight multiplier
-  X2 += v * cx;
-  Y2 += v * cy;
-  Z2 += v * cz;
-  W1 += w;
-  X1 += w * (x0 + (x0 = x));
-  Y1 += w * (y0 + (y0 = y));
-  Z1 += w * (z0 + (z0 = z));
-  centroidPointCartesian(x0, y0, z0);
-}
-
-var centroid = function (object) {
-  W0 = W1 = X0 = Y0 = Z0 = X1 = Y1 = Z1 = X2 = Y2 = Z2 = 0;
-  geoStream(object, centroidStream);
-
-  var x = X2,
-      y = Y2,
-      z = Z2,
-      m = x * x + y * y + z * z;
-
-  // If the area-weighted ccentroid is undefined, fall back to length-weighted ccentroid.
-  if (m < epsilon2) {
-    x = X1, y = Y1, z = Z1;
-    // If the feature has zero length, fall back to arithmetic mean of point vectors.
-    if (W1 < epsilon) x = X0, y = Y0, z = Z0;
-    m = x * x + y * y + z * z;
-    // If the feature still has an undefined ccentroid, then return.
-    if (m < epsilon2) return [NaN, NaN];
-  }
-
-  return [atan2(y, x) * degrees, asin(z / sqrt(m)) * degrees];
-};
 
 var constant = function (x) {
   return function () {
@@ -18335,95 +18106,6 @@ function link(array) {
   b.p = a;
 }
 
-var ascending = function (a, b) {
-  return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
-};
-
-var bisector = function (compare) {
-  if (compare.length === 1) compare = ascendingComparator(compare);
-  return {
-    left: function left(a, x, lo, hi) {
-      if (lo == null) lo = 0;
-      if (hi == null) hi = a.length;
-      while (lo < hi) {
-        var mid = lo + hi >>> 1;
-        if (compare(a[mid], x) < 0) lo = mid + 1;else hi = mid;
-      }
-      return lo;
-    },
-    right: function right(a, x, lo, hi) {
-      if (lo == null) lo = 0;
-      if (hi == null) hi = a.length;
-      while (lo < hi) {
-        var mid = lo + hi >>> 1;
-        if (compare(a[mid], x) > 0) hi = mid;else lo = mid + 1;
-      }
-      return lo;
-    }
-  };
-};
-
-function ascendingComparator(f) {
-  return function (d, x) {
-    return ascending(f(d), x);
-  };
-}
-
-var ascendingBisect = bisector(ascending);
-var bisectRight = ascendingBisect.right;
-
-function pair(a, b) {
-  return [a, b];
-}
-
-var number = function (x) {
-  return x === null ? NaN : +x;
-};
-
-var extent$1 = function (values, valueof) {
-  var n = values.length,
-      i = -1,
-      value,
-      min,
-      max;
-
-  if (valueof == null) {
-    while (++i < n) {
-      // Find the first comparable value.
-      if ((value = values[i]) != null && value >= value) {
-        min = max = value;
-        while (++i < n) {
-          // Compare the remaining values.
-          if ((value = values[i]) != null) {
-            if (min > value) min = value;
-            if (max < value) max = value;
-          }
-        }
-      }
-    }
-  } else {
-    while (++i < n) {
-      // Find the first comparable value.
-      if ((value = valueof(values[i], i, values)) != null && value >= value) {
-        min = max = value;
-        while (++i < n) {
-          // Compare the remaining values.
-          if ((value = valueof(values[i], i, values)) != null) {
-            if (min > value) min = value;
-            if (max < value) max = value;
-          }
-        }
-      }
-    }
-  }
-
-  return [min, max];
-};
-
-var identity = function (x) {
-  return x;
-};
-
 var range$1 = function (start, stop, step) {
   start = +start, stop = +stop, step = (n = arguments.length) < 2 ? (stop = start, start = 0, 1) : n < 3 ? 1 : +step;
 
@@ -18436,42 +18118,6 @@ var range$1 = function (start, stop, step) {
   }
 
   return range;
-};
-
-var e10 = Math.sqrt(50);
-var e5 = Math.sqrt(10);
-var e2 = Math.sqrt(2);
-
-function tickIncrement(start, stop, count) {
-    var step = (stop - start) / Math.max(0, count),
-        power = Math.floor(Math.log(step) / Math.LN10),
-        error = step / Math.pow(10, power);
-    return power >= 0 ? (error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1) * Math.pow(10, power) : -Math.pow(10, -power) / (error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1);
-}
-
-function tickStep(start, stop, count) {
-    var step0 = Math.abs(stop - start) / Math.max(0, count),
-        step1 = Math.pow(10, Math.floor(Math.log(step0) / Math.LN10)),
-        error = step0 / step1;
-    if (error >= e10) step1 *= 10;else if (error >= e5) step1 *= 5;else if (error >= e2) step1 *= 2;
-    return stop < start ? -step1 : step1;
-}
-
-var sturges = function (values) {
-  return Math.ceil(Math.log(values.length) / Math.LN2) + 1;
-};
-
-var quantile = function (values, p, valueof) {
-  if (valueof == null) valueof = number;
-  if (!(n = values.length)) return;
-  if ((p = +p) <= 0 || n < 2) return +valueof(values[0], 0, values);
-  if (p >= 1) return +valueof(values[n - 1], n - 1, values);
-  var n,
-      i = (n - 1) * p,
-      i0 = Math.floor(i),
-      value0 = +valueof(values[i0], i0, values),
-      value1 = +valueof(values[i0 + 1], i0 + 1, values);
-  return value0 + (value1 - value0) * (i - i0);
 };
 
 var merge = function (arrays) {
@@ -18497,43 +18143,6 @@ var merge = function (arrays) {
   return merged;
 };
 
-var min = function (values, valueof) {
-  var n = values.length,
-      i = -1,
-      value,
-      min;
-
-  if (valueof == null) {
-    while (++i < n) {
-      // Find the first comparable value.
-      if ((value = values[i]) != null && value >= value) {
-        min = value;
-        while (++i < n) {
-          // Compare the remaining values.
-          if ((value = values[i]) != null && min > value) {
-            min = value;
-          }
-        }
-      }
-    }
-  } else {
-    while (++i < n) {
-      // Find the first comparable value.
-      if ((value = valueof(values[i], i, values)) != null && value >= value) {
-        min = value;
-        while (++i < n) {
-          // Compare the remaining values.
-          if ((value = valueof(values[i], i, values)) != null && min > value) {
-            min = value;
-          }
-        }
-      }
-    }
-  }
-
-  return min;
-};
-
 var shuffle = function (array, i0, i1) {
   var m = (i1 == null ? array.length : i1) - (i0 = i0 == null ? 0 : +i0),
       t,
@@ -18548,10 +18157,6 @@ var shuffle = function (array, i0, i1) {
 
   return array;
 };
-
-function length(d) {
-  return d.length;
-}
 
 var clipMax = 1e9;
 var clipMin = -clipMax;
@@ -18784,136 +18389,6 @@ var polygonContains = function (polygon, point) {
 };
 
 var lengthSum = adder();
-var lambda0$2;
-var sinPhi0$1;
-var cosPhi0$1;
-
-var lengthStream = {
-  sphere: noop,
-  point: noop,
-  lineStart: lengthLineStart,
-  lineEnd: noop,
-  polygonStart: noop,
-  polygonEnd: noop
-};
-
-function lengthLineStart() {
-  lengthStream.point = lengthPointFirst;
-  lengthStream.lineEnd = lengthLineEnd;
-}
-
-function lengthLineEnd() {
-  lengthStream.point = lengthStream.lineEnd = noop;
-}
-
-function lengthPointFirst(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  lambda0$2 = lambda, sinPhi0$1 = sin(phi), cosPhi0$1 = cos(phi);
-  lengthStream.point = lengthPoint;
-}
-
-function lengthPoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var sinPhi = sin(phi),
-      cosPhi = cos(phi),
-      delta = abs(lambda - lambda0$2),
-      cosDelta = cos(delta),
-      sinDelta = sin(delta),
-      x = cosPhi * sinDelta,
-      y = cosPhi0$1 * sinPhi - sinPhi0$1 * cosPhi * cosDelta,
-      z = sinPhi0$1 * sinPhi + cosPhi0$1 * cosPhi * cosDelta;
-  lengthSum.add(atan2(sqrt(x * x + y * y), z));
-  lambda0$2 = lambda, sinPhi0$1 = sinPhi, cosPhi0$1 = cosPhi;
-}
-
-var length$1 = function (object) {
-  lengthSum.reset();
-  geoStream(object, lengthStream);
-  return +lengthSum;
-};
-
-var coordinates = [null, null];
-var object = { type: "LineString", coordinates: coordinates };
-
-var distance$1 = function (a, b) {
-  coordinates[0] = a;
-  coordinates[1] = b;
-  return length$1(object);
-};
-
-var containsGeometryType = {
-  Sphere: function Sphere() {
-    return true;
-  },
-  Point: function Point(object, point) {
-    return containsPoint(object.coordinates, point);
-  },
-  MultiPoint: function MultiPoint(object, point) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      if (containsPoint(coordinates[i], point)) return true;
-    }return false;
-  },
-  LineString: function LineString(object, point) {
-    return containsLine(object.coordinates, point);
-  },
-  MultiLineString: function MultiLineString(object, point) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      if (containsLine(coordinates[i], point)) return true;
-    }return false;
-  },
-  Polygon: function Polygon(object, point) {
-    return containsPolygon(object.coordinates, point);
-  },
-  MultiPolygon: function MultiPolygon(object, point) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      if (containsPolygon(coordinates[i], point)) return true;
-    }return false;
-  },
-  GeometryCollection: function GeometryCollection(object, point) {
-    var geometries = object.geometries,
-        i = -1,
-        n = geometries.length;
-    while (++i < n) {
-      if (containsGeometry(geometries[i], point)) return true;
-    }return false;
-  }
-};
-
-function containsGeometry(geometry, point) {
-  return geometry && containsGeometryType.hasOwnProperty(geometry.type) ? containsGeometryType[geometry.type](geometry, point) : false;
-}
-
-function containsPoint(coordinates, point) {
-  return distance$1(coordinates, point) === 0;
-}
-
-function containsLine(coordinates, point) {
-  var ab = distance$1(coordinates[0], coordinates[1]),
-      ao = distance$1(coordinates[0], point),
-      ob = distance$1(point, coordinates[1]);
-  return ao + ob <= ab + epsilon;
-}
-
-function containsPolygon(coordinates, point) {
-  return !!polygonContains(coordinates.map(ringRadians), pointRadians(point));
-}
-
-function ringRadians(ring) {
-  return ring = ring.map(pointRadians), ring.pop(), ring;
-}
-
-function pointRadians(point) {
-  return [point[0] * radians, point[1] * radians];
-}
 
 function graticuleX(y0, y1, dy) {
   var y = range$1(y0, y1 - epsilon, dy).concat(y1);
@@ -20184,6 +19659,14 @@ var geoConicEquidistant = function () {
   return conicProjection(conicEquidistantRaw).scale(131.154).center([0, 13.9389]);
 };
 
+function gnomonicRaw(x, y) {
+  var cy = cos(y),
+      k = cos(x) * cy;
+  return [cy * sin(x) / k, sin(y) / k];
+}
+
+gnomonicRaw.invert = azimuthalInvert(atan);
+
 function orthographicRaw(x, y) {
   return [cos(y) * sin(x), sin(y)];
 }
@@ -20194,16 +19677,26 @@ var geoOrthographic = function () {
   return projection(orthographicRaw).scale(249.5).clipAngle(90 + epsilon);
 };
 
+function stereographicRaw(x, y) {
+  var cy = cos(y),
+      k = 1 + cos(x) * cy;
+  return [cy * sin(x) / k, sin(y) / k];
+}
+
+stereographicRaw.invert = azimuthalInvert(function (z) {
+  return 2 * atan(z);
+});
+
 var abs$1 = Math.abs;
-var atan$1 = Math.atan;
-var atan2$1 = Math.atan2;
+
+
 
 var cos$1 = Math.cos;
 
-var floor$1 = Math.floor;
 
-var max$1 = Math.max;
-var min$1 = Math.min;
+
+
+
 
 
 
@@ -20211,16 +19704,16 @@ var sin$1 = Math.sin;
 
 
 var epsilon$1 = 1e-6;
-var epsilon2$1 = 1e-12;
+
 var pi$1 = Math.PI;
 var halfPi$1 = pi$1 / 2;
 
 
+var sqrt2 = sqrt$1(2);
+var sqrtPi = sqrt$1(pi$1);
 
 
 
-var degrees$1 = 180 / pi$1;
-var radians$1 = pi$1 / 180;
 
 
 
@@ -20233,6 +19726,37 @@ function asin$1(x) {
 function sqrt$1(x) {
   return x > 0 ? Math.sqrt(x) : 0;
 }
+
+var sqrt8 = sqrt$1(8);
+
+function mollweideBromleyTheta(cp, phi) {
+  var cpsinPhi = cp * sin$1(phi),
+      i = 30,
+      delta;
+  do {
+    phi -= delta = (phi + sin$1(phi) - cpsinPhi) / (1 + cos$1(phi));
+  } while (abs$1(delta) > epsilon$1 && --i > 0);
+  return phi / 2;
+}
+
+function mollweideBromleyRaw(cx, cy, cp) {
+
+  function forward(lambda, phi) {
+    return [cx * lambda * cos$1(phi = mollweideBromleyTheta(cp, phi)), cy * sin$1(phi)];
+  }
+
+  forward.invert = function (x, y) {
+    return y = asin$1(y / cy), [x / (cx * cos$1(y)), asin$1((2 * y + sin$1(2 * y)) / cp)];
+  };
+
+  return forward;
+}
+
+var mollweideRaw = mollweideBromleyRaw(sqrt2 / halfPi$1, sqrt2, pi$1);
+
+var bromleyRaw = mollweideBromleyRaw(1, 4 / pi$1, pi$1);
+
+var sqrt3 = sqrt$1(3);
 
 function eckert4Raw(lambda, phi) {
   var k = (2 + halfPi$1) * sin$1(phi);
@@ -20254,71 +19778,6 @@ eckert4Raw.invert = function (x, y) {
 var geoEckert4 = function () {
   return projection(eckert4Raw).scale(180.739);
 };
-
-var ginzburgPolyconicRaw = function (a, b, c, d, e, f, g, h) {
-  if (arguments.length < 8) h = 0;
-
-  function forward(lambda, phi) {
-    if (!phi) return [a * lambda / pi$1, 0];
-    var phi2 = phi * phi,
-        xB = a + phi2 * (b + phi2 * (c + phi2 * d)),
-        yB = phi * (e - 1 + phi2 * (f - h + phi2 * g)),
-        m = (xB * xB + yB * yB) / (2 * yB),
-        alpha = lambda * asin$1(xB / m) / pi$1;
-    return [m * sin$1(alpha), phi * (1 + phi2 * h) + m * (1 - cos$1(alpha))];
-  }
-
-  forward.invert = function (x, y) {
-    var lambda = pi$1 * x / a,
-        phi = y,
-        deltaLambda,
-        deltaPhi,
-        i = 50;
-    do {
-      var phi2 = phi * phi,
-          xB = a + phi2 * (b + phi2 * (c + phi2 * d)),
-          yB = phi * (e - 1 + phi2 * (f - h + phi2 * g)),
-          p = xB * xB + yB * yB,
-          q = 2 * yB,
-          m = p / q,
-          m2 = m * m,
-          dAlphadLambda = asin$1(xB / m) / pi$1,
-          alpha = lambda * dAlphadLambda,
-          xB2 = xB * xB,
-          dxBdPhi = (2 * b + phi2 * (4 * c + phi2 * 6 * d)) * phi,
-          dyBdPhi = e + phi2 * (3 * f + phi2 * 5 * g),
-          dpdPhi = 2 * (xB * dxBdPhi + yB * (dyBdPhi - 1)),
-          dqdPhi = 2 * (dyBdPhi - 1),
-          dmdPhi = (dpdPhi * q - p * dqdPhi) / (q * q),
-          cosAlpha = cos$1(alpha),
-          sinAlpha = sin$1(alpha),
-          mcosAlpha = m * cosAlpha,
-          msinAlpha = m * sinAlpha,
-          dAlphadPhi = lambda / pi$1 * (1 / sqrt$1(1 - xB2 / m2)) * (dxBdPhi * m - xB * dmdPhi) / m2,
-          fx = msinAlpha - x,
-          fy = phi * (1 + phi2 * h) + m - mcosAlpha - y,
-          deltaxDeltaPhi = dmdPhi * sinAlpha + mcosAlpha * dAlphadPhi,
-          deltaxDeltaLambda = mcosAlpha * dAlphadLambda,
-          deltayDeltaPhi = 1 + dmdPhi - (dmdPhi * cosAlpha - msinAlpha * dAlphadPhi),
-          deltayDeltaLambda = msinAlpha * dAlphadLambda,
-          denominator = deltaxDeltaPhi * deltayDeltaLambda - deltayDeltaPhi * deltaxDeltaLambda;
-      if (!denominator) break;
-      lambda -= deltaLambda = (fy * deltaxDeltaPhi - fx * deltayDeltaPhi) / denominator;
-      phi -= deltaPhi = (fx * deltayDeltaLambda - fy * deltaxDeltaLambda) / denominator;
-    } while ((abs$1(deltaLambda) > epsilon$1 || abs$1(deltaPhi) > epsilon$1) && --i > 0);
-    return [lambda, phi];
-  };
-
-  return forward;
-};
-
-var ginzburg4Raw = ginzburgPolyconicRaw(2.8284, -1.6988, 0.75432, -0.18071, 1.76003, -0.38914, 0.042555);
-
-var ginzburg5Raw = ginzburgPolyconicRaw(2.583819, -0.835827, 0.170354, -0.038094, 1.543313, -0.411435, 0.082742);
-
-var ginzburg6Raw = ginzburgPolyconicRaw(5 / 6 * pi$1, -0.62636, -0.0344, 0, 1.3493, -0.05524, 0, 0.045);
-
-var ginzburg9Raw = ginzburgPolyconicRaw(2.6516, -0.76534, 0.19123, -0.047094, 1.36289, -0.13965, 0.031762);
 
 // Returns [sn, cn, dn](u + iv|m).
 
@@ -20375,65 +19834,13 @@ var geoHammer = function () {
   return p.scale(169.529);
 };
 
-function interpolateLine(coordinates, m) {
-  var i = -1,
-      n = coordinates.length,
-      p0 = coordinates[0],
-      p1,
-      dx,
-      dy,
-      resampled = [];
-  while (++i < n) {
-    p1 = coordinates[i];
-    dx = (p1[0] - p0[0]) / m;
-    dy = (p1[1] - p0[1]) / m;
-    for (var j = 0; j < m; ++j) {
-      resampled.push([p0[0] + j * dx, p0[1] + j * dy]);
-    }p0 = p1;
-  }
-  resampled.push(p1);
-  return resampled;
-}
+var sqrt6 = sqrt$1(6);
+var sqrt7 = sqrt$1(7);
 
 // Inverts a transform matrix.
 
 
 // Multiplies two 3x2 matrices.
-
-function outline(stream, node, parent) {
-  var point,
-      edges = node.edges,
-      n = edges.length,
-      edge,
-      multiPoint = { type: "MultiPoint", coordinates: node.face },
-      notPoles = node.face.filter(function (d) {
-    return abs$1(d[1]) !== 90;
-  }),
-      b = bounds({ type: "MultiPoint", coordinates: notPoles }),
-      inside = false,
-      j = -1,
-      dx = b[1][0] - b[0][0];
-  // TODO
-  var c = dx === 180 || dx === 360 ? [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2] : centroid(multiPoint);
-  // First find the shared edge…
-  if (parent) while (++j < n) {
-    if (edges[j] === parent) break;
-  }
-  ++j;
-  for (var i = 0; i < n; ++i) {
-    edge = edges[(i + j) % n];
-    if (Array.isArray(edge)) {
-      if (!inside) {
-        stream.point((point = geoInterpolate(edge[0], c)(epsilon$1))[0], point[1]);
-        inside = true;
-      }
-      stream.point((point = geoInterpolate(edge[1], c)(epsilon$1))[0], point[1]);
-    } else {
-      inside = false;
-      if (edge !== parent) outline(stream, edge, node);
-    }
-  }
-}
 
 // TODO generate on-the-fly to avoid external modification.
 var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
@@ -20444,8 +19851,7 @@ var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
   });
 });
 
-var points = [];
-var lines = [];
+var kx = 2 / sqrt$1(3);
 
 var K = [[0.9986, -0.062], [1.0000, 0.0000], [0.9986, 0.0620], [0.9954, 0.1240], [0.9900, 0.1860], [0.9822, 0.2480], [0.9730, 0.3100], [0.9600, 0.3720], [0.9427, 0.4340], [0.9216, 0.4958], [0.8962, 0.5571], [0.8679, 0.6176], [0.8350, 0.6769], [0.7986, 0.7346], [0.7597, 0.7903], [0.7186, 0.8435], [0.6732, 0.8936], [0.6213, 0.9394], [0.5722, 0.9761], [0.5322, 1.0000]];
 
@@ -20453,215 +19859,246 @@ K.forEach(function (d) {
   d[1] *= 1.0144;
 });
 
-var epsilon$2 = 1e-4;
-var epsilonInverse = 1e4;
-var x0$5 = -180;
-var x0e = x0$5 + epsilon$2;
-var x1$1 = 180;
-var x1e = x1$1 - epsilon$2;
-var y0$5 = -90;
-var y0e = y0$5 + epsilon$2;
-var y1$1 = 90;
-var y1e = y1$1 - epsilon$2;
-
-function nonempty(coordinates) {
-  return coordinates.length > 0;
-}
-
-function quantize$1(x) {
-  return Math.floor(x * epsilonInverse) / epsilonInverse;
-}
-
-function normalizePoint(y) {
-  return y === y0$5 || y === y1$1 ? [0, y] : [x0$5, quantize$1(y)]; // pole or antimeridian?
-}
-
-function clampPoint(p) {
-  var x = p[0],
-      y = p[1],
-      clamped = false;
-  if (x <= x0e) x = x0$5, clamped = true;else if (x >= x1e) x = x1$1, clamped = true;
-  if (y <= y0e) y = y0$5, clamped = true;else if (y >= y1e) y = y1$1, clamped = true;
-  return clamped ? [x, y] : p;
-}
-
-function clampPoints(points) {
-  return points.map(clampPoint);
-}
-
-// For each ring, detect where it crosses the antimeridian or pole.
-function extractFragments(rings, polygon, fragments) {
-  for (var j = 0, m = rings.length; j < m; ++j) {
-    var ring = rings[j].slice();
-
-    // By default, assume that this ring doesn’t need any stitching.
-    fragments.push({ index: -1, polygon: polygon, ring: ring });
-
-    for (var i = 0, n = ring.length; i < n; ++i) {
-      var point = ring[i],
-          x = point[0],
-          y = point[1];
-
-      // If this is an antimeridian or polar point…
-      if (x <= x0e || x >= x1e || y <= y0e || y >= y1e) {
-        ring[i] = clampPoint(point);
-
-        // Advance through any antimeridian or polar points…
-        for (var k = i + 1; k < n; ++k) {
-          var pointk = ring[k],
-              xk = pointk[0],
-              yk = pointk[1];
-          if (xk > x0e && xk < x1e && yk > y0e && yk < y1e) break;
-        }
-
-        // If this was just a single antimeridian or polar point,
-        // we don’t need to cut this ring into a fragment;
-        // we can just leave it as-is.
-        if (k === i + 1) continue;
-
-        // Otherwise, if this is not the first point in the ring,
-        // cut the current fragment so that it ends at the current point.
-        // The current point is also normalized for later joining.
-        if (i) {
-          var fragmentBefore = { index: -1, polygon: polygon, ring: ring.slice(0, i + 1) };
-          fragmentBefore.ring[fragmentBefore.ring.length - 1] = normalizePoint(y);
-          fragments[fragments.length - 1] = fragmentBefore;
-        }
-
-        // If the ring started with an antimeridian fragment,
-        // we can ignore that fragment entirely.
-        else fragments.pop();
-
-        // If the remainder of the ring is an antimeridian fragment,
-        // move on to the next ring.
-        if (k >= n) break;
-
-        // Otherwise, add the remaining ring fragment and continue.
-        fragments.push({ index: -1, polygon: polygon, ring: ring = ring.slice(k - 1) });
-        ring[0] = normalizePoint(ring[0][1]);
-        i = -1;
-        n = ring.length;
-      }
-    }
-  }
-}
-
-// Now stitch the fragments back together into rings.
-function stitchFragments(fragments) {
-  var i,
-      n = fragments.length;
-
-  // To connect the fragments start-to-end, create a simple index by end.
-  var fragmentByStart = {},
-      fragmentByEnd = {},
-      fragment,
-      start,
-      startFragment,
-      end,
-      endFragment;
-
-  // For each fragment…
-  for (i = 0; i < n; ++i) {
-    fragment = fragments[i];
-    start = fragment.ring[0];
-    end = fragment.ring[fragment.ring.length - 1];
-
-    // If this fragment is closed, add it as a standalone ring.
-    if (start[0] === end[0] && start[1] === end[1]) {
-      fragment.polygon.push(fragment.ring);
-      fragments[i] = null;
-      continue;
-    }
-
-    fragment.index = i;
-    fragmentByStart[start] = fragmentByEnd[end] = fragment;
-  }
-
-  // For each open fragment…
-  for (i = 0; i < n; ++i) {
-    fragment = fragments[i];
-    if (fragment) {
-      start = fragment.ring[0];
-      end = fragment.ring[fragment.ring.length - 1];
-      startFragment = fragmentByEnd[start];
-      endFragment = fragmentByStart[end];
-
-      delete fragmentByStart[start];
-      delete fragmentByEnd[end];
-
-      // If this fragment is closed, add it as a standalone ring.
-      if (start[0] === end[0] && start[1] === end[1]) {
-        fragment.polygon.push(fragment.ring);
-        continue;
-      }
-
-      if (startFragment) {
-        delete fragmentByEnd[start];
-        delete fragmentByStart[startFragment.ring[0]];
-        startFragment.ring.pop(); // drop the shared coordinate
-        fragments[startFragment.index] = null;
-        fragment = { index: -1, polygon: startFragment.polygon, ring: startFragment.ring.concat(fragment.ring) };
-
-        if (startFragment === endFragment) {
-          // Connect both ends to this single fragment to create a ring.
-          fragment.polygon.push(fragment.ring);
-        } else {
-          fragment.index = n++;
-          fragments.push(fragmentByStart[fragment.ring[0]] = fragmentByEnd[fragment.ring[fragment.ring.length - 1]] = fragment);
-        }
-      } else if (endFragment) {
-        delete fragmentByStart[end];
-        delete fragmentByEnd[endFragment.ring[endFragment.ring.length - 1]];
-        fragment.ring.pop(); // drop the shared coordinate
-        fragment = { index: n++, polygon: endFragment.polygon, ring: fragment.ring.concat(endFragment.ring) };
-        fragments[endFragment.index] = null;
-        fragments.push(fragmentByStart[fragment.ring[0]] = fragmentByEnd[fragment.ring[fragment.ring.length - 1]] = fragment);
-      } else {
-        fragment.ring.push(fragment.ring[0]); // close ring
-        fragment.polygon.push(fragment.ring);
-      }
-    }
-  }
-}
-
-function stitchGeometry(input) {
-  if (input == null) return input;
-  var output, fragments, i, n;
-  switch (input.type) {
-    case "GeometryCollection":
-      output = { type: "GeometryCollection", geometries: input.geometries.map(stitchGeometry) };break;
-    case "Point":
-      output = { type: "Point", coordinates: clampPoint(input.coordinates) };break;
-    case "MultiPoint":case "LineString":
-      output = { type: input.type, coordinates: clampPoints(input.coordinates) };break;
-    case "MultiLineString":
-      output = { type: "MultiLineString", coordinates: input.coordinates.map(clampPoints) };break;
-    case "Polygon":
-      {
-        var polygon = [];
-        extractFragments(input.coordinates, polygon, fragments = []);
-        stitchFragments(fragments);
-        output = { type: "Polygon", coordinates: polygon };
-        break;
-      }
-    case "MultiPolygon":
-      {
-        fragments = [], i = -1, n = input.coordinates.length;
-        var polygons = new Array(n);
-        while (++i < n) {
-          extractFragments(input.coordinates[i], polygons[i] = [], fragments);
-        }stitchFragments(fragments);
-        output = { type: "MultiPolygon", coordinates: polygons.filter(nonempty) };
-        break;
-      }
-    default:
-      return input;
-  }
-  if (input.bbox != null) output.bbox = input.bbox;
-  return output;
-}
-
 // TODO clip to ellipse
+
+var A = 4 * pi$1 + 3 * sqrt$1(3);
+var B = 2 * sqrt$1(2 * pi$1 * sqrt$1(3) / A);
+
+var wagner4Raw = mollweideBromleyRaw(B * sqrt$1(3) / pi$1, B, A / 6);
+
+var _class$40;
+var _descriptor$18;
+var _descriptor2$16;
+var _descriptor3$16;
+var _dec$19;
+var _class3$12;
+
+function _initDefineProp$19(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+        writable: descriptor.writable,
+        value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+}
+
+function _applyDecoratedDescriptor$20(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+        desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
+
+    if ('value' in desc || desc.initializer) {
+        desc.writable = true;
+    }
+
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+        return decorator(target, property, desc) || desc;
+    }, desc);
+
+    if (context && desc.initializer !== void 0) {
+        desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+        desc.initializer = undefined;
+    }
+
+    if (desc.initializer === void 0) {
+        Object['define' + 'Property'](target, property, desc);
+        desc = null;
+    }
+
+    return desc;
+}
+
+var YearSelectStyle = (_class$40 = function (_StyleSheet) {
+    inherits(YearSelectStyle, _StyleSheet);
+
+    function YearSelectStyle() {
+        var _ref;
+
+        var _temp, _this, _ret;
+
+        classCallCheck(this, YearSelectStyle);
+
+        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+        }
+
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = YearSelectStyle.__proto__ || Object.getPrototypeOf(YearSelectStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 40, _this.width = 160, _initDefineProp$19(_this, "yearSelect", _descriptor$18, _this), _initDefineProp$19(_this, "button", _descriptor2$16, _this), _initDefineProp$19(_this, "textInput", _descriptor3$16, _this), _temp), possibleConstructorReturn(_this, _ret);
+    }
+
+    return YearSelectStyle;
+}(StyleSheet), (_descriptor$18 = _applyDecoratedDescriptor$20(_class$40.prototype, "yearSelect", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            width: this.width,
+            height: this.height,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "row"
+        };
+    }
+}), _descriptor2$16 = _applyDecoratedDescriptor$20(_class$40.prototype, "button", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            height: this.height,
+            width: this.width / 4,
+            backgroundColor: this.themeProperties.COLOR_BACKGROUND,
+            border: "0",
+            transition: "0.15s",
+            ":hover": {
+                backgroundColor: this.themeProperties.COLOR_BACKGROUND,
+                color: this.themeProperties.COLOR_PRIMARY,
+                transition: "0.15s"
+            },
+            ":active": {
+                backgroundColor: this.themeProperties.COLOR_BACKGROUND,
+                transition: "0.15s"
+            },
+            ":focus": {
+                backgroundColor: this.themeProperties.COLOR_BACKGROUND,
+                transition: "0.15s"
+            },
+            ":active:focus": {
+                backgroundColor: this.themeProperties.COLOR_BACKGROUND,
+                transition: "0.15s"
+            }
+        };
+    }
+}), _descriptor3$16 = _applyDecoratedDescriptor$20(_class$40.prototype, "textInput", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            height: this.height,
+            width: this.width / 2,
+            fontSize: "18px",
+            textAlign: "center",
+            border: "0",
+            outline: "none",
+            borderBottom: "2px solid #000",
+            transition: "0.15s",
+            backgroundColor: this.themeProperties.COLOR_BACKGROUND,
+            ":hover": {
+                borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
+                color: this.themeProperties.COLOR_PRIMARY,
+                transition: "0.15s"
+            },
+            ":active": {
+                borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
+                color: this.themeProperties.COLOR_PRIMARY,
+                transition: "0.15s"
+            },
+            ":focus": {
+                borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
+                color: this.themeProperties.COLOR_PRIMARY,
+                transition: "0.15s"
+            }
+        };
+    }
+})), _class$40);
+
+var YearSelect = (_dec$19 = registerStyle(YearSelectStyle), _dec$19(_class3$12 = function (_UI$Element) {
+    inherits(YearSelect, _UI$Element);
+
+    function YearSelect() {
+        classCallCheck(this, YearSelect);
+        return possibleConstructorReturn(this, (YearSelect.__proto__ || Object.getPrototypeOf(YearSelect)).apply(this, arguments));
+    }
+
+    createClass(YearSelect, [{
+        key: "setOptions",
+        value: function setOptions(options) {
+            this.currentValue = options.values[0];
+            get(YearSelect.prototype.__proto__ || Object.getPrototypeOf(YearSelect.prototype), "setOptions", this).call(this, options);
+        }
+    }, {
+        key: "extraNodeAttributes",
+        value: function extraNodeAttributes(attr) {
+            attr.addClass(this.styleSheet.yearSelect);
+        }
+    }, {
+        key: "addChangeListener",
+        value: function addChangeListener(callback) {
+            return this.addListener("change", callback);
+        }
+    }, {
+        key: "getCurrentValue",
+        value: function getCurrentValue() {
+            return this.currentValue;
+        }
+    }, {
+        key: "setCurrentValue",
+        value: function setCurrentValue(value) {
+            this.currentValue = value;
+            this.redraw();
+            this.dispatch("change");
+        }
+    }, {
+        key: "getFromArrow",
+        value: function getFromArrow(direction) {
+            var values = this.options.values;
+
+
+            var currentIndex = values.indexOf(this.getCurrentValue());
+            var nextIndex = currentIndex + direction;
+            if (!(nextIndex >= 0 && nextIndex < values.length)) {
+                return;
+            }
+
+            this.setCurrentValue(values[nextIndex]);
+        }
+    }, {
+        key: "getFromInput",
+        value: function getFromInput(enteredValue) {
+            var values = this.options.values;
+
+            var valuesFiltered = void 0;
+
+            valuesFiltered = values.filter(function (value) {
+                return value <= enteredValue;
+            });
+            this.setCurrentValue(valuesFiltered[valuesFiltered.length - 1] || values[0]);
+        }
+    }, {
+        key: "render",
+        value: function render() {
+            var _this3 = this;
+
+            return [UI.createElement(
+                Button,
+                { className: this.styleSheet.button, onClick: function onClick() {
+                        return _this3.getFromArrow(-1);
+                    } },
+                UI.createElement(FAIcon, { icon: "arrow-left" })
+            ), UI.createElement(TextInput, { ref: "textInput", className: this.styleSheet.textInput, value: this.getCurrentValue() }), UI.createElement(
+                Button,
+                { className: this.styleSheet.button, onClick: function onClick() {
+                        return _this3.getFromArrow(1);
+                    } },
+                UI.createElement(FAIcon, { icon: "arrow-right" })
+            )];
+        }
+    }, {
+        key: "onMount",
+        value: function onMount() {
+            var _this4 = this;
+
+            this.textInput.addNodeListener("keypress", function (event) {
+                if (event.keyCode === 13) {
+                    // 'Enter' key was pressed
+                    _this4.getFromInput(_this4.textInput.getValue());
+                    _this4.redraw();
+                }
+            });
+        }
+    }]);
+    return YearSelect;
+}(UI.Element)) || _class3$12);
 
 // The following code is from ivyywang
 
@@ -20807,19 +20244,26 @@ function getDragPointRotation(v0, v1, o0) {
   // let newMat = makeDOMMatrix().rotate(...o0).multiply(between);
 }
 
+function generateZoomEvent(rawEvent, delta) {
+    var unit = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 200;
+
+    return {
+        x: Device.getEventX(rawEvent),
+        y: Device.getEventY(rawEvent),
+        zoomFactor: delta <= 0 ? 1 - delta / unit : 1 / (1 + delta / unit),
+        rawEvent: rawEvent
+    };
+}
+
 var WheelZoomEventHandler = function () {
-    function WheelZoomEventHandler(uiElement, callback, unit) {
+    function WheelZoomEventHandler(uiElement, callback) {
         classCallCheck(this, WheelZoomEventHandler);
 
         this.eventHandler = uiElement.addNodeListener("wheel", function (event) {
-            var deltaY = event.deltaY;
-            var factor = deltaY <= 0 ? 1 - deltaY / unit : 1 / (1 + deltaY / unit);
-            callback({
-                x: Device.getEventX(event),
-                y: Device.getEventY(event),
-                zoomFactor: factor,
-                event: event
-            });
+            // TODO: see if both of these are needed
+            event.preventDefault();
+            event.stopPropagation();
+            callback(event, event.deltaY);
         });
     }
 
@@ -20833,7 +20277,7 @@ var WheelZoomEventHandler = function () {
 }();
 
 var PinchZoomEventHandler = function () {
-    function PinchZoomEventHandler(uiElement, callback, unit) {
+    function PinchZoomEventHandler(uiElement, callback) {
         var _this = this;
 
         classCallCheck(this, PinchZoomEventHandler);
@@ -20849,22 +20293,14 @@ var PinchZoomEventHandler = function () {
             _this.recalculateCentroid(event);
         });
         this.touchMoveHandler = uiElement.addNodeListener("touchmove", function (event) {
+
             if (_this.pinchActive && event.touches && event.touches.length > 1) {
                 var _calculateCentroid = _this.calculateCentroid(event.touches),
-                    _calculateCentroid2 = slicedToArray(_calculateCentroid, 2),
-                    newCentroid = _calculateCentroid2[0],
-                    newAveregeDist = _calculateCentroid2[1];
+                    centroid = _calculateCentroid.centroid,
+                    averageDist = _calculateCentroid.averageDist;
 
-                var delta = _this.averegeDist - newAveregeDist;
-                var factor = delta <= 0 ? 1 - delta / unit : 1 / (1 + delta / unit);
-                callback({
-                    x: Device.getEventX(event),
-                    y: Device.getEventY(event),
-                    zoomFactor: factor,
-                    event: event
-                });
-                _this.centroid = newCentroid;
-                _this.averegeDist = newAveregeDist;
+                callback(event, _this.averageDist - averageDist);
+                Object.assign(_this, { centroid: centroid, averageDist: averageDist });
             }
         });
     }
@@ -20902,7 +20338,7 @@ var PinchZoomEventHandler = function () {
             centroid.x /= touches.length;
             centroid.y /= touches.length;
 
-            var averegeDist = 0;
+            var averageDist = 0;
             var _iteratorNormalCompletion2 = true;
             var _didIteratorError2 = false;
             var _iteratorError2 = undefined;
@@ -20913,7 +20349,7 @@ var PinchZoomEventHandler = function () {
 
                     var x = Device.getEventX(_touch),
                         y = Device.getEventY(_touch);
-                    averegeDist += Math.sqrt((x - centroid.x) * (x - centroid.x) + (y - centroid.y) * (y - centroid.y));
+                    averageDist += Math.sqrt((x - centroid.x) * (x - centroid.x) + (y - centroid.y) * (y - centroid.y));
                 }
             } catch (err) {
                 _didIteratorError2 = true;
@@ -20930,8 +20366,8 @@ var PinchZoomEventHandler = function () {
                 }
             }
 
-            averegeDist /= touches.length;
-            return [centroid, averegeDist];
+            averageDist /= touches.length;
+            return { centroid: centroid, averageDist: averageDist };
         }
     }, {
         key: "recalculateCentroid",
@@ -20942,13 +20378,7 @@ var PinchZoomEventHandler = function () {
                 return;
             }
             this.pinchActive = true;
-
-            var _calculateCentroid3 = this.calculateCentroid(touches);
-
-            var _calculateCentroid4 = slicedToArray(_calculateCentroid3, 2);
-
-            this.centroid = _calculateCentroid4[0];
-            this.averegeDist = _calculateCentroid4[1];
+            Object.assign(this, this.calculateCentroid(touches));
         }
     }, {
         key: "cleanup",
@@ -20963,12 +20393,23 @@ var PinchZoomEventHandler = function () {
 }();
 
 var Zoomable = function Zoomable(BaseClass) {
-    return function (_BaseClass) {
+    var _class, _temp2;
+
+    return _temp2 = _class = function (_BaseClass) {
         inherits(Zoomable, _BaseClass);
 
         function Zoomable() {
+            var _ref;
+
+            var _temp, _this2, _ret;
+
             classCallCheck(this, Zoomable);
-            return possibleConstructorReturn(this, (Zoomable.__proto__ || Object.getPrototypeOf(Zoomable)).apply(this, arguments));
+
+            for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+                args[_key] = arguments[_key];
+            }
+
+            return _ret = (_temp = (_this2 = possibleConstructorReturn(this, (_ref = Zoomable.__proto__ || Object.getPrototypeOf(Zoomable)).call.apply(_ref, [this].concat(args))), _this2), _this2._zoomListeners = [], _temp), possibleConstructorReturn(_this2, _ret);
         }
 
         createClass(Zoomable, [{
@@ -20988,14 +20429,13 @@ var Zoomable = function Zoomable(BaseClass) {
             }
         }, {
             key: "setZoomLevel",
-            value: function setZoomLevel(zoomLevel, event) {
+            value: function setZoomLevel(zoomLevel) {
                 zoomLevel = Math.max(this.getMinZoomLevel(), zoomLevel);
                 zoomLevel = Math.min(this.getMaxZoomLevel(), zoomLevel);
                 if (this.getZoomLevel() === zoomLevel) {
                     return;
                 }
                 this.options.zoomLevel = zoomLevel;
-                this.redraw();
                 this.dispatch("setZoomLevel", zoomLevel);
             }
         }, {
@@ -21003,48 +20443,70 @@ var Zoomable = function Zoomable(BaseClass) {
             value: function addZoomListener(callback) {
                 var unit = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 200;
 
-                // callback will be called with three arguments: x, y and factor
-                var wheelEventHandler = new WheelZoomEventHandler(this, callback, unit);
-                var pinchEventHandler = new PinchZoomEventHandler(this, callback, 0.5 * unit);
+                if (this._zoomListeners.find(function (listener) {
+                    return listener.callback === callback;
+                })) {
+                    console.warn("Trying to add a listener twice!", callback);
+                    return;
+                }
+                var eventHandlers = [];
+                var _iteratorNormalCompletion3 = true;
+                var _didIteratorError3 = false;
+                var _iteratorError3 = undefined;
 
-                return this.zoomHandler = new CleanupJobs([wheelEventHandler, pinchEventHandler]);
+                try {
+                    for (var _iterator3 = this.constructor.EVENT_HANDLERS[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                        var EventHandlerClass = _step3.value;
+
+                        eventHandlers.push(new EventHandlerClass(this, function (event, delta) {
+                            return callback(generateZoomEvent(event, delta, unit));
+                        }));
+                    }
+                } catch (err) {
+                    _didIteratorError3 = true;
+                    _iteratorError3 = err;
+                } finally {
+                    try {
+                        if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                            _iterator3.return();
+                        }
+                    } finally {
+                        if (_didIteratorError3) {
+                            throw _iteratorError3;
+                        }
+                    }
+                }
+
+                var listener = {
+                    handler: new CleanupJobs(eventHandlers),
+                    callback: callback
+                };
+                this._zoomListeners.push(listener);
+                return listener.handler;
             }
         }, {
             key: "removeZoomListener",
-            value: function removeZoomListener() {
-                this.zoomHandler && this.zoomHandler.cleanup();
-                delete this.zoomHandler;
+            value: function removeZoomListener(callback) {
+                var listener = this._zoomListeners.find(function (listener) {
+                    return listener.callback === callback;
+                });
+                if (!listener) {
+                    return;
+                }
+                listener.handler.cleanup();
+                this._zoomListeners.splice(this._zoomListeners.indexOf(listener), 1);
             }
         }]);
         return Zoomable;
-    }(BaseClass);
+    }(BaseClass), _class.EVENT_HANDLERS = [WheelZoomEventHandler, PinchZoomEventHandler], _temp2;
 };
 
-var _class$39;
-var _descriptor$17;
-var _dec$18;
-var _class3$11;
-var _class4$1;
-var _descriptor2$15;
-var _descriptor3$15;
-var _descriptor4$12;
-var _dec2$5;
-var _class6$1;
-var _class7$2;
-var _descriptor5$10;
-var _descriptor6$8;
-var _descriptor7$6;
-var _descriptor8$5;
-var _descriptor9$5;
-var _descriptor10$3;
-var _descriptor11$3;
-var _descriptor12$2;
-var _descriptor13$2;
-var _descriptor14$2;
-var _dec3$1;
-var _class9$1;
+var _class$41;
+var _descriptor$19;
+var _dec$20;
+var _class3$13;
 
-function _initDefineProp$18(target, property, descriptor, context) {
+function _initDefineProp$20(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -21054,7 +20516,7 @@ function _initDefineProp$18(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$19(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$21(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -21105,7 +20567,7 @@ PathString.prototype.point = function (x, y) {
     }
 };
 
-var FeatureStyle = (_class$39 = function (_StyleSheet) {
+var FeatureStyle = (_class$41 = function (_StyleSheet) {
     inherits(FeatureStyle, _StyleSheet);
 
     function FeatureStyle() {
@@ -21119,11 +20581,11 @@ var FeatureStyle = (_class$39 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FeatureStyle.__proto__ || Object.getPrototypeOf(FeatureStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$18(_this, "featureBorder", _descriptor$17, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FeatureStyle.__proto__ || Object.getPrototypeOf(FeatureStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$20(_this, "featureBorder", _descriptor$19, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return FeatureStyle;
-}(StyleSheet), (_descriptor$17 = _applyDecoratedDescriptor$19(_class$39.prototype, "featureBorder", [styleRule], {
+}(StyleSheet), (_descriptor$19 = _applyDecoratedDescriptor$21(_class$41.prototype, "featureBorder", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -21134,7 +20596,7 @@ var FeatureStyle = (_class$39 = function (_StyleSheet) {
             }
         };
     }
-})), _class$39);
+})), _class$41);
 
 
 function hashToColor(hash) {
@@ -21153,7 +20615,7 @@ function hashToColor(hash) {
     }
 
     hash = String(hash || Math.random());
-    var letters = "6789ABCD".split("");
+    var letters = "56789ABC".split("");
     var color = "#";
 
     for (var i = 0; i < 3; i++) {
@@ -21163,7 +20625,7 @@ function hashToColor(hash) {
     return color;
 }
 
-var FeaturePath = (_dec$18 = registerStyle(FeatureStyle), _dec$18(_class3$11 = function (_SVG$Path) {
+var FeaturePath = (_dec$20 = registerStyle(FeatureStyle), _dec$20(_class3$13 = function (_SVG$Path) {
     inherits(FeaturePath, _SVG$Path);
 
     function FeaturePath() {
@@ -21198,17 +20660,8 @@ var FeaturePath = (_dec$18 = registerStyle(FeatureStyle), _dec$18(_class3$11 = f
         }
     }]);
     return FeaturePath;
-}(SVG.Path)) || _class3$11);
+}(SVG.Path)) || _class3$13);
 
-
-function getPreferredDimensions() {
-    var themeProperties = Theme.Global.getProperties();
-
-    return {
-        height: window.innerHeight - (themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + themeProperties.GLOBAL_YEAR_SELECT_HEIGHT),
-        width: window.innerWidth
-    };
-}
 
 var HistoricalMap = function (_Zoomable) {
     inherits(HistoricalMap, _Zoomable);
@@ -21221,42 +20674,37 @@ var HistoricalMap = function (_Zoomable) {
     createClass(HistoricalMap, [{
         key: "getDefaultOptions",
         value: function getDefaultOptions(options) {
-            options = Object.assign(getPreferredDimensions(), {
+            options = Object.assign({
+                height: 600,
+                width: 800,
                 showGraticule: true
+
             }, options);
 
             var VIEW_BOX_SIZE = Math.min(options.height, options.width);
 
-            options.projection = options.projection || geoOrthographic().scale(0.5 * VIEW_BOX_SIZE).clipAngle(90).translate([VIEW_BOX_SIZE / 2, VIEW_BOX_SIZE / 2]);
+            options = Object.assign({
+                initialScale: 0.5 * VIEW_BOX_SIZE,
+                initialTranslate: [options.width / 2, options.height / 2],
+                initialRotation: [0, 0, 0]
+            }, options);
+
+            options.projection = options.projection || geoOrthographic().scale(options.initialScale).clipAngle(90).translate(options.initialTranslate);
 
             return options;
+        }
+    }, {
+        key: "extraNodeAttributes",
+        value: function extraNodeAttributes(attr) {
+            attr.setStyle({
+                background: "transparent"
+            });
         }
     }, {
         key: "setData",
         value: function setData(data) {
             this.data = data;
             this.redraw();
-        }
-    }, {
-        key: "getCurrentYear",
-        value: function getCurrentYear() {
-            return this.options.currentYear || 1899;
-        }
-    }, {
-        key: "setCurrentYear",
-        value: function setCurrentYear(currentYear) {
-            this.options.currentYear = currentYear;
-            this.loadCurrentYearData();
-        }
-    }, {
-        key: "loadCurrentYearData",
-        value: function loadCurrentYearData() {
-            var _this5 = this;
-
-            var fileName = "/static/json/world/" + this.getCurrentYear() + "-sm.json";
-            Ajax.getJSON(fileName).then(function (data) {
-                return _this5.setData(data);
-            });
         }
     }, {
         key: "getProjection",
@@ -21276,7 +20724,8 @@ var HistoricalMap = function (_Zoomable) {
     }, {
         key: "resetProjection",
         value: function resetProjection() {
-            console.log("reset projection");
+            this.getProjection().scale(this.options.initialScale).translate(this.options.initialTranslate).rotate(this.options.initialRotation);
+            this.redraw();
         }
     }, {
         key: "setShowGraticule",
@@ -21309,14 +20758,14 @@ var HistoricalMap = function (_Zoomable) {
     }, {
         key: "render",
         value: function render() {
-            var _this6 = this;
+            var _this5 = this;
 
             if (!this.data) {
                 return [];
             }
 
             var paths = this.data.features.map(function (feature) {
-                var path = _this6.makePath(feature.geometry);
+                var path = _this5.makePath(feature.geometry);
                 if (!path) {
                     return null;
                 }
@@ -21327,6 +20776,7 @@ var HistoricalMap = function (_Zoomable) {
             return [UI.createElement(
                 SVG.Group,
                 null,
+                UI.createElement(SVG.Path, { fill: "#cef", d: this.makePath({ type: "Sphere" }) }),
                 paths
             ), this.getGraticule()];
         }
@@ -21372,231 +20822,94 @@ var HistoricalMap = function (_Zoomable) {
         key: "handleDragEnd",
         value: function handleDragEnd() {}
     }, {
-        key: "setDimensions",
-        value: function setDimensions(dimensions) {
-            console.log(dimensions.height, dimensions.width);
-        }
-    }, {
         key: "onMount",
         value: function onMount() {
-            var _this7 = this;
-
-            this.loadCurrentYearData();
+            var _this6 = this;
 
             this.addDragListener({
                 onStart: function onStart(event) {
-                    return _this7.handleDragStart();
+                    return _this6.handleDragStart();
                 },
                 onDrag: function onDrag(deltaX, deltaY, event) {
-                    return _this7.handleDrag();
+                    return _this6.handleDrag();
                 },
                 onEnd: function onEnd(event) {
-                    return _this7.handleDragEnd();
+                    return _this6.handleDragEnd();
                 }
             });
 
             this.addZoomListener(function (zoomEvent) {
-                var projection = _this7.getProjection();
+                var projection = _this6.getProjection();
                 projection.scale(projection.scale() * zoomEvent.zoomFactor);
-                _this7.redraw();
+                _this6.redraw();
             });
 
-            window.addEventListener("resize", function () {
-                _this7.setDimensions(getPreferredDimensions());
-            });
+            var rotate = function rotate() {
+                _this6.getProjection().rotate([Date.now() / 200, 0, 0]);
+                _this6.redraw();
+                requestAnimationFrame(rotate);
+            };
+            rotate();
         }
     }]);
     return HistoricalMap;
 }(Zoomable(Draggable(SVG.SVGRoot)));
 
-var FlatSelectStyle = (_class4$1 = function (_StyleSheet2) {
-    inherits(FlatSelectStyle, _StyleSheet2);
+var _class$39;
+var _descriptor$17;
+var _descriptor2$15;
+var _descriptor3$15;
+var _descriptor4$12;
+var _descriptor5$10;
+var _descriptor6$8;
+var _descriptor7$6;
+var _descriptor8$5;
+var _descriptor9$5;
+var _descriptor10$3;
+var _dec$18;
+var _class3$11;
 
-    function FlatSelectStyle() {
-        var _ref2;
+function _initDefineProp$18(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+        writable: descriptor.writable,
+        value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+}
 
-        var _temp2, _this8, _ret2;
+function _applyDecoratedDescriptor$19(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+        desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
 
-        classCallCheck(this, FlatSelectStyle);
-
-        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-            args[_key2] = arguments[_key2];
-        }
-
-        return _ret2 = (_temp2 = (_this8 = possibleConstructorReturn(this, (_ref2 = FlatSelectStyle.__proto__ || Object.getPrototypeOf(FlatSelectStyle)).call.apply(_ref2, [this].concat(args))), _this8), _this8.height = 40, _this8.width = 160, _initDefineProp$18(_this8, "flatSelect", _descriptor2$15, _this8), _initDefineProp$18(_this8, "button", _descriptor3$15, _this8), _initDefineProp$18(_this8, "textInput", _descriptor4$12, _this8), _temp2), possibleConstructorReturn(_this8, _ret2);
+    if ('value' in desc || desc.initializer) {
+        desc.writable = true;
     }
 
-    return FlatSelectStyle;
-}(StyleSheet), (_descriptor2$15 = _applyDecoratedDescriptor$19(_class4$1.prototype, "flatSelect", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            width: this.width,
-            height: this.height,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            flexDirection: "row"
-        };
-    }
-}), _descriptor3$15 = _applyDecoratedDescriptor$19(_class4$1.prototype, "button", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            height: this.height,
-            width: this.width / 4,
-            backgroundColor: "#fff",
-            border: "0",
-            transition: "0.15s",
-            ":hover": {
-                backgroundColor: "#fff",
-                color: this.themeProperties.COLOR_PRIMARY,
-                transition: "0.15s"
-            },
-            ":active": {
-                backgroundColor: "#fff",
-                transition: "0.15s"
-            },
-            ":focus": {
-                backgroundColor: "#fff",
-                transition: "0.15s"
-            },
-            ":active:focus": {
-                backgroundColor: "#fff",
-                transition: "0.15s"
-            }
-        };
-    }
-}), _descriptor4$12 = _applyDecoratedDescriptor$19(_class4$1.prototype, "textInput", [styleRule], {
-    enumerable: true,
-    initializer: function initializer() {
-        return {
-            height: this.height,
-            width: this.width / 2,
-            fontSize: "18px",
-            textAlign: "center",
-            border: "0",
-            outline: "none",
-            borderBottom: "2px solid #000",
-            transition: "0.15s",
-            ":hover": {
-                borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
-                color: this.themeProperties.COLOR_PRIMARY,
-                transition: "0.15s"
-            },
-            ":active": {
-                borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
-                color: this.themeProperties.COLOR_PRIMARY,
-                transition: "0.15s"
-            },
-            ":focus": {
-                borderBottom: "2px solid " + this.themeProperties.COLOR_PRIMARY,
-                color: this.themeProperties.COLOR_PRIMARY,
-                transition: "0.15s"
-            }
-        };
-    }
-})), _class4$1);
-var FlatSelect = (_dec2$5 = registerStyle(FlatSelectStyle), _dec2$5(_class6$1 = function (_UI$Element) {
-    inherits(FlatSelect, _UI$Element);
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+        return decorator(target, property, desc) || desc;
+    }, desc);
 
-    function FlatSelect() {
-        classCallCheck(this, FlatSelect);
-        return possibleConstructorReturn(this, (FlatSelect.__proto__ || Object.getPrototypeOf(FlatSelect)).apply(this, arguments));
+    if (context && desc.initializer !== void 0) {
+        desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+        desc.initializer = undefined;
     }
 
-    createClass(FlatSelect, [{
-        key: "setOptions",
-        value: function setOptions(options) {
-            this.currentValue = options.values[0];
-            get(FlatSelect.prototype.__proto__ || Object.getPrototypeOf(FlatSelect.prototype), "setOptions", this).call(this, options);
-        }
-    }, {
-        key: "extraNodeAttributes",
-        value: function extraNodeAttributes(attr) {
-            attr.addClass(this.styleSheet.flatSelect);
-        }
-    }, {
-        key: "addChangeListener",
-        value: function addChangeListener(callback) {
-            return this.addListener("change", callback);
-        }
-    }, {
-        key: "getCurrentValue",
-        value: function getCurrentValue() {
-            return this.currentValue;
-        }
-    }, {
-        key: "setCurrentValue",
-        value: function setCurrentValue(value) {
-            this.currentValue = value;
-            this.redraw();
-            this.dispatch("change");
-        }
-    }, {
-        key: "getFromArrow",
-        value: function getFromArrow(direction) {
-            var values = this.options.values;
+    if (desc.initializer === void 0) {
+        Object['define' + 'Property'](target, property, desc);
+        desc = null;
+    }
 
+    return desc;
+}
 
-            var currentIndex = values.indexOf(this.getCurrentValue());
-            var nextIndex = currentIndex + direction;
-            if (!(nextIndex >= 0 && nextIndex < values.length)) {
-                return;
-            }
-
-            this.setCurrentValue(values[nextIndex]);
-        }
-    }, {
-        key: "getFromInput",
-        value: function getFromInput(enteredValue) {
-            var values = this.options.values;
-
-            var valuesFiltered = void 0;
-
-            valuesFiltered = values.filter(function (value) {
-                return value <= enteredValue;
-            });
-            this.setCurrentValue(valuesFiltered[valuesFiltered.length - 1] || values[0]);
-        }
-    }, {
-        key: "render",
-        value: function render() {
-            var _this10 = this;
-
-            return [UI.createElement(
-                Button,
-                { className: this.styleSheet.button, onClick: function onClick() {
-                        return _this10.getFromArrow(-1);
-                    } },
-                UI.createElement(FAIcon, { icon: "arrow-left" })
-            ), UI.createElement(TextInput, { ref: "textInput", className: this.styleSheet.textInput, value: this.getCurrentValue() }), UI.createElement(
-                Button,
-                { className: this.styleSheet.button, onClick: function onClick() {
-                        return _this10.getFromArrow(1);
-                    } },
-                UI.createElement(FAIcon, { icon: "arrow-right" })
-            )];
-        }
-    }, {
-        key: "onMount",
-        value: function onMount() {
-            var _this11 = this;
-
-            this.textInput.addNodeListener("keypress", function (event) {
-                if (event.keyCode === 13) {
-                    // 'Enter' was pressed
-                    _this11.getFromInput(_this11.textInput.getValue());
-                    _this11.redraw();
-                }
-            });
-        }
-    }]);
-    return FlatSelect;
-}(UI.Element)) || _class6$1);
-
-var HistoricalWorldMapTitle = function (_UI$Element2) {
-    inherits(HistoricalWorldMapTitle, _UI$Element2);
+var HistoricalWorldMapTitle = function (_UI$Element) {
+    inherits(HistoricalWorldMapTitle, _UI$Element);
 
     function HistoricalWorldMapTitle() {
         classCallCheck(this, HistoricalWorldMapTitle);
@@ -21622,7 +20935,7 @@ var HistoricalWorldMapTitle = function (_UI$Element2) {
             if (previousYearWithData + 1 === currentYear) {
                 return " in " + currentYear;
             } else {
-                return "between " + (previousYearWithData + 1) + "-" + currentYear;
+                return " in " + (previousYearWithData + 1) + "-" + currentYear;
             }
         }
     }, {
@@ -21631,7 +20944,7 @@ var HistoricalWorldMapTitle = function (_UI$Element2) {
             return UI.createElement(
                 "div",
                 null,
-                "Geopolitical map of the world ",
+                "Map of the world ",
                 this.getYearsInterval(this.options.currentYear)
             );
         }
@@ -21639,48 +20952,104 @@ var HistoricalWorldMapTitle = function (_UI$Element2) {
     return HistoricalWorldMapTitle;
 }(UI.Element);
 
-var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
-    inherits(HistoricalWorldMapStyle, _StyleSheet3);
+var HistoricalWorldMapStyle = (_class$39 = function (_StyleSheet) {
+    inherits(HistoricalWorldMapStyle, _StyleSheet);
 
     function HistoricalWorldMapStyle() {
-        var _ref3;
-
-        var _temp3, _this13, _ret3;
-
         classCallCheck(this, HistoricalWorldMapStyle);
 
-        for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-            args[_key3] = arguments[_key3];
-        }
+        var _this2 = possibleConstructorReturn(this, (HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call(this, {
+            updateOnResize: true
+        }));
 
-        return _ret3 = (_temp3 = (_this13 = possibleConstructorReturn(this, (_ref3 = HistoricalWorldMapStyle.__proto__ || Object.getPrototypeOf(HistoricalWorldMapStyle)).call.apply(_ref3, [this].concat(args))), _this13), _this13.menuWidth = 240, _this13.menuExtraPaddingVertical = 10, _this13.menuExtraPaddingHorizontal = 20, _this13.boxShadowWidth = 5, _initDefineProp$18(_this13, "container", _descriptor5$10, _this13), _initDefineProp$18(_this13, "yearSelectContainer", _descriptor6$8, _this13), _initDefineProp$18(_this13, "historyWorldMapTitle", _descriptor7$6, _this13), _initDefineProp$18(_this13, "menuContainer", _descriptor8$5, _this13), _initDefineProp$18(_this13, "menuToggled", _descriptor9$5, _this13), _initDefineProp$18(_this13, "menuUntoggled", _descriptor10$3, _this13), _initDefineProp$18(_this13, "toggleOptions", _descriptor11$3, _this13), _initDefineProp$18(_this13, "menuIcon", _descriptor12$2, _this13), _initDefineProp$18(_this13, "select", _descriptor13$2, _this13), _initDefineProp$18(_this13, "button", _descriptor14$2, _this13), _temp3), possibleConstructorReturn(_this13, _ret3);
+        _this2.resizeWidthLimit = 720;
+        _this2.menuWidth = 240;
+        _this2.menuExtraPaddingVertical = 10;
+        _this2.menuExtraPaddingHorizontal = 20;
+        _this2.toggleOptionsHeight = 50;
+        _this2.boxShadowWidth = 5;
+
+        _initDefineProp$18(_this2, "container", _descriptor$17, _this2);
+
+        _initDefineProp$18(_this2, "yearSelectContainer", _descriptor2$15, _this2);
+
+        _initDefineProp$18(_this2, "historyWorldMapTitle", _descriptor3$15, _this2);
+
+        _initDefineProp$18(_this2, "menuContainer", _descriptor4$12, _this2);
+
+        _initDefineProp$18(_this2, "menuToggled", _descriptor5$10, _this2);
+
+        _initDefineProp$18(_this2, "menuUntoggled", _descriptor6$8, _this2);
+
+        _initDefineProp$18(_this2, "toggleOptions", _descriptor7$6, _this2);
+
+        _initDefineProp$18(_this2, "menuIcon", _descriptor8$5, _this2);
+
+        _initDefineProp$18(_this2, "select", _descriptor9$5, _this2);
+
+        _initDefineProp$18(_this2, "button", _descriptor10$3, _this2);
+
+        return _this2;
     }
 
+    createClass(HistoricalWorldMapStyle, [{
+        key: "getYearSelectContainerWidth",
+        value: function getYearSelectContainerWidth() {
+            if (window.innerWidth >= this.resizeWidthLimit) {
+                return "calc(100% - " + this.menuWidth + ")";
+            }
+            return "100%";
+        }
+    }, {
+        key: "getYearSelectContainerMarginTop",
+        value: function getYearSelectContainerMarginTop() {
+            if (window.innerWidth >= this.resizeWidthLimit) {
+                return 5;
+            }
+            return this.toggleOptionsHeight + "px";
+        }
+    }, {
+        key: "getYearSelectContainerPaddingLeft",
+        value: function getYearSelectContainerPaddingLeft() {
+            if (window.innerWidth >= this.resizeWidthLimit) {
+                return this.menuWidth;
+            }
+            return this.menuExtraPaddingHorizontal;
+        }
+    }]);
     return HistoricalWorldMapStyle;
-}(StyleSheet), (_descriptor5$10 = _applyDecoratedDescriptor$19(_class7$2.prototype, "container", [styleRule], {
+}(StyleSheet), (_descriptor$17 = _applyDecoratedDescriptor$19(_class$39.prototype, "container", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
-            width: "1200px",
-            maxWidth: "100%",
-            paddingLeft: "20px",
-            paddingRight: "20px"
+            // width: "1200px",
+            width: "100%"
         };
     }
-}), _descriptor6$8 = _applyDecoratedDescriptor$19(_class7$2.prototype, "yearSelectContainer", [styleRule], {
+}), _descriptor2$15 = _applyDecoratedDescriptor$19(_class$39.prototype, "yearSelectContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
+        var _this3 = this;
+
         return {
-            width: "100%",
+            width: function width() {
+                return _this3.getYearSelectContainerWidth();
+            },
+            marginTop: function marginTop() {
+                return _this3.getYearSelectContainerMarginTop();
+            },
+            paddingLeft: function paddingLeft() {
+                return _this3.getYearSelectContainerPaddingLeft();
+            },
+            paddingRight: this.menuExtraPaddingHorizontal,
             display: "flex",
-            justifyContent: "center",
+            justifyContent: "space-between",
             alignItems: "center",
-            marginTop: "10px",
-            marginBottom: "10px",
+            marginBottom: "15px",
             flexDirection: "row"
         };
     }
-}), _descriptor7$6 = _applyDecoratedDescriptor$19(_class7$2.prototype, "historyWorldMapTitle", [styleRule], {
+}), _descriptor3$15 = _applyDecoratedDescriptor$19(_class$39.prototype, "historyWorldMapTitle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -21688,7 +21057,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             fontSize: "22px"
         };
     }
-}), _descriptor8$5 = _applyDecoratedDescriptor$19(_class7$2.prototype, "menuContainer", [styleRule], {
+}), _descriptor4$12 = _applyDecoratedDescriptor$19(_class$39.prototype, "menuContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -21707,7 +21076,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             }
         };
     }
-}), _descriptor9$5 = _applyDecoratedDescriptor$19(_class7$2.prototype, "menuToggled", [styleRule], {
+}), _descriptor5$10 = _applyDecoratedDescriptor$19(_class$39.prototype, "menuToggled", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -21715,7 +21084,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             transitionDuration: "0.15s"
         };
     }
-}), _descriptor10$3 = _applyDecoratedDescriptor$19(_class7$2.prototype, "menuUntoggled", [styleRule], {
+}), _descriptor6$8 = _applyDecoratedDescriptor$19(_class$39.prototype, "menuUntoggled", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -21723,11 +21092,12 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             transitionDuration: "0.15s"
         };
     }
-}), _descriptor11$3 = _applyDecoratedDescriptor$19(_class7$2.prototype, "toggleOptions", [styleRule], {
+}), _descriptor7$6 = _applyDecoratedDescriptor$19(_class$39.prototype, "toggleOptions", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
-            padding: this.menuExtraPaddingVertical + "px " + this.menuExtraPaddingHorizontal + "px",
+            height: this.toggleOptionsHeight,
+            padding: "0 " + this.menuExtraPaddingHorizontal + "px",
             backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
             fontSize: "22px !important",
             transition: "0.2s",
@@ -21739,6 +21109,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             width: this.menuWidth,
             display: "flex",
             justifyContent: "space-between",
+            alignItems: "center",
 
             ":hover": {
                 backgroundColor: this.themeProperties.COLOR_PRIMARY,
@@ -21747,7 +21118,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             }
         };
     }
-}), _descriptor12$2 = _applyDecoratedDescriptor$19(_class7$2.prototype, "menuIcon", [styleRule], {
+}), _descriptor8$5 = _applyDecoratedDescriptor$19(_class$39.prototype, "menuIcon", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -21756,7 +21127,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             justifyContent: "center"
         };
     }
-}), _descriptor13$2 = _applyDecoratedDescriptor$19(_class7$2.prototype, "select", [styleRule], {
+}), _descriptor9$5 = _applyDecoratedDescriptor$19(_class$39.prototype, "select", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -21771,7 +21142,7 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             }
         };
     }
-}), _descriptor14$2 = _applyDecoratedDescriptor$19(_class7$2.prototype, "button", [styleRule], {
+}), _descriptor10$3 = _applyDecoratedDescriptor$19(_class$39.prototype, "button", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -21788,19 +21159,29 @@ var HistoricalWorldMapStyle = (_class7$2 = function (_StyleSheet3) {
             }
         };
     }
-})), _class7$2);
+})), _class$39);
 
-var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec3$1(_class9$1 = function (_UI$Element3) {
-    inherits(HistoricalWorldMap, _UI$Element3);
+
+function getPreferredDimensions() {
+    var themeProperties = Theme.Global.getProperties();
+
+    return {
+        height: window.innerHeight - (themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + themeProperties.GLOBAL_YEAR_SELECT_HEIGHT + 25),
+        width: window.innerWidth
+    };
+}
+
+var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec$18(_class3$11 = function (_UI$Element2) {
+    inherits(HistoricalWorldMap, _UI$Element2);
 
     function HistoricalWorldMap(options) {
         classCallCheck(this, HistoricalWorldMap);
 
-        var _this14 = possibleConstructorReturn(this, (HistoricalWorldMap.__proto__ || Object.getPrototypeOf(HistoricalWorldMap)).call(this, options));
+        var _this4 = possibleConstructorReturn(this, (HistoricalWorldMap.__proto__ || Object.getPrototypeOf(HistoricalWorldMap)).call(this, options));
 
-        _this14.menuIsToggled = false;
-        _this14.graticuleIsToggled = true;
-        return _this14;
+        _this4.menuIsToggled = false;
+        _this4.graticuleIsToggled = true;
+        return _this4;
     }
 
     createClass(HistoricalWorldMap, [{
@@ -21859,7 +21240,7 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
     }, {
         key: "render",
         value: function render() {
-            var _this15 = this;
+            var _this5 = this;
 
             var currentYear = this.options.currentYear;
 
@@ -21870,14 +21251,14 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
                 UI.createElement(Select, { options: this.getAvailableProjections(),
                     ref: "projectionSelect",
                     onChange: function onChange(obj) {
-                        return _this15.setProjection(obj.get());
+                        return _this5.setProjection(obj.get());
                     },
                     className: this.styleSheet.select
                 }),
                 UI.createElement(
                     "div",
                     { className: this.styleSheet.button, onClick: function onClick() {
-                            return _this15.map.resetProjection();
+                            return _this5.map.resetProjection();
                         } },
                     "Reset projection"
                 ),
@@ -21893,8 +21274,12 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
             ), UI.createElement(
                 "div",
                 { className: this.styleSheet.yearSelectContainer },
-                UI.createElement(FlatSelect, { values: self.WORLD_MAP_YEARS, value: currentYear, ref: "yearSelect" })
-            ), UI.createElement(HistoricalMap, { ref: "map" })];
+                UI.createElement(YearSelect, { values: self.WORLD_MAP_YEARS, value: currentYear, ref: "yearSelect" }),
+                UI.createElement(HistoricalWorldMapTitle, { ref: "title",
+                    years: self.WORLD_MAP_YEARS,
+                    currentYear: currentYear,
+                    className: this.styleSheet.historyWorldMapTitle })
+            ), UI.createElement(HistoricalMap, _extends({ ref: "map" }, getPreferredDimensions()))];
         }
     }, {
         key: "setProjection",
@@ -21905,17 +21290,32 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
         key: "setCurrentYear",
         value: function setCurrentYear(currentYear) {
             this.options.currentYear = currentYear;
-            this.map.setCurrentYear(currentYear);
             this.title.setCurrentYear(currentYear);
+        }
+    }, {
+        key: "loadCurrentYearData",
+        value: function loadCurrentYearData() {
+            var _this6 = this;
+
+            var year = this.yearSelect.getCurrentValue();
+            var fileName = "/static/json/world/" + year + "-sm.json";
+
+            Ajax.getJSON(fileName).then(function (data) {
+                _this6.map.setData(data);
+
+                _this6.setCurrentYear(_this6.yearSelect.getCurrentValue());
+            });
         }
     }, {
         key: "onMount",
         value: function onMount() {
-            var _this16 = this;
+            var _this7 = this;
+
+            this.loadCurrentYearData();
 
             this.menuIcon.addClickListener(function (event) {
                 event.stopPropagation();
-                _this16.toggleMenu();
+                _this7.toggleMenu();
             });
 
             this.menu.addClickListener(function (event) {
@@ -21923,24 +21323,24 @@ var HistoricalWorldMap = (_dec3$1 = registerStyle(HistoricalWorldMapStyle), _dec
             });
 
             this.yearSelect.addChangeListener(function () {
-                _this16.setCurrentYear(_this16.yearSelect.getCurrentValue());
+                _this7.loadCurrentYearData();
             });
 
             this.drawGraticuleContainer.addClickListener(function () {
-                _this16.graticuleIsToggled = !_this16.graticuleIsToggled;
-                _this16.map.setShowGraticule(_this16.graticuleIsToggled);
-                _this16.drawGraticuleContainer.setChildren([_this16.getGraticuleLabel()]);
+                _this7.graticuleIsToggled = !_this7.graticuleIsToggled;
+                _this7.map.setShowGraticule(_this7.graticuleIsToggled);
+                _this7.drawGraticuleContainer.setChildren([_this7.getGraticuleLabel()]);
             });
 
             document.body.addEventListener("click", function () {
-                if (_this16.menuIsToggled) {
-                    _this16.toggleMenu();
+                if (_this7.menuIsToggled) {
+                    _this7.toggleMenu();
                 }
             });
         }
     }]);
     return HistoricalWorldMap;
-}(UI.Element)) || _class9$1);
+}(UI.Element)) || _class3$11);
 
 var _dec$17;
 var _class$37;
@@ -22306,8 +21706,6 @@ var GenericObjectStore = function (_BaseStore) {
     inherits(GenericObjectStore, _BaseStore);
 
     function GenericObjectStore(objectType) {
-        var ObjectWrapper = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : StoreObject;
-        var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
         classCallCheck(this, GenericObjectStore);
 
         var _this4 = possibleConstructorReturn(this, (GenericObjectStore.__proto__ || Object.getPrototypeOf(GenericObjectStore)).apply(this, arguments));
@@ -22879,8 +22277,6 @@ var VirtualStoreMixin = function VirtualStoreMixin(BaseStoreClass) {
         }, {
             key: "applyCreateEvent",
             value: function applyCreateEvent(event) {
-                var sendDispatch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
                 if (event.virtualId) {
                     var existingVirtualObject = this.getVirtualObject(event);
                     if (existingVirtualObject) {
@@ -24442,13 +23838,9 @@ var MarkupParser = function () {
     }, {
         key: "parseTextLine",
         value: function parseTextLine(stream) {
-            var lastModifier = new Map();
-
             var capturedContent = [];
 
             // This will always be set to the last closed modifier
-            var capturedEnd = -1;
-
             var textStart = stream.pointer;
             var contentStart = stream.pointer;
 
@@ -25098,10 +24490,35 @@ MarkupParser.parseJSON5 = function () {
 
 var MarkupClassMap = function () {
     function MarkupClassMap(fallback) {
+        var extraClasses = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
         classCallCheck(this, MarkupClassMap);
 
         this.classMap = new Map();
         this.fallback = fallback;
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+            for (var _iterator = extraClasses[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                var extraClass = _step.value;
+
+                this.addClass(extraClass[0], extraClass[1]);
+            }
+        } catch (err) {
+            _didIteratorError = true;
+            _iteratorError = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion && _iterator.return) {
+                    _iterator.return();
+                }
+            } finally {
+                if (_didIteratorError) {
+                    throw _iteratorError;
+                }
+            }
+        }
     }
 
     createClass(MarkupClassMap, [{
@@ -25112,29 +24529,29 @@ var MarkupClassMap = function () {
     }, {
         key: "registerDependencies",
         value: function registerDependencies(dependencies) {
-            var _iteratorNormalCompletion = true;
-            var _didIteratorError = false;
-            var _iteratorError = undefined;
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
 
             try {
-                for (var _iterator = dependencies[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                    var dependency = _step.value;
+                for (var _iterator2 = dependencies[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var dependency = _step2.value;
 
                     if (dependency && dependency.registerMarkup) {
                         dependency.registerMarkup(this);
                     }
                 }
             } catch (err) {
-                _didIteratorError = true;
-                _iteratorError = err;
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
             } finally {
                 try {
-                    if (!_iteratorNormalCompletion && _iterator.return) {
-                        _iterator.return();
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
                     }
                 } finally {
-                    if (_didIteratorError) {
-                        throw _iteratorError;
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
                     }
                 }
             }
@@ -25621,7 +25038,7 @@ var PublicUserStoreClass = AjaxFetchMixin(GenericObjectStore);
 var PublicUserStore = new PublicUserStoreClass("publicuser", PublicUser, {
     fetchTimeoutDuration: 20,
     maxFetchObjectCount: 512,
-    fetchURL: "/public_user_profiles/"
+    fetchURL: "/accounts/public_user_profiles/"
 });
 
 window.USER = Object.assign({
@@ -25808,8 +25225,6 @@ var ArticleRenderer = function (_MarkupRenderer) {
     return ArticleRenderer;
 }(MarkupRenderer);
 
-ArticleRenderer.markupClassMap = new MarkupClassMap(MarkupClassMap.GLOBAL);
-
 var RecursiveArticleRenderer = function (_ArticleRenderer) {
     inherits(RecursiveArticleRenderer, _ArticleRenderer);
 
@@ -25833,9 +25248,7 @@ var RecursiveArticleRenderer = function (_ArticleRenderer) {
                 return get(RecursiveArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(RecursiveArticleRenderer.prototype), "redraw", this).call(this);
             } else {
                 ArticleStore.fetch(this.options.articleId, function (article) {
-                    _this4.options.article = article;
-                    _this4.setOptions(_this4.options);
-                    _this4.redraw();
+                    return _this4.updateOptions({ article: article });
                 });
             }
         }
@@ -25912,21 +25325,20 @@ var ArticleSwitcher = function (_Switcher) {
     return ArticleSwitcher;
 }(Switcher);
 
-ArticleRenderer.markupClassMap.addClass("Article", RecursiveArticleRenderer);
-ArticleRenderer.markupClassMap.addClass("RawSVG", SVG.RawSVG);
+ArticleRenderer.markupClassMap = new MarkupClassMap(MarkupClassMap.GLOBAL, [["Article", RecursiveArticleRenderer], ["RawSVG", SVG.RawSVG]]);
 
-var _class$41;
-var _descriptor$18;
-var _descriptor2$16;
-var _descriptor3$16;
+var _class$43;
+var _descriptor$20;
+var _descriptor2$17;
+var _descriptor3$17;
 var _descriptor4$13;
 var _descriptor5$11;
 var _descriptor6$9;
-var _class3$12;
+var _class3$14;
 var _descriptor7$7;
 var _descriptor8$6;
 
-function _initDefineProp$19(target, property, descriptor, context) {
+function _initDefineProp$21(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -25936,7 +25348,7 @@ function _initDefineProp$19(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$20(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$22(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -25977,7 +25389,7 @@ var CSAStyle = {
     color: color
 };
 
-var BlogStyle = (_class$41 = function (_StyleSheet) {
+var BlogStyle = (_class$43 = function (_StyleSheet) {
     inherits(BlogStyle, _StyleSheet);
 
     function BlogStyle() {
@@ -25991,7 +25403,7 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = BlogStyle.__proto__ || Object.getPrototypeOf(BlogStyle)).call.apply(_ref, [this].concat(args))), _this), _this.fontFamily = "lato, open sans", _this.titleFontSize = "2em", _initDefineProp$19(_this, "commentsTitle", _descriptor$18, _this), _initDefineProp$19(_this, "bottomSection", _descriptor2$16, _this), _initDefineProp$19(_this, "blogEntryView", _descriptor3$16, _this), _this.title = {
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = BlogStyle.__proto__ || Object.getPrototypeOf(BlogStyle)).call.apply(_ref, [this].concat(args))), _this), _this.fontFamily = "lato, open sans", _this.titleFontSize = "2em", _initDefineProp$21(_this, "commentsTitle", _descriptor$20, _this), _initDefineProp$21(_this, "bottomSection", _descriptor2$17, _this), _initDefineProp$21(_this, "blogEntryView", _descriptor3$17, _this), _this.title = {
             "font-size": _this.titleFontSize,
             "padding-top": "20px",
             "padding-bottom": "10px",
@@ -26025,11 +25437,11 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             "font-family": _this.fontFamily,
             "font-size": "17px",
             marginBottom: "25px"
-        }, _initDefineProp$19(_this, "whiteOverlay", _descriptor4$13, _this), _initDefineProp$19(_this, "loadMoreButton", _descriptor5$11, _this), _initDefineProp$19(_this, "sendMessageButtonStyle", _descriptor6$9, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$21(_this, "whiteOverlay", _descriptor4$13, _this), _initDefineProp$21(_this, "loadMoreButton", _descriptor5$11, _this), _initDefineProp$21(_this, "sendMessageButtonStyle", _descriptor6$9, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return BlogStyle;
-}(StyleSheet), (_descriptor$18 = _applyDecoratedDescriptor$20(_class$41.prototype, "commentsTitle", [styleRule], {
+}(StyleSheet), (_descriptor$20 = _applyDecoratedDescriptor$22(_class$43.prototype, "commentsTitle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -26041,7 +25453,7 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             textTransform: "uppercase"
         };
     }
-}), _descriptor2$16 = _applyDecoratedDescriptor$20(_class$41.prototype, "bottomSection", [styleRule], {
+}), _descriptor2$17 = _applyDecoratedDescriptor$22(_class$43.prototype, "bottomSection", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -26050,7 +25462,7 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             width: "100%"
         };
     }
-}), _descriptor3$16 = _applyDecoratedDescriptor$20(_class$41.prototype, "blogEntryView", [styleRule], {
+}), _descriptor3$17 = _applyDecoratedDescriptor$22(_class$43.prototype, "blogEntryView", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -26062,7 +25474,7 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             // "padding-bottom": "50px",
         };
     }
-}), _descriptor4$13 = _applyDecoratedDescriptor$20(_class$41.prototype, "whiteOverlay", [styleRule], {
+}), _descriptor4$13 = _applyDecoratedDescriptor$22(_class$43.prototype, "whiteOverlay", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -26074,7 +25486,7 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             width: "92%"
         };
     }
-}), _descriptor5$11 = _applyDecoratedDescriptor$20(_class$41.prototype, "loadMoreButton", [styleRule], {
+}), _descriptor5$11 = _applyDecoratedDescriptor$22(_class$43.prototype, "loadMoreButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -26116,7 +25528,7 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor6$9 = _applyDecoratedDescriptor$20(_class$41.prototype, "sendMessageButtonStyle", [styleRule], {
+}), _descriptor6$9 = _applyDecoratedDescriptor$22(_class$43.prototype, "sendMessageButtonStyle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -26127,7 +25539,6 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             borderRadius: "0px",
             backgroundColor: CSAStyle.color.BLUE,
             borderColor: "#333",
-            fontFamily: "lato",
             fontSize: "13px",
             transition: ".2s",
             ":hover": {
@@ -26152,8 +25563,8 @@ var BlogStyle = (_class$41 = function (_StyleSheet) {
             }
         };
     }
-})), _class$41);
-var BlogArticleRendererStyle = (_class3$12 = function (_StyleSheet2) {
+})), _class$43);
+var BlogArticleRendererStyle = (_class3$14 = function (_StyleSheet2) {
     inherits(BlogArticleRendererStyle, _StyleSheet2);
 
     function BlogArticleRendererStyle() {
@@ -26172,11 +25583,11 @@ var BlogArticleRendererStyle = (_class3$12 = function (_StyleSheet2) {
             "margin-top": "30px",
             "margin-bottom": "30px",
             "width": "100%"
-        }, _initDefineProp$19(_this2, "blogArticleRenderer", _descriptor7$7, _this2), _initDefineProp$19(_this2, "quote", _descriptor8$6, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+        }, _initDefineProp$21(_this2, "blogArticleRenderer", _descriptor7$7, _this2), _initDefineProp$21(_this2, "quote", _descriptor8$6, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
     }
 
     return BlogArticleRendererStyle;
-}(StyleSheet), (_descriptor7$7 = _applyDecoratedDescriptor$20(_class3$12.prototype, "blogArticleRenderer", [styleRule], {
+}(StyleSheet), (_descriptor7$7 = _applyDecoratedDescriptor$22(_class3$14.prototype, "blogArticleRenderer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -26188,7 +25599,7 @@ var BlogArticleRendererStyle = (_class3$12 = function (_StyleSheet2) {
             " h6": this.hStyle
         };
     }
-}), _descriptor8$6 = _applyDecoratedDescriptor$20(_class3$12.prototype, "quote", [styleRule], {
+}), _descriptor8$6 = _applyDecoratedDescriptor$22(_class3$14.prototype, "quote", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -26201,14 +25612,14 @@ var BlogArticleRendererStyle = (_class3$12 = function (_StyleSheet2) {
             "width": "100%"
         };
     }
-})), _class3$12);
+})), _class3$14);
 
-var _dec$19;
-var _class$40;
-var _dec2$6;
+var _dec$21;
+var _class$42;
+var _dec2$5;
 var _class2$4;
 
-var BlogArticleRenderer = (_dec$19 = registerStyle(BlogArticleRendererStyle), _dec$19(_class$40 = function (_ArticleRenderer) {
+var BlogArticleRenderer = (_dec$21 = registerStyle(BlogArticleRendererStyle), _dec$21(_class$42 = function (_ArticleRenderer) {
     inherits(BlogArticleRenderer, _ArticleRenderer);
 
     function BlogArticleRenderer() {
@@ -26224,8 +25635,8 @@ var BlogArticleRenderer = (_dec$19 = registerStyle(BlogArticleRendererStyle), _d
         }
     }]);
     return BlogArticleRenderer;
-}(ArticleRenderer)) || _class$40);
-var BlogQuote = (_dec2$6 = registerStyle(BlogArticleRendererStyle), _dec2$6(_class2$4 = function (_UI$Primitive) {
+}(ArticleRenderer)) || _class$42);
+var BlogQuote = (_dec2$5 = registerStyle(BlogArticleRendererStyle), _dec2$5(_class2$4 = function (_UI$Primitive) {
     inherits(BlogQuote, _UI$Primitive);
 
     function BlogQuote() {
@@ -28430,7 +27841,7 @@ var EmojiButton = function (_Button) {
             return BasePopup.create(this.parent, {
                 target: this,
                 children: emotesList,
-                arrowDirection: UI.Direction.DOWN,
+                arrowDirection: Direction.DOWN,
                 style: {
                     display: "flex",
                     overflow: "auto",
@@ -29303,10 +28714,10 @@ var CountryStoreClass = function (_GenericObjectStore) {
 
 var CountryStore = new CountryStoreClass("country", Country);
 
-var _class$46;
-var _descriptor$19;
-var _descriptor2$17;
-var _descriptor3$17;
+var _class$48;
+var _descriptor$21;
+var _descriptor2$18;
+var _descriptor3$18;
 var _descriptor4$14;
 var _descriptor5$12;
 var _descriptor6$10;
@@ -29314,10 +28725,10 @@ var _descriptor7$8;
 var _descriptor8$7;
 var _descriptor9$6;
 var _descriptor10$4;
-var _descriptor11$4;
-var _descriptor12$3;
-var _descriptor13$3;
-var _descriptor14$3;
+var _descriptor11$3;
+var _descriptor12$2;
+var _descriptor13$2;
+var _descriptor14$2;
 var _descriptor15$2;
 var _descriptor16$2;
 var _descriptor17$1;
@@ -29327,7 +28738,7 @@ var _descriptor20$1;
 var _descriptor21$1;
 var _descriptor22;
 
-function _initDefineProp$20(target, property, descriptor, context) {
+function _initDefineProp$22(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -29337,7 +28748,7 @@ function _initDefineProp$20(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$21(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$23(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -29375,7 +28786,7 @@ var textColor = "#252525";
 var signInButtonHeight = 50;
 var signInButtonWidth = 120;
 
-var LoginStyle = (_class$46 = function (_StyleSheet) {
+var LoginStyle = (_class$48 = function (_StyleSheet) {
     inherits(LoginStyle, _StyleSheet);
 
     function LoginStyle() {
@@ -29389,17 +28800,17 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = LoginStyle.__proto__ || Object.getPrototypeOf(LoginStyle)).call.apply(_ref, [this].concat(args))), _this), _this.fontFamily = "lato, open sans", _initDefineProp$20(_this, "loginRegisterSystem", _descriptor$19, _this), _initDefineProp$20(_this, "loginRegisterButtons", _descriptor2$17, _this), _initDefineProp$20(_this, "loginSystemButton", _descriptor3$17, _this), _initDefineProp$20(_this, "registerSystemButton", _descriptor4$14, _this), _this.selectedLeft = {
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = LoginStyle.__proto__ || Object.getPrototypeOf(LoginStyle)).call.apply(_ref, [this].concat(args))), _this), _this.fontFamily = "lato, open sans", _initDefineProp$22(_this, "loginRegisterSystem", _descriptor$21, _this), _initDefineProp$22(_this, "loginRegisterButtons", _descriptor2$18, _this), _initDefineProp$22(_this, "loginSystemButton", _descriptor3$18, _this), _initDefineProp$22(_this, "registerSystemButton", _descriptor4$14, _this), _this.selectedLeft = {
             borderBottom: "0",
             borderRight: "0",
             backgroundColor: "#fff",
             fontWeight: "bold"
-        }, _initDefineProp$20(_this, "selectedLeftClass", _descriptor5$12, _this), _this.selectedRight = {
+        }, _initDefineProp$22(_this, "selectedLeftClass", _descriptor5$12, _this), _this.selectedRight = {
             borderBottom: "0",
             borderLeft: "0",
             backgroundColor: "#fff",
             fontWeight: "bold"
-        }, _initDefineProp$20(_this, "selectedRightClass", _descriptor6$10, _this), _initDefineProp$20(_this, "loginWidget", _descriptor7$8, _this), _initDefineProp$20(_this, "registerWidget", _descriptor8$7, _this), _this.fontAwesomeIcon = {
+        }, _initDefineProp$22(_this, "selectedRightClass", _descriptor6$10, _this), _initDefineProp$22(_this, "loginWidget", _descriptor7$8, _this), _initDefineProp$22(_this, "registerWidget", _descriptor8$7, _this), _this.fontAwesomeIcon = {
             height: fontAwesomeIconHeight + "px",
             lineHeight: fontAwesomeIconHeight + "px",
             width: "15%",
@@ -29412,7 +28823,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             borderBottomLeftRadius: "5px",
             borderRight: "0px solid white",
             marginTop: "20px"
-        }, _initDefineProp$20(_this, "input", _descriptor9$6, _this), _initDefineProp$20(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$20(_this, "badLogin", _descriptor11$4, _this), _initDefineProp$20(_this, "rememberMe", _descriptor12$3, _this), _initDefineProp$20(_this, "forgotPassword", _descriptor13$3, _this), _initDefineProp$20(_this, "signInButtonContainer", _descriptor14$3, _this), _initDefineProp$20(_this, "signInButton", _descriptor15$2, _this), _initDefineProp$20(_this, "horizontalLine", _descriptor16$2, _this), _this.connectWith = {
+        }, _initDefineProp$22(_this, "input", _descriptor9$6, _this), _initDefineProp$22(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$22(_this, "badLogin", _descriptor11$3, _this), _initDefineProp$22(_this, "rememberMe", _descriptor12$2, _this), _initDefineProp$22(_this, "forgotPassword", _descriptor13$2, _this), _initDefineProp$22(_this, "signInButtonContainer", _descriptor14$2, _this), _initDefineProp$22(_this, "signInButton", _descriptor15$2, _this), _initDefineProp$22(_this, "horizontalLine", _descriptor16$2, _this), _this.connectWith = {
             width: "100%",
             textAlign: "center",
             fontFamily: _this.fontFamily,
@@ -29425,11 +28836,11 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             justifyContent: "center",
             alignItems: "center",
             marginTop: "20px"
-        }, _initDefineProp$20(_this, "faLogo", _descriptor17$1, _this), _initDefineProp$20(_this, "recaptchaContainer", _descriptor18$1, _this), _initDefineProp$20(_this, "connectWithButtonsSpan", _descriptor19$1, _this), _initDefineProp$20(_this, "thirdPartyLoginContainer", _descriptor20$1, _this), _this.socialConnectDimensions = "35px", _initDefineProp$20(_this, "socialConnectButtonContainer", _descriptor21$1, _this), _initDefineProp$20(_this, "socialConnectButtonIcon", _descriptor22, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$22(_this, "faLogo", _descriptor17$1, _this), _initDefineProp$22(_this, "recaptchaContainer", _descriptor18$1, _this), _initDefineProp$22(_this, "connectWithButtonsSpan", _descriptor19$1, _this), _initDefineProp$22(_this, "thirdPartyLoginContainer", _descriptor20$1, _this), _this.socialConnectDimensions = "35px", _initDefineProp$22(_this, "socialConnectButtonContainer", _descriptor21$1, _this), _initDefineProp$22(_this, "socialConnectButtonIcon", _descriptor22, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return LoginStyle;
-}(StyleSheet), (_descriptor$19 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginRegisterSystem", [styleRule], {
+}(StyleSheet), (_descriptor$21 = _applyDecoratedDescriptor$23(_class$48.prototype, "loginRegisterSystem", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return function () {
@@ -29454,7 +28865,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor2$17 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginRegisterButtons", [styleRule], {
+}), _descriptor2$18 = _applyDecoratedDescriptor$23(_class$48.prototype, "loginRegisterButtons", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29464,7 +28875,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             height: buttonHeight / loginHeight * 100 + "%"
         };
     }
-}), _descriptor3$17 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginSystemButton", [styleRule], {
+}), _descriptor3$18 = _applyDecoratedDescriptor$23(_class$48.prototype, "loginSystemButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return defineProperty({
@@ -29488,7 +28899,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             textTransform: "uppercase"
         }, "fontSize", "1.1em");
     }
-}), _descriptor4$14 = _applyDecoratedDescriptor$21(_class$46.prototype, "registerSystemButton", [styleRule], {
+}), _descriptor4$14 = _applyDecoratedDescriptor$23(_class$48.prototype, "registerSystemButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return defineProperty({
@@ -29512,7 +28923,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             textTransform: "uppercase"
         }, "fontSize", "1.1em");
     }
-}), _descriptor5$12 = _applyDecoratedDescriptor$21(_class$46.prototype, "selectedLeftClass", [styleRule], {
+}), _descriptor5$12 = _applyDecoratedDescriptor$23(_class$48.prototype, "selectedLeftClass", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29521,7 +28932,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             backgroundColor: "#fff"
         };
     }
-}), _descriptor6$10 = _applyDecoratedDescriptor$21(_class$46.prototype, "selectedRightClass", [styleRule], {
+}), _descriptor6$10 = _applyDecoratedDescriptor$23(_class$48.prototype, "selectedRightClass", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29530,7 +28941,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             backgroundColor: "#fff"
         };
     }
-}), _descriptor7$8 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginWidget", [styleRule], {
+}), _descriptor7$8 = _applyDecoratedDescriptor$23(_class$48.prototype, "loginWidget", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29542,7 +28953,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             borderTop: "0px solid #d3d5d9"
         };
     }
-}), _descriptor8$7 = _applyDecoratedDescriptor$21(_class$46.prototype, "registerWidget", [styleRule], {
+}), _descriptor8$7 = _applyDecoratedDescriptor$23(_class$48.prototype, "registerWidget", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29554,7 +28965,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             borderTop: "0px solid #d3d5d9"
         };
     }
-}), _descriptor9$6 = _applyDecoratedDescriptor$21(_class$46.prototype, "input", [styleRule], {
+}), _descriptor9$6 = _applyDecoratedDescriptor$23(_class$48.prototype, "input", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29582,7 +28993,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor10$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "countrySelect", [styleRule], {
+}), _descriptor10$4 = _applyDecoratedDescriptor$23(_class$48.prototype, "countrySelect", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29593,7 +29004,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             marginBottom: "10px"
         };
     }
-}), _descriptor11$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "badLogin", [styleRule], {
+}), _descriptor11$3 = _applyDecoratedDescriptor$23(_class$48.prototype, "badLogin", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29605,7 +29016,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor12$3 = _applyDecoratedDescriptor$21(_class$46.prototype, "rememberMe", [styleRule], {
+}), _descriptor12$2 = _applyDecoratedDescriptor$23(_class$48.prototype, "rememberMe", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29615,7 +29026,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor13$3 = _applyDecoratedDescriptor$21(_class$46.prototype, "forgotPassword", [styleRule], {
+}), _descriptor13$2 = _applyDecoratedDescriptor$23(_class$48.prototype, "forgotPassword", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29625,7 +29036,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             paddingRight: "5px"
         };
     }
-}), _descriptor14$3 = _applyDecoratedDescriptor$21(_class$46.prototype, "signInButtonContainer", [styleRule], {
+}), _descriptor14$2 = _applyDecoratedDescriptor$23(_class$48.prototype, "signInButtonContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29637,7 +29048,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             margin: "20px auto"
         };
     }
-}), _descriptor15$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "signInButton", [styleRule], {
+}), _descriptor15$2 = _applyDecoratedDescriptor$23(_class$48.prototype, "signInButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29660,7 +29071,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor16$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "horizontalLine", [styleRule], {
+}), _descriptor16$2 = _applyDecoratedDescriptor$23(_class$48.prototype, "horizontalLine", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29669,7 +29080,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             marginTop: "20px"
         };
     }
-}), _descriptor17$1 = _applyDecoratedDescriptor$21(_class$46.prototype, "faLogo", [styleRule], {
+}), _descriptor17$1 = _applyDecoratedDescriptor$23(_class$48.prototype, "faLogo", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29694,7 +29105,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             fontWeight: "bold"
         };
     }
-}), _descriptor18$1 = _applyDecoratedDescriptor$21(_class$46.prototype, "recaptchaContainer", [styleRule], {
+}), _descriptor18$1 = _applyDecoratedDescriptor$23(_class$48.prototype, "recaptchaContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29705,7 +29116,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             width: "100%"
         };
     }
-}), _descriptor19$1 = _applyDecoratedDescriptor$21(_class$46.prototype, "connectWithButtonsSpan", [styleRule], {
+}), _descriptor19$1 = _applyDecoratedDescriptor$23(_class$48.prototype, "connectWithButtonsSpan", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29714,7 +29125,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             fontSize: "15px"
         };
     }
-}), _descriptor20$1 = _applyDecoratedDescriptor$21(_class$46.prototype, "thirdPartyLoginContainer", [styleRule], {
+}), _descriptor20$1 = _applyDecoratedDescriptor$23(_class$48.prototype, "thirdPartyLoginContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29725,7 +29136,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             margin: "15px 0"
         };
     }
-}), _descriptor21$1 = _applyDecoratedDescriptor$21(_class$46.prototype, "socialConnectButtonContainer", [styleRule], {
+}), _descriptor21$1 = _applyDecoratedDescriptor$23(_class$48.prototype, "socialConnectButtonContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29746,7 +29157,7 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor22 = _applyDecoratedDescriptor$21(_class$46.prototype, "socialConnectButtonIcon", [styleRule], {
+}), _descriptor22 = _applyDecoratedDescriptor$23(_class$48.prototype, "socialConnectButtonIcon", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -29757,22 +29168,22 @@ var LoginStyle = (_class$46 = function (_StyleSheet) {
             alignItems: "center"
         };
     }
-})), _class$46);
+})), _class$48);
 
-var _dec$23;
-var _class$45;
-var _dec2$9;
+var _dec$25;
+var _class$47;
+var _dec2$8;
 var _class2$7;
-var _dec3$2;
-var _class3$13;
+var _dec3$1;
+var _class3$15;
 var _dec4;
-var _class4$2;
+var _class4$1;
 var _dec5;
 var _class5$4;
 var _dec6;
-var _class6$2;
+var _class6$1;
 var _dec7;
-var _class7$3;
+var _class7$2;
 
 var ERROR_TIMEOUT = 6 * 1000;
 
@@ -29802,7 +29213,7 @@ var socialLoginSpecificInfo = {
     }
 };
 
-var SocialConnectButton = (_dec$23 = registerStyle(LoginStyle), _dec$23(_class$45 = function (_UI$Primitive) {
+var SocialConnectButton = (_dec$25 = registerStyle(LoginStyle), _dec$25(_class$47 = function (_UI$Primitive) {
     inherits(SocialConnectButton, _UI$Primitive);
 
     function SocialConnectButton() {
@@ -29855,8 +29266,8 @@ var SocialConnectButton = (_dec$23 = registerStyle(LoginStyle), _dec$23(_class$4
         }
     }]);
     return SocialConnectButton;
-}(UI.Primitive("button"))) || _class$45);
-var ThirdPartyLogin = (_dec2$9 = registerStyle(LoginStyle), _dec2$9(_class2$7 = function (_UI$Element) {
+}(UI.Primitive("button"))) || _class$47);
+var ThirdPartyLogin = (_dec2$8 = registerStyle(LoginStyle), _dec2$8(_class2$7 = function (_UI$Element) {
     inherits(ThirdPartyLogin, _UI$Element);
 
     function ThirdPartyLogin() {
@@ -29900,7 +29311,7 @@ var ThirdPartyLogin = (_dec2$9 = registerStyle(LoginStyle), _dec2$9(_class2$7 = 
     }]);
     return ThirdPartyLogin;
 }(UI.Element)) || _class2$7);
-var LoginWidget = (_dec3$2 = registerStyle(LoginStyle), _dec3$2(_class3$13 = function (_UI$Element2) {
+var LoginWidget = (_dec3$1 = registerStyle(LoginStyle), _dec3$1(_class3$15 = function (_UI$Element2) {
     inherits(LoginWidget, _UI$Element2);
 
     function LoginWidget() {
@@ -30051,7 +29462,7 @@ var LoginWidget = (_dec3$2 = registerStyle(LoginStyle), _dec3$2(_class3$13 = fun
         }
     }]);
     return LoginWidget;
-}(UI.Element)) || _class3$13);
+}(UI.Element)) || _class3$15);
 
 var RecaptchaWidget = function (_UI$Element3) {
     inherits(RecaptchaWidget, _UI$Element3);
@@ -30097,7 +29508,7 @@ var RecaptchaWidget = function (_UI$Element3) {
     return RecaptchaWidget;
 }(UI.Element);
 
-var RegisterWidget = (_dec4 = registerStyle(LoginStyle), _dec4(_class4$2 = function (_UI$Element4) {
+var RegisterWidget = (_dec4 = registerStyle(LoginStyle), _dec4(_class4$1 = function (_UI$Element4) {
     inherits(RegisterWidget, _UI$Element4);
 
     function RegisterWidget() {
@@ -30211,7 +29622,7 @@ var RegisterWidget = (_dec4 = registerStyle(LoginStyle), _dec4(_class4$2 = funct
         }
     }]);
     return RegisterWidget;
-}(UI.Element)) || _class4$2);
+}(UI.Element)) || _class4$1);
 
 
 RegisterWidget.prototype.getEmailInput = LoginWidget.prototype.getEmailInput;
@@ -30307,7 +29718,7 @@ var NormalLogin = (_dec5 = registerStyle(LoginStyle), _dec5(_class5$4 = function
     }]);
     return NormalLogin;
 }(UI.Element)) || _class5$4);
-var LoginTabButton = (_dec6 = registerStyle(LoginStyle), _dec6(_class6$2 = function (_UI$Primitive2) {
+var LoginTabButton = (_dec6 = registerStyle(LoginStyle), _dec6(_class6$1 = function (_UI$Primitive2) {
     inherits(LoginTabButton, _UI$Primitive2);
 
     function LoginTabButton() {
@@ -30332,8 +29743,8 @@ var LoginTabButton = (_dec6 = registerStyle(LoginStyle), _dec6(_class6$2 = funct
         }
     }]);
     return LoginTabButton;
-}(UI.Primitive(BasicTabTitle, "div"))) || _class6$2);
-var RegisterTabButton = (_dec7 = registerStyle(LoginStyle), _dec7(_class7$3 = function (_UI$Primitive3) {
+}(UI.Primitive(BasicTabTitle, "div"))) || _class6$1);
+var RegisterTabButton = (_dec7 = registerStyle(LoginStyle), _dec7(_class7$2 = function (_UI$Primitive3) {
     inherits(RegisterTabButton, _UI$Primitive3);
 
     function RegisterTabButton() {
@@ -30358,7 +29769,7 @@ var RegisterTabButton = (_dec7 = registerStyle(LoginStyle), _dec7(_class7$3 = fu
         }
     }]);
     return RegisterTabButton;
-}(UI.Primitive(BasicTabTitle, "div"))) || _class7$3);
+}(UI.Primitive(BasicTabTitle, "div"))) || _class7$2);
 
 var Login = function (_UI$Element6) {
     inherits(Login, _UI$Element6);
@@ -30440,14 +29851,14 @@ var LoginModal = function (_Modal) {
     return LoginModal;
 }(Modal);
 
-var _class$47;
-var _descriptor$20;
-var _descriptor2$18;
-var _descriptor3$18;
+var _class$49;
+var _descriptor$22;
+var _descriptor2$19;
+var _descriptor3$19;
 var _descriptor4$15;
 var _descriptor5$13;
 
-function _initDefineProp$21(target, property, descriptor, context) {
+function _initDefineProp$23(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -30457,7 +29868,7 @@ function _initDefineProp$21(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$22(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$24(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -30486,7 +29897,7 @@ function _applyDecoratedDescriptor$22(target, property, decorators, descriptor, 
     return desc;
 }
 
-var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
+var VotingWidgetStyle = (_class$49 = function (_StyleSheet) {
     inherits(VotingWidgetStyle, _StyleSheet);
 
     function VotingWidgetStyle() {
@@ -30500,7 +29911,7 @@ var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = VotingWidgetStyle.__proto__ || Object.getPrototypeOf(VotingWidgetStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 40, _this.size = 1, _this.likeColor = _this.options.likeColor || "#1E8921", _this.dislikeColor = _this.options.dislikeColor || "#C5302C", _this.notVoteColor = _this.options.notVoteColor || "#313534", _this.balanceColor = _this.options.balanceColor || "#313534", _this.orientation = Orientation.VERTICAL, _initDefineProp$21(_this, "container", _descriptor$20, _this), _this.mainClass = {
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = VotingWidgetStyle.__proto__ || Object.getPrototypeOf(VotingWidgetStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 40, _this.size = 1, _this.likeColor = _this.options.likeColor || "#1E8921", _this.dislikeColor = _this.options.dislikeColor || "#C5302C", _this.notVoteColor = _this.options.notVoteColor || "#313534", _this.balanceColor = _this.options.balanceColor || "#313534", _this.orientation = Orientation.VERTICAL, _initDefineProp$23(_this, "container", _descriptor$22, _this), _this.mainClass = {
             height: "40px",
             lineHeight: "40px",
             fontSize: "14px",
@@ -30511,17 +29922,17 @@ var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
         }, _this.thumbsStyle = {
             fontSize: _this.height / 2 + "px",
             lineHeight: _this.height + "px"
-        }, _initDefineProp$21(_this, "displayStyle", _descriptor2$18, _this), _this.counterStyle = {
+        }, _initDefineProp$23(_this, "displayStyle", _descriptor2$19, _this), _this.counterStyle = {
             fontSize: 18 * _this.size + "px",
             fontWeight: "900",
             color: _this.balanceColor
-        }, _initDefineProp$21(_this, "thumbsUpHoverStyle", _descriptor3$18, _this), _initDefineProp$21(_this, "thumbsDownHoverStyle", _descriptor4$15, _this), _initDefineProp$21(_this, "padding", _descriptor5$13, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$23(_this, "thumbsUpHoverStyle", _descriptor3$19, _this), _initDefineProp$23(_this, "thumbsDownHoverStyle", _descriptor4$15, _this), _initDefineProp$23(_this, "padding", _descriptor5$13, _this), _temp), possibleConstructorReturn(_this, _ret);
     } //            |
     //      |- Triadic colors + Shades
 
 
     return VotingWidgetStyle;
-}(StyleSheet), (_descriptor$20 = _applyDecoratedDescriptor$22(_class$47.prototype, "container", [styleRule], {
+}(StyleSheet), (_descriptor$22 = _applyDecoratedDescriptor$24(_class$49.prototype, "container", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30534,7 +29945,7 @@ var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
             alignItems: "center"
         };
     }
-}), _descriptor2$18 = _applyDecoratedDescriptor$22(_class$47.prototype, "displayStyle", [styleRule], {
+}), _descriptor2$19 = _applyDecoratedDescriptor$24(_class$49.prototype, "displayStyle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30543,7 +29954,7 @@ var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
             paddingLeft: "3px"
         };
     }
-}), _descriptor3$18 = _applyDecoratedDescriptor$22(_class$47.prototype, "thumbsUpHoverStyle", [styleRule], {
+}), _descriptor3$19 = _applyDecoratedDescriptor$24(_class$49.prototype, "thumbsUpHoverStyle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30555,7 +29966,7 @@ var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor4$15 = _applyDecoratedDescriptor$22(_class$47.prototype, "thumbsDownHoverStyle", [styleRule], {
+}), _descriptor4$15 = _applyDecoratedDescriptor$24(_class$49.prototype, "thumbsDownHoverStyle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30567,7 +29978,7 @@ var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor5$13 = _applyDecoratedDescriptor$22(_class$47.prototype, "padding", [styleRule], {
+}), _descriptor5$13 = _applyDecoratedDescriptor$24(_class$49.prototype, "padding", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30577,10 +29988,10 @@ var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
             height: this.height + "px"
         };
     }
-})), _class$47);
+})), _class$49);
 
-var _dec$22;
-var _class$44;
+var _dec$24;
+var _class$46;
 
 var VotingWidget = function (_UI$Element) {
     inherits(VotingWidget, _UI$Element);
@@ -30769,7 +30180,7 @@ var CommentVotingWidget = function (_VotingWidget) {
 // TODO: rewrite
 
 
-var CommentVotingWidgetWithThumbs = (_dec$22 = registerStyle(VotingWidgetStyle), _dec$22(_class$44 = function (_CommentVotingWidget) {
+var CommentVotingWidgetWithThumbs = (_dec$24 = registerStyle(VotingWidgetStyle), _dec$24(_class$46 = function (_CommentVotingWidget) {
     inherits(CommentVotingWidgetWithThumbs, _CommentVotingWidget);
 
     function CommentVotingWidgetWithThumbs() {
@@ -30823,12 +30234,12 @@ var CommentVotingWidgetWithThumbs = (_dec$22 = registerStyle(VotingWidgetStyle),
         }
     }]);
     return CommentVotingWidgetWithThumbs;
-}(CommentVotingWidget)) || _class$44);
+}(CommentVotingWidget)) || _class$46);
 
-var _class$48;
-var _descriptor$21;
-var _descriptor2$19;
-var _descriptor3$19;
+var _class$50;
+var _descriptor$23;
+var _descriptor2$20;
+var _descriptor3$20;
 var _descriptor4$16;
 var _descriptor5$14;
 var _descriptor6$11;
@@ -30836,9 +30247,9 @@ var _descriptor7$9;
 var _descriptor8$8;
 var _descriptor9$7;
 var _descriptor10$5;
-var _descriptor11$5;
+var _descriptor11$4;
 
-function _initDefineProp$22(target, property, descriptor, context) {
+function _initDefineProp$24(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -30848,7 +30259,7 @@ function _initDefineProp$22(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$23(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$25(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -30877,7 +30288,7 @@ function _applyDecoratedDescriptor$23(target, property, decorators, descriptor, 
     return desc;
 }
 
-var ChatStyle = (_class$48 = function (_StyleSheet) {
+var ChatStyle = (_class$50 = function (_StyleSheet) {
     inherits(ChatStyle, _StyleSheet);
 
     function ChatStyle() {
@@ -30891,7 +30302,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ChatStyle.__proto__ || Object.getPrototypeOf(ChatStyle)).call.apply(_ref, [this].concat(args))), _this), _this.navbarHeight = "50px", _this.renderMessageHeight = "100px", _this.fontFamily = "lato, open sans", _this.userFontSize = "1.1em", _this.commentFontSize = "1.1em", _this.backgroundColor = "#fff", _this.hrBackgroundColor = "#ddd", _this.hoverBackgroundColor = "#f8f8f8", _initDefineProp$22(_this, "renderMessageView", _descriptor$21, _this), _initDefineProp$22(_this, "renderMessage", _descriptor2$19, _this), _initDefineProp$22(_this, "chatInput", _descriptor3$19, _this), _initDefineProp$22(_this, "messageBoxButton", _descriptor4$16, _this), _this.previewButton = { // TODO: This is currently not restyled.
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ChatStyle.__proto__ || Object.getPrototypeOf(ChatStyle)).call.apply(_ref, [this].concat(args))), _this), _this.navbarHeight = "50px", _this.renderMessageHeight = "100px", _this.fontFamily = "lato, open sans", _this.userFontSize = "1.1em", _this.commentFontSize = "1.1em", _this.backgroundColor = "#fff", _this.hrBackgroundColor = "#ddd", _this.hoverBackgroundColor = "#f8f8f8", _initDefineProp$24(_this, "renderMessageView", _descriptor$23, _this), _initDefineProp$24(_this, "renderMessage", _descriptor2$20, _this), _initDefineProp$24(_this, "chatInput", _descriptor3$20, _this), _initDefineProp$24(_this, "messageBoxButton", _descriptor4$16, _this), _this.previewButton = { // TODO: This is currently not restyled.
             // We might not want to use it because previewButton is bad practice
             height: "30px",
             width: "30px",
@@ -30908,11 +30319,11 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             padding: "5px 10px",
             textTransform: "uppercase",
             marginTop: "15px"
-        }, _initDefineProp$22(_this, "messageTimeStampHr", _descriptor5$14, _this), _initDefineProp$22(_this, "messageTimeStamp", _descriptor6$11, _this), _initDefineProp$22(_this, "groupChatMessage", _descriptor7$9, _this), _initDefineProp$22(_this, "comment", _descriptor8$8, _this), _initDefineProp$22(_this, "userHandle", _descriptor9$7, _this), _initDefineProp$22(_this, "commentContent", _descriptor10$5, _this), _initDefineProp$22(_this, "timestamp", _descriptor11$5, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$24(_this, "messageTimeStampHr", _descriptor5$14, _this), _initDefineProp$24(_this, "messageTimeStamp", _descriptor6$11, _this), _initDefineProp$24(_this, "groupChatMessage", _descriptor7$9, _this), _initDefineProp$24(_this, "comment", _descriptor8$8, _this), _initDefineProp$24(_this, "userHandle", _descriptor9$7, _this), _initDefineProp$24(_this, "commentContent", _descriptor10$5, _this), _initDefineProp$24(_this, "timestamp", _descriptor11$4, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return ChatStyle;
-}(StyleSheet), (_descriptor$21 = _applyDecoratedDescriptor$23(_class$48.prototype, "renderMessageView", [styleRule], {
+}(StyleSheet), (_descriptor$23 = _applyDecoratedDescriptor$25(_class$50.prototype, "renderMessageView", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30925,7 +30336,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             wordBreak: "break-word"
         };
     }
-}), _descriptor2$19 = _applyDecoratedDescriptor$23(_class$48.prototype, "renderMessage", [styleRule], {
+}), _descriptor2$20 = _applyDecoratedDescriptor$25(_class$50.prototype, "renderMessage", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30937,7 +30348,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             position: "relative"
         };
     }
-}), _descriptor3$19 = _applyDecoratedDescriptor$23(_class$48.prototype, "chatInput", [styleRule], {
+}), _descriptor3$20 = _applyDecoratedDescriptor$25(_class$50.prototype, "chatInput", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _ref2;
@@ -30961,7 +30372,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             boxShadow: "none"
         }), _ref2;
     }
-}), _descriptor4$16 = _applyDecoratedDescriptor$23(_class$48.prototype, "messageBoxButton", [styleRule], {
+}), _descriptor4$16 = _applyDecoratedDescriptor$25(_class$50.prototype, "messageBoxButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -31000,7 +30411,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor5$14 = _applyDecoratedDescriptor$23(_class$48.prototype, "messageTimeStampHr", [styleRule], {
+}), _descriptor5$14 = _applyDecoratedDescriptor$25(_class$50.prototype, "messageTimeStampHr", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -31016,7 +30427,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             textTransform: "uppercase"
         };
     }
-}), _descriptor6$11 = _applyDecoratedDescriptor$23(_class$48.prototype, "messageTimeStamp", [styleRule], {
+}), _descriptor6$11 = _applyDecoratedDescriptor$25(_class$50.prototype, "messageTimeStamp", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -31031,7 +30442,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             fontWeight: "bold"
         };
     }
-}), _descriptor7$9 = _applyDecoratedDescriptor$23(_class$48.prototype, "groupChatMessage", [styleRule], {
+}), _descriptor7$9 = _applyDecoratedDescriptor$25(_class$50.prototype, "groupChatMessage", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -31039,7 +30450,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             backgroundColor: "#fff"
         };
     }
-}), _descriptor8$8 = _applyDecoratedDescriptor$23(_class$48.prototype, "comment", [styleRule], {
+}), _descriptor8$8 = _applyDecoratedDescriptor$25(_class$50.prototype, "comment", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -31053,14 +30464,14 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor9$7 = _applyDecoratedDescriptor$23(_class$48.prototype, "userHandle", [styleRule], {
+}), _descriptor9$7 = _applyDecoratedDescriptor$25(_class$50.prototype, "userHandle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             fontSize: this.userFontSize
         };
     }
-}), _descriptor10$5 = _applyDecoratedDescriptor$23(_class$48.prototype, "commentContent", [styleRule], {
+}), _descriptor10$5 = _applyDecoratedDescriptor$25(_class$50.prototype, "commentContent", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -31075,7 +30486,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor11$5 = _applyDecoratedDescriptor$23(_class$48.prototype, "timestamp", [styleRule], {
+}), _descriptor11$4 = _applyDecoratedDescriptor$25(_class$50.prototype, "timestamp", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -31085,7 +30496,7 @@ var ChatStyle = (_class$48 = function (_StyleSheet) {
             margin: "0 10px"
         };
     }
-})), _class$48);
+})), _class$50);
 
 // Plugins should be used to extends on runtime the functionality of a class, to easily split functionality
 var Plugin = function (_Dispatchable) {
@@ -31177,9 +30588,9 @@ var Pluginable = function Pluginable(BaseClass) {
     }(BaseClass);
 };
 
-var _dec$21;
-var _class$43;
-var _dec2$8;
+var _dec$23;
+var _class$45;
+var _dec2$7;
 var _class2$6;
 
 ButtonStyle.getInstance().ensureFirstUpdate();
@@ -31374,7 +30785,7 @@ var EditableMessage = function (_UI$Element) {
     return EditableMessage;
 }(UI.Element);
 
-var GroupChatMessage = (_dec$21 = registerStyle(ChatStyle), _dec$21(_class$43 = function (_EditableMessage) {
+var GroupChatMessage = (_dec$23 = registerStyle(ChatStyle), _dec$23(_class$45 = function (_EditableMessage) {
     inherits(GroupChatMessage, _EditableMessage);
 
     function GroupChatMessage() {
@@ -31480,8 +30891,8 @@ var GroupChatMessage = (_dec$21 = registerStyle(ChatStyle), _dec$21(_class$43 = 
         }
     }]);
     return GroupChatMessage;
-}(EditableMessage)) || _class$43);
-var PrivateChatMessage = (_dec2$8 = registerStyle(ChatStyle), _dec2$8(_class2$6 = function (_Panel) {
+}(EditableMessage)) || _class$45);
+var PrivateChatMessage = (_dec2$7 = registerStyle(ChatStyle), _dec2$7(_class2$6 = function (_Panel) {
     inherits(PrivateChatMessage, _Panel);
 
     function PrivateChatMessage() {
@@ -31634,7 +31045,7 @@ var ChatWidget = function ChatWidget(ChatMessageClass) {
 
         createClass(ChatWidgetClass, [{
             key: "getDefaultOptions",
-            value: function getDefaultOptions() {
+            value: function getDefaultOptions(options) {
                 return {
                     dateTimestamps: true,
                     renderMessage: function renderMessage(messageInstance) {
@@ -31646,13 +31057,7 @@ var ChatWidget = function ChatWidget(ChatMessageClass) {
             key: "setOptions",
             value: function setOptions(options) {
                 get(ChatWidgetClass.prototype.__proto__ || Object.getPrototypeOf(ChatWidgetClass.prototype), "setOptions", this).call(this, options);
-
-                this.messageThread = options.messageThread;
-
-                // TODO: this is a shitty way of knowing if there are more messages!
-                if (this.messageThread.getNumMessages() >= 20) {
-                    this.showLoadMoreButton = true;
-                }
+                this.initializeShowLoadMoreButton();
             }
         }, {
             key: "extraNodeAttributes",
@@ -31667,6 +31072,14 @@ var ChatWidget = function ChatWidget(ChatMessageClass) {
             key: "canOverwrite",
             value: function canOverwrite() {
                 return false;
+            }
+        }, {
+            key: "initializeShowLoadMoreButton",
+            value: function initializeShowLoadMoreButton() {
+                // TODO: this is a shitty way of knowing if there are more messages!
+                if (this.messageThread.getNumMessages() >= 20) {
+                    this.showLoadMoreButton = true;
+                }
             }
         }, {
             key: "createVirtualMessage",
@@ -32012,6 +31425,11 @@ var ChatWidget = function ChatWidget(ChatMessageClass) {
 
                 this.addResizeListeners();
             }
+        }, {
+            key: "messageThread",
+            get: function get$$1() {
+                return this.options.messageThread;
+            }
         }]);
         return ChatWidgetClass;
     }(Pluginable(Panel))) || _class3);
@@ -32179,11 +31597,11 @@ var VotableGroupChatWidget = function (_ChatWidget3) {
     return VotableGroupChatWidget;
 }(ChatWidget(VotableChatMessage));
 
-var _class$49;
-var _descriptor$22;
-var _descriptor2$20;
+var _class$51;
+var _descriptor$24;
+var _descriptor2$21;
 
-function _initDefineProp$23(target, property, descriptor, context) {
+function _initDefineProp$25(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -32193,7 +31611,7 @@ function _initDefineProp$23(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$24(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$26(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -32222,7 +31640,7 @@ function _applyDecoratedDescriptor$24(target, property, decorators, descriptor, 
     return desc;
 }
 
-var CommentWidgetStyle = (_class$49 = function (_StyleSheet) {
+var CommentWidgetStyle = (_class$51 = function (_StyleSheet) {
     inherits(CommentWidgetStyle, _StyleSheet);
 
     function CommentWidgetStyle() {
@@ -32238,7 +31656,6 @@ var CommentWidgetStyle = (_class$49 = function (_StyleSheet) {
 
         return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = CommentWidgetStyle.__proto__ || Object.getPrototypeOf(CommentWidgetStyle)).call.apply(_ref, [this].concat(args))), _this), _this.loadMoreButton = {
             border: "0px",
-            fontFamily: "lato",
             color: "#333",
             borderRadius: "0",
             borderBottom: "0",
@@ -32247,7 +31664,7 @@ var CommentWidgetStyle = (_class$49 = function (_StyleSheet) {
         }, _this.writingSectionStyle = {
             height: "auto",
             marginTop: "10px"
-        }, _initDefineProp$23(_this, "chatInputStyle", _descriptor$22, _this), _initDefineProp$23(_this, "chatInputMax", _descriptor2$20, _this), _this.previewButtonStyle = { // TODO: This is currently not restyled. We might not want to use it because previewButton is bad practice
+        }, _initDefineProp$25(_this, "chatInputStyle", _descriptor$24, _this), _initDefineProp$25(_this, "chatInputMax", _descriptor2$21, _this), _this.previewButtonStyle = { // TODO: This is currently not restyled. We might not want to use it because previewButton is bad practice
             height: "30px",
             width: "auto",
             fontSize: "100%",
@@ -32256,7 +31673,7 @@ var CommentWidgetStyle = (_class$49 = function (_StyleSheet) {
     }
 
     return CommentWidgetStyle;
-}(StyleSheet), (_descriptor$22 = _applyDecoratedDescriptor$24(_class$49.prototype, "chatInputStyle", [styleRule], {
+}(StyleSheet), (_descriptor$24 = _applyDecoratedDescriptor$26(_class$51.prototype, "chatInputStyle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -32265,7 +31682,6 @@ var CommentWidgetStyle = (_class$49 = function (_StyleSheet) {
             paddingBottom: "0",
             fontSize: "14px",
             borderRadius: "0",
-            fontFamily: "lato",
             outline: "none",
             paddingLeft: "8px",
             paddingTop: "5px",
@@ -32283,18 +31699,18 @@ var CommentWidgetStyle = (_class$49 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor2$20 = _applyDecoratedDescriptor$24(_class$49.prototype, "chatInputMax", [styleRule], {
+}), _descriptor2$21 = _applyDecoratedDescriptor$26(_class$51.prototype, "chatInputMax", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             height: "120px"
         };
     }
-})), _class$49);
+})), _class$51);
 
-var _dec$20;
-var _class$42;
-var _dec2$7;
+var _dec$22;
+var _class$44;
+var _dec2$6;
 var _class2$5;
 
 var ThreadMessage = function (_EditableMessage) {
@@ -32346,7 +31762,7 @@ var ThreadMessage = function (_EditableMessage) {
 
             return [UI.createElement(
                 "span",
-                { style: { float: "right", display: "inline-block", height: "40px", lineHeight: "40px", fontFamily: "lato" } },
+                { style: { float: "right", display: "inline-block", height: "40px", lineHeight: "40px" } },
                 messageDate
             ), UI.createElement(
                 "div",
@@ -32361,7 +31777,6 @@ var ThreadMessage = function (_EditableMessage) {
                             lineHeight: "40px",
                             display: "inline-block",
                             float: "left",
-                            fontFamily: "lato",
                             fontSize: ".95em",
                             color: "#333"
                         } },
@@ -32372,7 +31787,6 @@ var ThreadMessage = function (_EditableMessage) {
                 "div",
                 { style: {
                         paddingTop: "5px",
-                        fontFamily: "lato",
                         fontSize: "16px"
                     } },
                 this.contentSwitcher
@@ -32413,7 +31827,7 @@ var ToggleLogin = function (_UI$Primitive) {
     return ToggleLogin;
 }(UI.Primitive("span"));
 
-var BlogCommentWidget = (_dec$20 = registerStyle(BlogStyle), _dec$20(_class$42 = function (_ChatWidget) {
+var BlogCommentWidget = (_dec$22 = registerStyle(BlogStyle), _dec$22(_class$44 = function (_ChatWidget) {
     inherits(BlogCommentWidget, _ChatWidget);
 
     function BlogCommentWidget() {
@@ -32506,8 +31920,8 @@ var BlogCommentWidget = (_dec$20 = registerStyle(BlogStyle), _dec$20(_class$42 =
         }
     }]);
     return BlogCommentWidget;
-}(ChatWidget(ThreadMessage))) || _class$42);
-var CommentWidget = (_dec2$7 = registerStyle(BlogStyle), _dec2$7(_class2$5 = function (_BlogCommentWidget) {
+}(ChatWidget(ThreadMessage))) || _class$44);
+var CommentWidget = (_dec2$6 = registerStyle(BlogStyle), _dec2$6(_class2$5 = function (_BlogCommentWidget) {
     inherits(CommentWidget, _BlogCommentWidget);
 
     function CommentWidget() {
@@ -32520,8 +31934,6 @@ var CommentWidget = (_dec2$7 = registerStyle(BlogStyle), _dec2$7(_class2$5 = fun
         value: function setOptions(options) {
             get(CommentWidget.prototype.__proto__ || Object.getPrototypeOf(CommentWidget.prototype), "setOptions", this).call(this, options);
 
-            // TODO: remove old message thread, if any
-            this.messageThread = options.messageThread;
             this.key = this.messageThread.id;
 
             this.options.baseRequest = {
@@ -32543,7 +31955,6 @@ var CommentWidget = (_dec2$7 = registerStyle(BlogStyle), _dec2$7(_class2$5 = fun
                 return UI.createElement(
                     "div",
                     { style: {
-                            fontFamily: "lato",
                             color: "#333",
                             paddingTop: "5px",
                             paddingBottom: "5px"
@@ -32552,7 +31963,6 @@ var CommentWidget = (_dec2$7 = registerStyle(BlogStyle), _dec2$7(_class2$5 = fun
                     UI.createElement(
                         ToggleLogin,
                         { style: {
-                                fontFamily: "lato",
                                 backgroundColor: "#eee",
                                 cursor: "pointer",
                                 padding: "5px 10px"
@@ -32628,7 +32038,6 @@ var AsyncCommentThread = function (_UI$Element) {
                             width: "100%",
                             height: "60px",
                             lineHeight: "60px",
-                            fontFamily: "lato",
                             fontSize: "1em",
                             textAlign: "center",
                             textTransform: "uppercase",
@@ -32645,13 +32054,13 @@ var AsyncCommentThread = function (_UI$Element) {
     return AsyncCommentThread;
 }(UI.Element);
 
-var _class$50;
-var _descriptor$23;
-var _descriptor2$21;
-var _dec$24;
-var _class3$14;
+var _class$52;
+var _descriptor$25;
+var _descriptor2$22;
+var _dec$26;
+var _class3$16;
 
-function _initDefineProp$24(target, property, descriptor, context) {
+function _initDefineProp$26(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -32661,7 +32070,7 @@ function _initDefineProp$24(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$25(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$27(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -32716,7 +32125,7 @@ function createCircle(size, borderSize, color, animationName, animationDuration)
     return UI.createElement("div", { style: getCircleStyle(size, borderSize, color, animationName, animationDuration) });
 }
 
-var RotatingHelperStyle = (_class$50 = function (_StyleSheet) {
+var RotatingHelperStyle = (_class$52 = function (_StyleSheet) {
     inherits(RotatingHelperStyle, _StyleSheet);
 
     function RotatingHelperStyle() {
@@ -32730,11 +32139,11 @@ var RotatingHelperStyle = (_class$50 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = RotatingHelperStyle.__proto__ || Object.getPrototypeOf(RotatingHelperStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$24(_this, "rotateClockwise", _descriptor$23, _this), _initDefineProp$24(_this, "rotateCounterclockwise", _descriptor2$21, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = RotatingHelperStyle.__proto__ || Object.getPrototypeOf(RotatingHelperStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$26(_this, "rotateClockwise", _descriptor$25, _this), _initDefineProp$26(_this, "rotateCounterclockwise", _descriptor2$22, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return RotatingHelperStyle;
-}(StyleSheet), (_descriptor$23 = _applyDecoratedDescriptor$25(_class$50.prototype, "rotateClockwise", [keyframesRule], {
+}(StyleSheet), (_descriptor$25 = _applyDecoratedDescriptor$27(_class$52.prototype, "rotateClockwise", [keyframesRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -32746,7 +32155,7 @@ var RotatingHelperStyle = (_class$50 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor2$21 = _applyDecoratedDescriptor$25(_class$50.prototype, "rotateCounterclockwise", [keyframesRule], {
+}), _descriptor2$22 = _applyDecoratedDescriptor$27(_class$52.prototype, "rotateCounterclockwise", [keyframesRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -32758,8 +32167,8 @@ var RotatingHelperStyle = (_class$50 = function (_StyleSheet) {
             }
         };
     }
-})), _class$50);
-var ConcentricCirclesLoadingScreen = (_dec$24 = registerStyle(RotatingHelperStyle), _dec$24(_class3$14 = function (_UI$Element) {
+})), _class$52);
+var ConcentricCirclesLoadingScreen = (_dec$26 = registerStyle(RotatingHelperStyle), _dec$26(_class3$16 = function (_UI$Element) {
     inherits(ConcentricCirclesLoadingScreen, _UI$Element);
 
     function ConcentricCirclesLoadingScreen() {
@@ -32789,7 +32198,7 @@ var ConcentricCirclesLoadingScreen = (_dec$24 = registerStyle(RotatingHelperStyl
         }
     }]);
     return ConcentricCirclesLoadingScreen;
-}(UI.Element)) || _class3$14);
+}(UI.Element)) || _class3$16);
 
 var DelayedElement = function DelayedElement(BaseClass) {
     return function (_BaseClass) {
@@ -33926,22 +33335,22 @@ var DeleteThreadReplyModal = function (_ActionModal) {
 
 var DeleteThreadReplyButton = ActionModalButton(DeleteThreadReplyModal);
 
-var _class$54;
-var _descriptor$24;
-var _descriptor2$22;
-var _descriptor3$20;
+var _class$56;
+var _descriptor$26;
+var _descriptor2$23;
+var _descriptor3$21;
 var _descriptor4$17;
 var _descriptor5$15;
-var _class3$16;
+var _class3$18;
 var _descriptor6$12;
 var _descriptor7$10;
 var _descriptor8$9;
 var _descriptor9$8;
 var _descriptor10$6;
-var _descriptor11$6;
-var _descriptor12$4;
-var _descriptor13$4;
-var _descriptor14$4;
+var _descriptor11$5;
+var _descriptor12$3;
+var _descriptor13$3;
+var _descriptor14$3;
 var _descriptor15$3;
 var _descriptor16$3;
 var _descriptor17$2;
@@ -33954,7 +33363,7 @@ var _descriptor23;
 var _descriptor24;
 var _class5$5;
 var _descriptor25;
-var _class7$4;
+var _class7$3;
 var _descriptor26;
 var _descriptor27;
 var _descriptor28;
@@ -33962,7 +33371,7 @@ var _descriptor29;
 var _descriptor30;
 var _descriptor31;
 var _descriptor32;
-var _class9$2;
+var _class9$1;
 var _descriptor33;
 var _class11;
 var _descriptor34;
@@ -33986,7 +33395,7 @@ var _descriptor50;
 var _descriptor51;
 var _descriptor52;
 
-function _initDefineProp$25(target, property, descriptor, context) {
+function _initDefineProp$27(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -33996,7 +33405,7 @@ function _initDefineProp$25(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$26(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$28(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -34038,7 +33447,7 @@ var colors = {
     WHITE: "#eee"
 };
 
-var ForumThreadReplyStyle = (_class$54 = function (_StyleSheet) {
+var ForumThreadReplyStyle = (_class$56 = function (_StyleSheet) {
     inherits(ForumThreadReplyStyle, _StyleSheet);
 
     function ForumThreadReplyStyle() {
@@ -34052,11 +33461,11 @@ var ForumThreadReplyStyle = (_class$54 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ForumThreadReplyStyle.__proto__ || Object.getPrototypeOf(ForumThreadReplyStyle)).call.apply(_ref, [this].concat(args))), _this), _this.fontFamily = "lato, open sans", _initDefineProp$25(_this, "mainClass", _descriptor$24, _this), _initDefineProp$25(_this, "repliesUserAndDate", _descriptor2$22, _this), _initDefineProp$25(_this, "repliesUser", _descriptor3$20, _this), _initDefineProp$25(_this, "repliesDate", _descriptor4$17, _this), _initDefineProp$25(_this, "repliesContent", _descriptor5$15, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ForumThreadReplyStyle.__proto__ || Object.getPrototypeOf(ForumThreadReplyStyle)).call.apply(_ref, [this].concat(args))), _this), _this.fontFamily = "lato, open sans", _initDefineProp$27(_this, "mainClass", _descriptor$26, _this), _initDefineProp$27(_this, "repliesUserAndDate", _descriptor2$23, _this), _initDefineProp$27(_this, "repliesUser", _descriptor3$21, _this), _initDefineProp$27(_this, "repliesDate", _descriptor4$17, _this), _initDefineProp$27(_this, "repliesContent", _descriptor5$15, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return ForumThreadReplyStyle;
-}(StyleSheet), (_descriptor$24 = _applyDecoratedDescriptor$26(_class$54.prototype, "mainClass", [styleRule], {
+}(StyleSheet), (_descriptor$26 = _applyDecoratedDescriptor$28(_class$56.prototype, "mainClass", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34065,7 +33474,7 @@ var ForumThreadReplyStyle = (_class$54 = function (_StyleSheet) {
             maxWidth: "1200px"
         };
     }
-}), _descriptor2$22 = _applyDecoratedDescriptor$26(_class$54.prototype, "repliesUserAndDate", [styleRule], {
+}), _descriptor2$23 = _applyDecoratedDescriptor$28(_class$56.prototype, "repliesUserAndDate", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34078,7 +33487,7 @@ var ForumThreadReplyStyle = (_class$54 = function (_StyleSheet) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor3$20 = _applyDecoratedDescriptor$26(_class$54.prototype, "repliesUser", [styleRule], {
+}), _descriptor3$21 = _applyDecoratedDescriptor$28(_class$56.prototype, "repliesUser", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34089,7 +33498,7 @@ var ForumThreadReplyStyle = (_class$54 = function (_StyleSheet) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor4$17 = _applyDecoratedDescriptor$26(_class$54.prototype, "repliesDate", [styleRule], {
+}), _descriptor4$17 = _applyDecoratedDescriptor$28(_class$56.prototype, "repliesDate", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34098,7 +33507,7 @@ var ForumThreadReplyStyle = (_class$54 = function (_StyleSheet) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor5$15 = _applyDecoratedDescriptor$26(_class$54.prototype, "repliesContent", [styleRule], {
+}), _descriptor5$15 = _applyDecoratedDescriptor$28(_class$56.prototype, "repliesContent", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34106,10 +33515,10 @@ var ForumThreadReplyStyle = (_class$54 = function (_StyleSheet) {
             fontSize: "16px"
         };
     }
-})), _class$54);
+})), _class$56);
 
 
-var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
+var ForumThreadPanelStyle = (_class3$18 = function (_StyleSheet2) {
     inherits(ForumThreadPanelStyle, _StyleSheet2);
 
     function ForumThreadPanelStyle() {
@@ -34123,11 +33532,11 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             args[_key2] = arguments[_key2];
         }
 
-        return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontFamily = "lato, open sans", _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$25(_this2, "mainClass", _descriptor6$12, _this2), _initDefineProp$25(_this2, "title", _descriptor7$10, _this2), _initDefineProp$25(_this2, "backButton", _descriptor8$9, _this2), _initDefineProp$25(_this2, "replyButtonDiv", _descriptor9$8, _this2), _initDefineProp$25(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$25(_this2, "fullPost", _descriptor11$6, _this2), _initDefineProp$25(_this2, "dislikeButton", _descriptor12$4, _this2), _initDefineProp$25(_this2, "likeButton", _descriptor13$4, _this2), _initDefineProp$25(_this2, "author", _descriptor14$4, _this2), _initDefineProp$25(_this2, "header", _descriptor15$3, _this2), _initDefineProp$25(_this2, "message", _descriptor16$3, _this2), _initDefineProp$25(_this2, "buttons", _descriptor17$2, _this2), _initDefineProp$25(_this2, "bottomPanel", _descriptor18$2, _this2), _initDefineProp$25(_this2, "voting", _descriptor19$2, _this2), _initDefineProp$25(_this2, "numReplies", _descriptor20$2, _this2), _initDefineProp$25(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$25(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$25(_this2, "editButton", _descriptor23, _this2), _initDefineProp$25(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+        return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontFamily = "lato, open sans", _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$27(_this2, "mainClass", _descriptor6$12, _this2), _initDefineProp$27(_this2, "title", _descriptor7$10, _this2), _initDefineProp$27(_this2, "backButton", _descriptor8$9, _this2), _initDefineProp$27(_this2, "replyButtonDiv", _descriptor9$8, _this2), _initDefineProp$27(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$27(_this2, "fullPost", _descriptor11$5, _this2), _initDefineProp$27(_this2, "dislikeButton", _descriptor12$3, _this2), _initDefineProp$27(_this2, "likeButton", _descriptor13$3, _this2), _initDefineProp$27(_this2, "author", _descriptor14$3, _this2), _initDefineProp$27(_this2, "header", _descriptor15$3, _this2), _initDefineProp$27(_this2, "message", _descriptor16$3, _this2), _initDefineProp$27(_this2, "buttons", _descriptor17$2, _this2), _initDefineProp$27(_this2, "bottomPanel", _descriptor18$2, _this2), _initDefineProp$27(_this2, "voting", _descriptor19$2, _this2), _initDefineProp$27(_this2, "numReplies", _descriptor20$2, _this2), _initDefineProp$27(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$27(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$27(_this2, "editButton", _descriptor23, _this2), _initDefineProp$27(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
     }
 
     return ForumThreadPanelStyle;
-}(StyleSheet), (_descriptor6$12 = _applyDecoratedDescriptor$26(_class3$16.prototype, "mainClass", [styleRule], {
+}(StyleSheet), (_descriptor6$12 = _applyDecoratedDescriptor$28(_class3$18.prototype, "mainClass", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34137,7 +33546,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor7$10 = _applyDecoratedDescriptor$26(_class3$16.prototype, "title", [styleRule], {
+}), _descriptor7$10 = _applyDecoratedDescriptor$28(_class3$18.prototype, "title", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34153,7 +33562,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             alignItems: "center"
         };
     }
-}), _descriptor8$9 = _applyDecoratedDescriptor$26(_class3$16.prototype, "backButton", [styleRule], {
+}), _descriptor8$9 = _applyDecoratedDescriptor$28(_class3$18.prototype, "backButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34169,7 +33578,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             }
         };
     }
-}), _descriptor9$8 = _applyDecoratedDescriptor$26(_class3$16.prototype, "replyButtonDiv", [styleRule], {
+}), _descriptor9$8 = _applyDecoratedDescriptor$28(_class3$18.prototype, "replyButtonDiv", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34182,14 +33591,14 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             margin: "0 auto"
         };
     }
-}), _descriptor10$6 = _applyDecoratedDescriptor$26(_class3$16.prototype, "replyButton", [styleRule], {
+}), _descriptor10$6 = _applyDecoratedDescriptor$28(_class3$18.prototype, "replyButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             margin: "0"
         };
     }
-}), _descriptor11$6 = _applyDecoratedDescriptor$26(_class3$16.prototype, "fullPost", [styleRule], {
+}), _descriptor11$5 = _applyDecoratedDescriptor$28(_class3$18.prototype, "fullPost", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34201,7 +33610,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             borderTop: "0"
         };
     }
-}), _descriptor12$4 = _applyDecoratedDescriptor$26(_class3$16.prototype, "dislikeButton", [styleRule], {
+}), _descriptor12$3 = _applyDecoratedDescriptor$28(_class3$18.prototype, "dislikeButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34210,7 +33619,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             marginRight: "16px"
         };
     }
-}), _descriptor13$4 = _applyDecoratedDescriptor$26(_class3$16.prototype, "likeButton", [styleRule], {
+}), _descriptor13$3 = _applyDecoratedDescriptor$28(_class3$18.prototype, "likeButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34219,7 +33628,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             marginRight: "8px"
         };
     }
-}), _descriptor14$4 = _applyDecoratedDescriptor$26(_class3$16.prototype, "author", [styleRule], {
+}), _descriptor14$3 = _applyDecoratedDescriptor$28(_class3$18.prototype, "author", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34234,12 +33643,12 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             // fontWeight: "bold",
         };
     }
-}), _descriptor15$3 = _applyDecoratedDescriptor$26(_class3$16.prototype, "header", [styleRule], {
+}), _descriptor15$3 = _applyDecoratedDescriptor$28(_class3$18.prototype, "header", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {};
     }
-}), _descriptor16$3 = _applyDecoratedDescriptor$26(_class3$16.prototype, "message", [styleRule], {
+}), _descriptor16$3 = _applyDecoratedDescriptor$28(_class3$18.prototype, "message", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34252,7 +33661,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             }
         };
     }
-}), _descriptor17$2 = _applyDecoratedDescriptor$26(_class3$16.prototype, "buttons", [styleRule], {
+}), _descriptor17$2 = _applyDecoratedDescriptor$28(_class3$18.prototype, "buttons", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34261,7 +33670,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             paddingTop: "12px"
         };
     }
-}), _descriptor18$2 = _applyDecoratedDescriptor$26(_class3$16.prototype, "bottomPanel", [styleRule], {
+}), _descriptor18$2 = _applyDecoratedDescriptor$28(_class3$18.prototype, "bottomPanel", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34272,7 +33681,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             justifyContent: "space-between"
         };
     }
-}), _descriptor19$2 = _applyDecoratedDescriptor$26(_class3$16.prototype, "voting", [styleRule], {
+}), _descriptor19$2 = _applyDecoratedDescriptor$28(_class3$18.prototype, "voting", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34280,7 +33689,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor20$2 = _applyDecoratedDescriptor$26(_class3$16.prototype, "numReplies", [styleRule], {
+}), _descriptor20$2 = _applyDecoratedDescriptor$28(_class3$18.prototype, "numReplies", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34294,7 +33703,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             textTransform: "uppercase"
         };
     }
-}), _descriptor21$2 = _applyDecoratedDescriptor$26(_class3$16.prototype, "replies", [styleRule], {
+}), _descriptor21$2 = _applyDecoratedDescriptor$28(_class3$18.prototype, "replies", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34302,7 +33711,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             color: "#444"
         };
     }
-}), _descriptor22$1 = _applyDecoratedDescriptor$26(_class3$16.prototype, "editDeleteButtons", [styleRule], {
+}), _descriptor22$1 = _applyDecoratedDescriptor$28(_class3$18.prototype, "editDeleteButtons", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34314,7 +33723,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             justifyContent: "flex-start"
         };
     }
-}), _descriptor23 = _applyDecoratedDescriptor$26(_class3$16.prototype, "editButton", [styleRule], {
+}), _descriptor23 = _applyDecoratedDescriptor$28(_class3$18.prototype, "editButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34336,7 +33745,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             }
         };
     }
-}), _descriptor24 = _applyDecoratedDescriptor$26(_class3$16.prototype, "deleteButton", [styleRule], {
+}), _descriptor24 = _applyDecoratedDescriptor$28(_class3$18.prototype, "deleteButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34358,7 +33767,7 @@ var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
             }
         };
     }
-})), _class3$16);
+})), _class3$18);
 var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
     inherits(ButtonStyle, _StyleSheet3);
 
@@ -34373,11 +33782,11 @@ var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this3 = possibleConstructorReturn(this, (_ref3 = ButtonStyle.__proto__ || Object.getPrototypeOf(ButtonStyle)).call.apply(_ref3, [this].concat(args))), _this3), _initDefineProp$25(_this3, "button", _descriptor25, _this3), _temp3), possibleConstructorReturn(_this3, _ret3);
+        return _ret3 = (_temp3 = (_this3 = possibleConstructorReturn(this, (_ref3 = ButtonStyle.__proto__ || Object.getPrototypeOf(ButtonStyle)).call.apply(_ref3, [this].concat(args))), _this3), _initDefineProp$27(_this3, "button", _descriptor25, _this3), _temp3), possibleConstructorReturn(_this3, _ret3);
     }
 
     return ButtonStyle;
-}(StyleSheet), (_descriptor25 = _applyDecoratedDescriptor$26(_class5$5.prototype, "button", [styleRule], {
+}(StyleSheet), (_descriptor25 = _applyDecoratedDescriptor$28(_class5$5.prototype, "button", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _ref4;
@@ -34393,7 +33802,7 @@ var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
             backgroundColor: colors.BLUE,
             border: "0",
             padding: "5px 10px"
-        }, defineProperty(_ref4, "marginBottom", "0"), defineProperty(_ref4, "borderColor", colors.BLUE), defineProperty(_ref4, "fontFamily", "lato"), defineProperty(_ref4, "fontSize", "13px"), defineProperty(_ref4, "transition", ".2s"), defineProperty(_ref4, "outline", "none"), defineProperty(_ref4, ":hover", {
+        }, defineProperty(_ref4, "marginBottom", "0"), defineProperty(_ref4, "borderColor", colors.BLUE), defineProperty(_ref4, "fontSize", "13px"), defineProperty(_ref4, "transition", ".2s"), defineProperty(_ref4, "outline", "none"), defineProperty(_ref4, ":hover", {
             backgroundColor: colors.HOVER_BLUE,
             borderColor: colors.HOVER_BLUE,
             transition: ".2s"
@@ -34408,7 +33817,7 @@ var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
         }), _ref4;
     }
 })), _class5$5);
-var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
+var ForumThreadHeaderStyle = (_class7$3 = function (_StyleSheet4) {
     inherits(ForumThreadHeaderStyle, _StyleSheet4);
 
     function ForumThreadHeaderStyle() {
@@ -34437,19 +33846,19 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
             fontWeight: "bold"
         };
 
-        _initDefineProp$25(_this4, "mainClass", _descriptor26, _this4);
+        _initDefineProp$27(_this4, "mainClass", _descriptor26, _this4);
 
-        _initDefineProp$25(_this4, "tagsTitle", _descriptor27, _this4);
+        _initDefineProp$27(_this4, "tagsTitle", _descriptor27, _this4);
 
-        _initDefineProp$25(_this4, "tagsAuthor", _descriptor28, _this4);
+        _initDefineProp$27(_this4, "tagsAuthor", _descriptor28, _this4);
 
-        _initDefineProp$25(_this4, "tagsReplies", _descriptor29, _this4);
+        _initDefineProp$27(_this4, "tagsReplies", _descriptor29, _this4);
 
-        _initDefineProp$25(_this4, "tagsViews", _descriptor30, _this4);
+        _initDefineProp$27(_this4, "tagsViews", _descriptor30, _this4);
 
-        _initDefineProp$25(_this4, "tagsVotes", _descriptor31, _this4);
+        _initDefineProp$27(_this4, "tagsVotes", _descriptor31, _this4);
 
-        _initDefineProp$25(_this4, "tagsActivity", _descriptor32, _this4);
+        _initDefineProp$27(_this4, "tagsActivity", _descriptor32, _this4);
 
         return _this4;
     }
@@ -34457,7 +33866,7 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
 
 
     return ForumThreadHeaderStyle;
-}(StyleSheet), (_descriptor26 = _applyDecoratedDescriptor$26(_class7$4.prototype, "mainClass", [styleRule], {
+}(StyleSheet), (_descriptor26 = _applyDecoratedDescriptor$28(_class7$3.prototype, "mainClass", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _ref5;
@@ -34476,7 +33885,7 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
             backgroundColor: "#eaeaea"
         }, defineProperty(_ref5, "height", this.tagsHeight + "px"), defineProperty(_ref5, "borderTop", "3px solid " + this.borderTopColor), _ref5;
     }
-}), _descriptor27 = _applyDecoratedDescriptor$26(_class7$4.prototype, "tagsTitle", [styleRule], {
+}), _descriptor27 = _applyDecoratedDescriptor$28(_class7$3.prototype, "tagsTitle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _this5 = this;
@@ -34495,7 +33904,7 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
             fontSize: this.fontSize
         }];
     }
-}), _descriptor28 = _applyDecoratedDescriptor$26(_class7$4.prototype, "tagsAuthor", [styleRule], {
+}), _descriptor28 = _applyDecoratedDescriptor$28(_class7$3.prototype, "tagsAuthor", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.baseStyleObject, {
@@ -34507,7 +33916,7 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
             fontSize: this.fontSize
         }];
     }
-}), _descriptor29 = _applyDecoratedDescriptor$26(_class7$4.prototype, "tagsReplies", [styleRule], {
+}), _descriptor29 = _applyDecoratedDescriptor$28(_class7$3.prototype, "tagsReplies", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _ref6;
@@ -34517,7 +33926,7 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
             paddingRight: "4px"
         }, defineProperty(_ref6, "paddingLeft", "4px"), defineProperty(_ref6, "paddingRight", "4px"), defineProperty(_ref6, "flex", ".5"), defineProperty(_ref6, "textAlign", "center"), defineProperty(_ref6, "fontSize", this.fontSize), _ref6)];
     }
-}), _descriptor30 = _applyDecoratedDescriptor$26(_class7$4.prototype, "tagsViews", [styleRule], {
+}), _descriptor30 = _applyDecoratedDescriptor$28(_class7$3.prototype, "tagsViews", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _this6 = this;
@@ -34538,7 +33947,7 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
             }
         }];
     }
-}), _descriptor31 = _applyDecoratedDescriptor$26(_class7$4.prototype, "tagsVotes", [styleRule], {
+}), _descriptor31 = _applyDecoratedDescriptor$28(_class7$3.prototype, "tagsVotes", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _this7 = this;
@@ -34558,7 +33967,7 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
             }
         }];
     }
-}), _descriptor32 = _applyDecoratedDescriptor$26(_class7$4.prototype, "tagsActivity", [styleRule], {
+}), _descriptor32 = _applyDecoratedDescriptor$28(_class7$3.prototype, "tagsActivity", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.baseStyleObject, {
@@ -34570,8 +33979,8 @@ var ForumThreadHeaderStyle = (_class7$4 = function (_StyleSheet4) {
             fontSize: this.fontSize
         }];
     }
-})), _class7$4);
-var ForumThreadPreviewStyle = (_class9$2 = function (_StyleSheet5) {
+})), _class7$3);
+var ForumThreadPreviewStyle = (_class9$1 = function (_StyleSheet5) {
     inherits(ForumThreadPreviewStyle, _StyleSheet5);
 
     function ForumThreadPreviewStyle() {
@@ -34585,7 +33994,7 @@ var ForumThreadPreviewStyle = (_class9$2 = function (_StyleSheet5) {
             args[_key4] = arguments[_key4];
         }
 
-        return _ret4 = (_temp4 = (_this8 = possibleConstructorReturn(this, (_ref7 = ForumThreadPreviewStyle.__proto__ || Object.getPrototypeOf(ForumThreadPreviewStyle)).call.apply(_ref7, [this].concat(args))), _this8), _this8.maxHeight = 50, _this8.lines = 2, _this8.lineHeight = _this8.maxHeight / _this8.lines, _this8.fontSize = ".88em", _this8.fontFamily = "lato, open sans", _this8.color = "#aaa", _initDefineProp$25(_this8, "forumThreadPreview", _descriptor33, _this8), _temp4), possibleConstructorReturn(_this8, _ret4);
+        return _ret4 = (_temp4 = (_this8 = possibleConstructorReturn(this, (_ref7 = ForumThreadPreviewStyle.__proto__ || Object.getPrototypeOf(ForumThreadPreviewStyle)).call.apply(_ref7, [this].concat(args))), _this8), _this8.maxHeight = 50, _this8.lines = 2, _this8.lineHeight = _this8.maxHeight / _this8.lines, _this8.fontSize = ".88em", _this8.fontFamily = "lato, open sans", _this8.color = "#aaa", _initDefineProp$27(_this8, "forumThreadPreview", _descriptor33, _this8), _temp4), possibleConstructorReturn(_this8, _ret4);
     }
     // functionality
 
@@ -34594,7 +34003,7 @@ var ForumThreadPreviewStyle = (_class9$2 = function (_StyleSheet5) {
 
 
     return ForumThreadPreviewStyle;
-}(StyleSheet), (_descriptor33 = _applyDecoratedDescriptor$26(_class9$2.prototype, "forumThreadPreview", [styleRule], {
+}(StyleSheet), (_descriptor33 = _applyDecoratedDescriptor$28(_class9$1.prototype, "forumThreadPreview", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34609,7 +34018,7 @@ var ForumThreadPreviewStyle = (_class9$2 = function (_StyleSheet5) {
             }
         };
     }
-})), _class9$2);
+})), _class9$1);
 var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
     inherits(ForumThreadBubbleStyle, _StyleSheet6);
 
@@ -34631,39 +34040,39 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             fontSize: _this9.fontSize
         };
 
-        _initDefineProp$25(_this9, "backgroundColorOddInstances", _descriptor34, _this9);
+        _initDefineProp$27(_this9, "backgroundColorOddInstances", _descriptor34, _this9);
 
-        _initDefineProp$25(_this9, "backgroundColorPinnedInstances", _descriptor35, _this9);
+        _initDefineProp$27(_this9, "backgroundColorPinnedInstances", _descriptor35, _this9);
 
-        _initDefineProp$25(_this9, "backgroundColorEvenInstances", _descriptor36, _this9);
+        _initDefineProp$27(_this9, "backgroundColorEvenInstances", _descriptor36, _this9);
 
-        _initDefineProp$25(_this9, "mainClass", _descriptor37, _this9);
+        _initDefineProp$27(_this9, "mainClass", _descriptor37, _this9);
 
-        _initDefineProp$25(_this9, "threadTitleAndPreview", _descriptor38, _this9);
+        _initDefineProp$27(_this9, "threadTitleAndPreview", _descriptor38, _this9);
 
-        _initDefineProp$25(_this9, "threadTitle", _descriptor39, _this9);
+        _initDefineProp$27(_this9, "threadTitle", _descriptor39, _this9);
 
-        _initDefineProp$25(_this9, "pinnedIcon", _descriptor40, _this9);
+        _initDefineProp$27(_this9, "pinnedIcon", _descriptor40, _this9);
 
-        _initDefineProp$25(_this9, "threadTitleSpan", _descriptor41, _this9);
+        _initDefineProp$27(_this9, "threadTitleSpan", _descriptor41, _this9);
 
-        _initDefineProp$25(_this9, "threadAuthor", _descriptor42, _this9);
+        _initDefineProp$27(_this9, "threadAuthor", _descriptor42, _this9);
 
-        _initDefineProp$25(_this9, "threadReplies", _descriptor43, _this9);
+        _initDefineProp$27(_this9, "threadReplies", _descriptor43, _this9);
 
-        _initDefineProp$25(_this9, "threadRepliesSpan", _descriptor44, _this9);
+        _initDefineProp$27(_this9, "threadRepliesSpan", _descriptor44, _this9);
 
-        _initDefineProp$25(_this9, "threadViews", _descriptor45, _this9);
+        _initDefineProp$27(_this9, "threadViews", _descriptor45, _this9);
 
-        _initDefineProp$25(_this9, "threadVotes", _descriptor46, _this9);
+        _initDefineProp$27(_this9, "threadVotes", _descriptor46, _this9);
 
-        _initDefineProp$25(_this9, "threadActivity", _descriptor47, _this9);
+        _initDefineProp$27(_this9, "threadActivity", _descriptor47, _this9);
 
         return _this9;
     }
 
     return ForumThreadBubbleStyle;
-}(StyleSheet), (_descriptor34 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorOddInstances", [styleRule], {
+}(StyleSheet), (_descriptor34 = _applyDecoratedDescriptor$28(_class11.prototype, "backgroundColorOddInstances", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34673,7 +34082,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             }
         };
     }
-}), _descriptor35 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorPinnedInstances", [styleRule], {
+}), _descriptor35 = _applyDecoratedDescriptor$28(_class11.prototype, "backgroundColorPinnedInstances", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34683,7 +34092,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             }
         };
     }
-}), _descriptor36 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorEvenInstances", [styleRule], {
+}), _descriptor36 = _applyDecoratedDescriptor$28(_class11.prototype, "backgroundColorEvenInstances", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34693,7 +34102,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             }
         };
     }
-}), _descriptor37 = _applyDecoratedDescriptor$26(_class11.prototype, "mainClass", [styleRule], {
+}), _descriptor37 = _applyDecoratedDescriptor$28(_class11.prototype, "mainClass", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34707,7 +34116,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             display: "flex"
         };
     }
-}), _descriptor38 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitleAndPreview", [styleRule], {
+}), _descriptor38 = _applyDecoratedDescriptor$28(_class11.prototype, "threadTitleAndPreview", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _this10 = this;
@@ -34725,7 +34134,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             paddingLeft: "12px"
         };
     }
-}), _descriptor39 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitle", [styleRule], {
+}), _descriptor39 = _applyDecoratedDescriptor$28(_class11.prototype, "threadTitle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.baseStyleObject, {
@@ -34741,7 +34150,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             paddingBottom: this.titlePaddingBottom
         }];
     }
-}), _descriptor40 = _applyDecoratedDescriptor$26(_class11.prototype, "pinnedIcon", [styleRule], {
+}), _descriptor40 = _applyDecoratedDescriptor$28(_class11.prototype, "pinnedIcon", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34753,7 +34162,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             paddingRight: "12px"
         };
     }
-}), _descriptor41 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitleSpan", [styleRule], {
+}), _descriptor41 = _applyDecoratedDescriptor$28(_class11.prototype, "threadTitleSpan", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34769,7 +34178,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             }
         };
     }
-}), _descriptor42 = _applyDecoratedDescriptor$26(_class11.prototype, "threadAuthor", [styleRule], {
+}), _descriptor42 = _applyDecoratedDescriptor$28(_class11.prototype, "threadAuthor", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.baseStyleObject, {
@@ -34785,7 +34194,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             paddingRight: "4px"
         }];
     }
-}), _descriptor43 = _applyDecoratedDescriptor$26(_class11.prototype, "threadReplies", [styleRule], {
+}), _descriptor43 = _applyDecoratedDescriptor$28(_class11.prototype, "threadReplies", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.baseStyleObject, {
@@ -34801,7 +34210,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             paddingRight: "4px"
         }];
     }
-}), _descriptor44 = _applyDecoratedDescriptor$26(_class11.prototype, "threadRepliesSpan", [styleRule], {
+}), _descriptor44 = _applyDecoratedDescriptor$28(_class11.prototype, "threadRepliesSpan", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34812,7 +34221,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             }
         };
     }
-}), _descriptor45 = _applyDecoratedDescriptor$26(_class11.prototype, "threadViews", [styleRule], {
+}), _descriptor45 = _applyDecoratedDescriptor$28(_class11.prototype, "threadViews", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _this11 = this;
@@ -34834,7 +34243,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             return "inherit";
         })];
     }
-}), _descriptor46 = _applyDecoratedDescriptor$26(_class11.prototype, "threadVotes", [styleRule], {
+}), _descriptor46 = _applyDecoratedDescriptor$28(_class11.prototype, "threadVotes", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _this12 = this;
@@ -34856,7 +34265,7 @@ var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
             return "inherit";
         })];
     }
-}), _descriptor47 = _applyDecoratedDescriptor$26(_class11.prototype, "threadActivity", [styleRule], {
+}), _descriptor47 = _applyDecoratedDescriptor$28(_class11.prototype, "threadActivity", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.baseStyleObject, {
@@ -34888,18 +34297,18 @@ var ForumPanelStyle = (_class13 = function (_StyleSheet7) {
             args[_key5] = arguments[_key5];
         }
 
-        return _ret5 = (_temp5 = (_this13 = possibleConstructorReturn(this, (_ref10 = ForumPanelStyle.__proto__ || Object.getPrototypeOf(ForumPanelStyle)).call.apply(_ref10, [this].concat(args))), _this13), _this13.textColor = "#333", _this13.headerItemHeight = 50, _this13.fontFamily = "lato, open sans", _initDefineProp$25(_this13, "mainClass", _descriptor48, _this13), _initDefineProp$25(_this13, "title", _descriptor49, _this13), _initDefineProp$25(_this13, "buttonParent", _descriptor50, _this13), _initDefineProp$25(_this13, "button", _descriptor51, _this13), _initDefineProp$25(_this13, "header", _descriptor52, _this13), _temp5), possibleConstructorReturn(_this13, _ret5);
+        return _ret5 = (_temp5 = (_this13 = possibleConstructorReturn(this, (_ref10 = ForumPanelStyle.__proto__ || Object.getPrototypeOf(ForumPanelStyle)).call.apply(_ref10, [this].concat(args))), _this13), _this13.textColor = "#333", _this13.headerItemHeight = 50, _this13.fontFamily = "lato, open sans", _initDefineProp$27(_this13, "mainClass", _descriptor48, _this13), _initDefineProp$27(_this13, "title", _descriptor49, _this13), _initDefineProp$27(_this13, "buttonParent", _descriptor50, _this13), _initDefineProp$27(_this13, "button", _descriptor51, _this13), _initDefineProp$27(_this13, "header", _descriptor52, _this13), _temp5), possibleConstructorReturn(_this13, _ret5);
     }
 
     return ForumPanelStyle;
-}(StyleSheet), (_descriptor48 = _applyDecoratedDescriptor$26(_class13.prototype, "mainClass", [styleRule], {
+}(StyleSheet), (_descriptor48 = _applyDecoratedDescriptor$28(_class13.prototype, "mainClass", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             width: "100%"
         };
     }
-}), _descriptor49 = _applyDecoratedDescriptor$26(_class13.prototype, "title", [styleRule], {
+}), _descriptor49 = _applyDecoratedDescriptor$28(_class13.prototype, "title", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34914,7 +34323,7 @@ var ForumPanelStyle = (_class13 = function (_StyleSheet7) {
             alignItems: "center"
         };
     }
-}), _descriptor50 = _applyDecoratedDescriptor$26(_class13.prototype, "buttonParent", [styleRule], {
+}), _descriptor50 = _applyDecoratedDescriptor$28(_class13.prototype, "buttonParent", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34927,14 +34336,14 @@ var ForumPanelStyle = (_class13 = function (_StyleSheet7) {
             alignItems: "center"
         };
     }
-}), _descriptor51 = _applyDecoratedDescriptor$26(_class13.prototype, "button", [styleRule], {
+}), _descriptor51 = _applyDecoratedDescriptor$28(_class13.prototype, "button", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             margin: "0"
         };
     }
-}), _descriptor52 = _applyDecoratedDescriptor$26(_class13.prototype, "header", [styleRule], {
+}), _descriptor52 = _applyDecoratedDescriptor$28(_class13.prototype, "header", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34944,10 +34353,10 @@ var ForumPanelStyle = (_class13 = function (_StyleSheet7) {
     }
 })), _class13);
 
-var _dec$27;
-var _class$53;
+var _dec$29;
+var _class$55;
 
-var CreateThreadReplyButton = (_dec$27 = registerStyle(ButtonStyle$1), _dec$27(_class$53 = function (_Button) {
+var CreateThreadReplyButton = (_dec$29 = registerStyle(ButtonStyle$1), _dec$29(_class$55 = function (_Button) {
     inherits(CreateThreadReplyButton, _Button);
 
     function CreateThreadReplyButton() {
@@ -34990,7 +34399,7 @@ var CreateThreadReplyButton = (_dec$27 = registerStyle(ButtonStyle$1), _dec$27(_
         }
     }]);
     return CreateThreadReplyButton;
-}(Button)) || _class$53);
+}(Button)) || _class$55);
 
 var CreateThreadReplyModal = function (_MarkupEditorModal) {
     inherits(CreateThreadReplyModal, _MarkupEditorModal);
@@ -35023,9 +34432,9 @@ var CreateThreadReplyModal = function (_MarkupEditorModal) {
     return CreateThreadReplyModal;
 }(MarkupEditorModal);
 
-var _dec$26;
-var _class$52;
-var _dec2$11;
+var _dec$28;
+var _class$54;
+var _dec2$10;
 var _class2$9;
 
 var forumThreadPanelStyle = ForumThreadPanelStyle.getInstance();
@@ -35096,7 +34505,7 @@ var CreateForumThreadModal = function (_MarkupEditorModal) {
     return CreateForumThreadModal;
 }(MarkupEditorModal);
 
-var CreateForumThreadButton = (_dec$26 = registerStyle(ButtonStyle$1), _dec$26(_class$52 = function (_Button) {
+var CreateForumThreadButton = (_dec$28 = registerStyle(ButtonStyle$1), _dec$28(_class$54 = function (_Button) {
     inherits(CreateForumThreadButton, _Button);
 
     function CreateForumThreadButton() {
@@ -35143,7 +34552,7 @@ var CreateForumThreadButton = (_dec$26 = registerStyle(ButtonStyle$1), _dec$26(_
         }
     }]);
     return CreateForumThreadButton;
-}(Button)) || _class$52);
+}(Button)) || _class$54);
 
 var DeleteForumThreadModal = function (_ActionModal) {
     inherits(DeleteForumThreadModal, _ActionModal);
@@ -35278,7 +34687,7 @@ var ForumThreadReply = function (_UI$Element) {
     return ForumThreadReply;
 }(UI.Element);
 
-var ForumThreadPanel = (_dec2$11 = registerStyle(ForumThreadPanelStyle), _dec2$11(_class2$9 = function (_Panel) {
+var ForumThreadPanel = (_dec2$10 = registerStyle(ForumThreadPanelStyle), _dec2$10(_class2$9 = function (_Panel) {
     inherits(ForumThreadPanel, _Panel);
 
     function ForumThreadPanel() {
@@ -35548,16 +34957,16 @@ var ForumThreadPanel = (_dec2$11 = registerStyle(ForumThreadPanelStyle), _dec2$1
     return ForumThreadPanel;
 }(Panel)) || _class2$9);
 
-var _dec$25;
-var _class$51;
-var _dec2$10;
+var _dec$27;
+var _class$53;
+var _dec2$9;
 var _class2$8;
-var _dec3$3;
-var _class3$15;
+var _dec3$2;
+var _class3$17;
 var _dec4$1;
-var _class4$3;
+var _class4$2;
 
-var ForumThreadHeader = (_dec$25 = registerStyle(ForumThreadHeaderStyle), _dec$25(_class$51 = function (_UI$Element) {
+var ForumThreadHeader = (_dec$27 = registerStyle(ForumThreadHeaderStyle), _dec$27(_class$53 = function (_UI$Element) {
     inherits(ForumThreadHeader, _UI$Element);
 
     function ForumThreadHeader() {
@@ -35631,9 +35040,9 @@ var ForumThreadHeader = (_dec$25 = registerStyle(ForumThreadHeaderStyle), _dec$2
         }
     }]);
     return ForumThreadHeader;
-}(UI.Element)) || _class$51);
+}(UI.Element)) || _class$53);
 
-var ForumThreadPreview = (_dec2$10 = registerStyle(ForumThreadPreviewStyle), _dec2$10(_class2$8 = function (_ChatMarkupRenderer) {
+var ForumThreadPreview = (_dec2$9 = registerStyle(ForumThreadPreviewStyle), _dec2$9(_class2$8 = function (_ChatMarkupRenderer) {
     inherits(ForumThreadPreview, _ChatMarkupRenderer);
 
     function ForumThreadPreview() {
@@ -35650,7 +35059,7 @@ var ForumThreadPreview = (_dec2$10 = registerStyle(ForumThreadPreviewStyle), _de
     return ForumThreadPreview;
 }(ChatMarkupRenderer)) || _class2$8);
 
-var ForumThreadBubble = (_dec3$3 = registerStyle(ForumThreadBubbleStyle), _dec3$3(_class3$15 = function (_UI$Element2) {
+var ForumThreadBubble = (_dec3$2 = registerStyle(ForumThreadBubbleStyle), _dec3$2(_class3$17 = function (_UI$Element2) {
     inherits(ForumThreadBubble, _UI$Element2);
 
     function ForumThreadBubble() {
@@ -35793,7 +35202,7 @@ var ForumThreadBubble = (_dec3$3 = registerStyle(ForumThreadBubbleStyle), _dec3$
         }
     }]);
     return ForumThreadBubble;
-}(UI.Element)) || _class3$15);
+}(UI.Element)) || _class3$17);
 
 var ForumThreadList = function (_UI$Element3) {
     inherits(ForumThreadList, _UI$Element3);
@@ -35887,7 +35296,7 @@ var ForumThreadList = function (_UI$Element3) {
     return ForumThreadList;
 }(UI.Element);
 
-var ForumPanel = (_dec4$1 = registerStyle(ForumPanelStyle), _dec4$1(_class4$3 = function (_Panel) {
+var ForumPanel = (_dec4$1 = registerStyle(ForumPanelStyle), _dec4$1(_class4$2 = function (_Panel) {
     inherits(ForumPanel, _Panel);
 
     function ForumPanel() {
@@ -35952,7 +35361,7 @@ var ForumPanel = (_dec4$1 = registerStyle(ForumPanelStyle), _dec4$1(_class4$3 = 
         }
     }]);
     return ForumPanel;
-}(Panel)) || _class4$3);
+}(Panel)) || _class4$2);
 
 var DelayedForumPanel = function (_StateDependentElemen) {
     inherits(DelayedForumPanel, _StateDependentElemen);
@@ -36037,7 +35446,7 @@ var ForumRoute = function (_Route) {
     return ForumRoute;
 }(Route);
 
-var d3 = { geo: {} };
+var d3$1 = { geo: {} };
 
 // adapted from d3.geo.voronoi by Jason Davies, http://www.jasondavies.com/
 var π = Math.PI;
@@ -36045,8 +35454,8 @@ var degrees$2 = 180 / π;
 var radians$2 = π / 180;
 var ε = 1e-15;
 
-d3.geo.voronoi = function (points, triangles) {
-    if (arguments.length < 2) triangles = d3.geo.delaunay(points);
+d3$1.geo.voronoi = function (points, triangles) {
+    if (arguments.length < 2) triangles = d3$1.geo.delaunay(points);
     if (!triangles) triangles = [];
 
     var n = points.length;
@@ -36088,8 +35497,8 @@ d3.geo.voronoi = function (points, triangles) {
     };
 };
 
-d3.geo.voronoi.topology = function (points, triangles) {
-    if (arguments.length < 2) triangles = d3.geo.delaunay(points);
+d3$1.geo.voronoi.topology = function (points, triangles) {
+    if (arguments.length < 2) triangles = d3$1.geo.delaunay(points);
     if (!triangles) triangles = [];
 
     var n = points.length,
@@ -36145,10 +35554,10 @@ d3.geo.voronoi.topology = function (points, triangles) {
     };
 };
 
-d3.geo.delaunay = function (points) {
+d3$1.geo.delaunay = function (points) {
     var p = points.map(cartesian$2),
         n = points.length,
-        triangles = d3.convexhull3d(p);
+        triangles = d3$1.convexhull3d(p);
 
     if (triangles.length) return triangles.forEach(function (t) {
         t.coordinates = [points[t.a.p.i], points[t.b.p.i], points[t.c.p.i]];
@@ -36165,7 +35574,7 @@ function hemispheres(a, b) {
     return [{ type: "Polygon", coordinates: [ring] }, { type: "Polygon", coordinates: [ring.slice().reverse()] }];
 }
 
-d3.convexhull3d = function (points) {
+d3$1.convexhull3d = function (points) {
     var n = points.length,
         i = void 0;
 
@@ -36420,9 +35829,9 @@ function neighbors(a, b) {
     (a.neighbor = b).neighbor = a;
 }
 
-var geoVoronoi = d3.geo.voronoi;
+var geoVoronoi = d3$1.geo.voronoi;
 
-var _class$56;
+var _class$58;
 var _temp$7;
 
 function getPoints(seed) {
@@ -36447,7 +35856,7 @@ function getPoints(seed) {
     });
 }
 
-var MundipediaLogo = (_temp$7 = _class$56 = function (_UI$Element) {
+var MundipediaLogo = (_temp$7 = _class$58 = function (_UI$Element) {
     inherits(MundipediaLogo, _UI$Element);
 
     function MundipediaLogo() {
@@ -36538,41 +35947,26 @@ var MundipediaLogo = (_temp$7 = _class$56 = function (_UI$Element) {
         }
     }]);
     return MundipediaLogo;
-}(UI.Element), _class$56.VIEW_BOX_SIZE = 500, _temp$7);
+}(UI.Element), _class$58.VIEW_BOX_SIZE = 500, _temp$7);
 
-var _class$55;
-var _descriptor$25;
-var _descriptor2$23;
-var _descriptor3$21;
-var _descriptor4$18;
-var _descriptor5$16;
-var _descriptor6$13;
-var _descriptor7$11;
-var _descriptor8$10;
-var _descriptor9$9;
-var _descriptor10$7;
+var _class$59;
+var _descriptor$28;
+var _descriptor2$25;
+var _descriptor3$23;
+var _descriptor4$19;
+var _descriptor5$17;
+var _descriptor6$14;
+var _descriptor7$12;
+var _descriptor8$11;
+var _descriptor9$10;
+var _descriptor10$8;
 var _descriptor11$7;
 var _descriptor12$5;
 var _descriptor13$5;
-var _dec$28;
-var _class3$17;
-var _class4$4;
-var _descriptor14$5;
-var _descriptor15$4;
-var _dec2$12;
-var _class6$3;
-var _class7$5;
-var _descriptor16$4;
-var _descriptor17$3;
-var _dec3$4;
-var _class9$3;
-var _class10;
-var _descriptor18$3;
-var _descriptor19$3;
-var _dec4$2;
-var _class12;
+var _dec$31;
+var _class3$20;
 
-function _initDefineProp$26(target, property, descriptor, context) {
+function _initDefineProp$29(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -36582,7 +35976,7 @@ function _initDefineProp$26(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$27(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$30(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -36611,7 +36005,396 @@ function _applyDecoratedDescriptor$27(target, property, decorators, descriptor, 
     return desc;
 }
 
-var TeamCardStyle = (_class$55 = function (_StyleSheet) {
+var FeedbackFormStyle = (_class$59 = function (_StyleSheet) {
+    inherits(FeedbackFormStyle, _StyleSheet);
+
+    function FeedbackFormStyle() {
+        var _ref;
+
+        var _temp, _this, _ret;
+
+        classCallCheck(this, FeedbackFormStyle);
+
+        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+        }
+
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FeedbackFormStyle.__proto__ || Object.getPrototypeOf(FeedbackFormStyle)).call.apply(_ref, [this].concat(args))), _this), _this.feedbackFormWidth = 720, _this.marginBottom = 10, _this.padding = 15, _this.width = 300, _this.inputHeight = 35, _initDefineProp$29(_this, "feedbackForm", _descriptor$28, _this), _initDefineProp$29(_this, "container", _descriptor2$25, _this), _initDefineProp$29(_this, "feedback", _descriptor3$23, _this), _initDefineProp$29(_this, "nameAndEmailContainer", _descriptor4$19, _this), _initDefineProp$29(_this, "field", _descriptor5$17, _this), _initDefineProp$29(_this, "textAreaField", _descriptor6$14, _this), _initDefineProp$29(_this, "label", _descriptor7$12, _this), _initDefineProp$29(_this, "input", _descriptor8$11, _this), _initDefineProp$29(_this, "contactTextArea", _descriptor9$10, _this), _initDefineProp$29(_this, "submitInput", _descriptor10$8, _this), _initDefineProp$29(_this, "submitInputSending", _descriptor11$7, _this), _initDefineProp$29(_this, "submitInputSuccess", _descriptor12$5, _this), _initDefineProp$29(_this, "submitInputError", _descriptor13$5, _this), _temp), possibleConstructorReturn(_this, _ret);
+    }
+
+    return FeedbackFormStyle;
+}(StyleSheet), (_descriptor$28 = _applyDecoratedDescriptor$30(_class$59.prototype, "feedbackForm", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        var _this2 = this;
+
+        return {
+            width: function width() {
+                return _this2.feedbackFormWidth;
+            },
+            maxWidth: "100%",
+            margin: "0 auto"
+        };
+    }
+}), _descriptor2$25 = _applyDecoratedDescriptor$30(_class$59.prototype, "container", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            display: "flex",
+            flexDirection: "column"
+        };
+    }
+}), _descriptor3$23 = _applyDecoratedDescriptor$30(_class$59.prototype, "feedback", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {};
+    }
+}), _descriptor4$19 = _applyDecoratedDescriptor$30(_class$59.prototype, "nameAndEmailContainer", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            flexWrap: "wrap"
+        };
+    }
+}), _descriptor5$17 = _applyDecoratedDescriptor$30(_class$59.prototype, "field", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        var _ref2;
+
+        return _ref2 = {
+            display: "flex",
+            width: "50%",
+            flex: "1",
+            flexDirection: "column",
+            padding: "0 10px"
+        }, defineProperty(_ref2, "width", "100%"), defineProperty(_ref2, "minWidth", "240px"), _ref2;
+    }
+}), _descriptor6$14 = _applyDecoratedDescriptor$30(_class$59.prototype, "textAreaField", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            maxWidth: "100%",
+            width: "100%",
+            padding: "0 10px"
+        };
+    }
+}), _descriptor7$12 = _applyDecoratedDescriptor$30(_class$59.prototype, "label", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            display: "block",
+            fontSize: "18px",
+            marginBottom: this.marginBottom,
+            fontWeight: "600"
+        };
+    }
+}), _descriptor8$11 = _applyDecoratedDescriptor$30(_class$59.prototype, "input", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        var _ref3;
+
+        return _ref3 = {
+            borderRadius: "0px !important",
+            height: this.inputHeight,
+            lineHeight: this.inputHeight,
+            fontSize: "16px",
+            fontFamily: this.themeProperties.FONT_FAMILY_SANS_SERIF,
+            paddingLeft: this.padding,
+            marginBottom: this.marginBottom,
+            letterSpacing: "0.2px",
+            border: "0"
+        }, defineProperty(_ref3, "border", "2px solid #ddd"), defineProperty(_ref3, "transition", "0.25s"), defineProperty(_ref3, "display", "flex"), defineProperty(_ref3, "width", "100%"), defineProperty(_ref3, "flex", "1"), defineProperty(_ref3, "outline", "0"), defineProperty(_ref3, ":focus", {
+            border: "2px solid " + enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+            transition: "0.25s"
+        }), defineProperty(_ref3, ":hover", {
+            border: "2px solid " + enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+            transition: "0.25s"
+        }), defineProperty(_ref3, ":active", {
+            border: "2px solid " + enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+            transition: "0.25s"
+        }), _ref3;
+    }
+}), _descriptor9$10 = _applyDecoratedDescriptor$30(_class$59.prototype, "contactTextArea", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            height: "175px",
+            lineHeight: "initial",
+            padding: this.padding,
+            maxWidth: "100%",
+            width: "100%"
+        };
+    }
+}), _descriptor10$8 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInput", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        var _ref4;
+
+        return _ref4 = {
+            margin: "0 10px",
+            marginTop: "20px",
+            padding: "5px 15px",
+            fontSize: "18px",
+            fontFamily: this.themeProperties.FONT_FAMILY_SANS_SERIF,
+            backgroundColor: "#fff",
+            border: "0"
+        }, defineProperty(_ref4, "border", "2px solid #ddd"), defineProperty(_ref4, "fontWeight", "600"), defineProperty(_ref4, "transition", "0.25s"), defineProperty(_ref4, ":hover", {
+            borderColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+            transition: "0.25s"
+        }), defineProperty(_ref4, ":focus", {
+            borderColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
+            transition: "0.25s",
+            outline: "0"
+        }), _ref4;
+    }
+}), _descriptor11$7 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputSending", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            borderColor: enhance(this.themeProperties.COLOR_WARNING, 0.3),
+            ":hover": {
+                borderColor: enhance(this.themeProperties.COLOR_WARNING, 0.3)
+            }
+        };
+    }
+}), _descriptor12$5 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputSuccess", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            borderColor: enhance(this.themeProperties.COLOR_SUCCESS, 0.3),
+            ":hover": {
+                borderColor: enhance(this.themeProperties.COLOR_SUCCESS, 0.3)
+            }
+        };
+    }
+}), _descriptor13$5 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputError", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            borderColor: enhance(this.themeProperties.COLOR_DANGER, 0.3),
+            ":hover": {
+                borderColor: enhance(this.themeProperties.COLOR_DANGER, 0.3)
+            }
+        };
+    }
+})), _class$59);
+
+var FeedbackForm = (_dec$31 = registerStyle(FeedbackFormStyle), _dec$31(_class3$20 = function (_UI$Element) {
+    inherits(FeedbackForm, _UI$Element);
+
+    function FeedbackForm() {
+        classCallCheck(this, FeedbackForm);
+        return possibleConstructorReturn(this, (FeedbackForm.__proto__ || Object.getPrototypeOf(FeedbackForm)).apply(this, arguments));
+    }
+
+    createClass(FeedbackForm, [{
+        key: "getDefaultOptions",
+        value: function getDefaultOptions(options) {
+            return {
+                formState: 0
+            };
+        }
+    }, {
+        key: "extraNodeAttributes",
+        value: function extraNodeAttributes(attr) {
+            attr.addClass(this.styleSheet.feedbackForm);
+        }
+    }, {
+        key: "isDisabled",
+        value: function isDisabled() {
+            return this.options.formState > 0;
+        }
+    }, {
+        key: "setFormState",
+        value: function setFormState(value) {
+            this.options.formState = value;
+            this.redraw();
+        }
+    }, {
+        key: "getButtonAttributes",
+        value: function getButtonAttributes() {
+            var formState = this.options.formState;
+
+            var defaultClassName = this.styleSheet.submitInput;
+
+            if (formState === 0) {
+                return {
+                    value: "Submit",
+                    className: defaultClassName
+                };
+            }
+            if (formState === 1) {
+                return {
+                    value: "Sending...",
+                    className: defaultClassName + this.styleSheet.submitInputSending
+                };
+            }
+            if (formState === 2) {
+                return {
+                    value: "Thank you!",
+                    className: defaultClassName + this.styleSheet.submitInputSuccess
+                };
+            }
+            return {
+                value: "Sorry, you exceeded your quota of sending feedbacks",
+                className: defaultClassName + this.styleSheet.submitInputError
+            };
+        }
+    }, {
+        key: "render",
+        value: function render() {
+            var _this4 = this;
+
+            return [UI.createElement(
+                Form,
+                { ref: "feedbackForm", className: this.styleSheet.container },
+                UI.createElement(
+                    "div",
+                    { className: this.styleSheet.nameAndEmailContainer },
+                    UI.createElement(
+                        "div",
+                        { className: this.styleSheet.field },
+                        UI.createElement(
+                            "label",
+                            { className: this.styleSheet.label },
+                            "Name"
+                        ),
+                        UI.createElement(Input, { ref: "nameInput",
+                            className: this.styleSheet.input,
+                            disabled: this.isDisabled() })
+                    ),
+                    !USER.isAuthenticated ? UI.createElement(
+                        "div",
+                        { className: this.styleSheet.field },
+                        UI.createElement(
+                            "label",
+                            { className: this.styleSheet.label },
+                            "Email"
+                        ),
+                        UI.createElement(EmailInput, { ref: "emailInput",
+                            className: this.styleSheet.input,
+                            disabled: this.isDisabled() })
+                    ) : null
+                ),
+                UI.createElement(
+                    "div",
+                    { className: this.styleSheet.textAreaField },
+                    UI.createElement(
+                        "label",
+                        { className: this.styleSheet.label },
+                        "Message"
+                    ),
+                    UI.createElement(TextArea, { ref: "messageInput",
+                        className: this.styleSheet.input + this.styleSheet.contactTextArea,
+                        disabled: this.isDisabled() })
+                ),
+                UI.createElement(SubmitInput, _extends({}, this.getButtonAttributes(), {
+                    disabled: this.isDisabled(),
+                    onClick: function onClick() {
+                        return _this4.submitMessage();
+                    } }))
+            )];
+        }
+    }, {
+        key: "submitMessage",
+        value: function submitMessage() {
+            var _this5 = this;
+
+            var data = {
+                name: this.nameInput.getValue(),
+                email: this.emailInput && this.emailInput.getValue() || null,
+                message: this.messageInput.getValue()
+            };
+
+            this.setFormState(1); // Sending...
+
+            Ajax.postJSON("/send_feedback/", data).then(function () {
+                _this5.setFormState(2); // Thank you!
+            }, function () {
+                _this5.setFormState(3); // Sorry, you already sent in the last 6 hours
+            });
+        }
+    }]);
+    return FeedbackForm;
+}(UI.Element)) || _class3$20);
+
+var _class$57;
+var _descriptor$27;
+var _descriptor2$24;
+var _descriptor3$22;
+var _descriptor4$18;
+var _descriptor5$16;
+var _descriptor6$13;
+var _descriptor7$11;
+var _descriptor8$10;
+var _descriptor9$9;
+var _descriptor10$7;
+var _descriptor11$6;
+var _descriptor12$4;
+var _descriptor13$4;
+var _dec$30;
+var _class3$19;
+var _class4$3;
+var _descriptor14$4;
+var _descriptor15$4;
+var _dec2$11;
+var _class6$2;
+var _class7$4;
+var _descriptor16$4;
+var _descriptor17$3;
+var _dec3$3;
+var _class9$2;
+var _class10;
+var _descriptor18$3;
+var _descriptor19$3;
+var _descriptor20$3;
+var _dec4$2;
+var _class12;
+
+function _initDefineProp$28(target, property, descriptor, context) {
+    if (!descriptor) return;
+    Object.defineProperty(target, property, {
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+        writable: descriptor.writable,
+        value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+    });
+}
+
+function _applyDecoratedDescriptor$29(target, property, decorators, descriptor, context) {
+    var desc = {};
+    Object['ke' + 'ys'](descriptor).forEach(function (key) {
+        desc[key] = descriptor[key];
+    });
+    desc.enumerable = !!desc.enumerable;
+    desc.configurable = !!desc.configurable;
+
+    if ('value' in desc || desc.initializer) {
+        desc.writable = true;
+    }
+
+    desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+        return decorator(target, property, desc) || desc;
+    }, desc);
+
+    if (context && desc.initializer !== void 0) {
+        desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+        desc.initializer = undefined;
+    }
+
+    if (desc.initializer === void 0) {
+        Object['define' + 'Property'](target, property, desc);
+        desc = null;
+    }
+
+    return desc;
+}
+
+var TeamCardStyle = (_class$57 = function (_StyleSheet) {
     inherits(TeamCardStyle, _StyleSheet);
 
     function TeamCardStyle() {
@@ -36625,7 +36408,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerImageDimensions = 160, _this.borderRadius = "50%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _initDefineProp$26(_this, "container", _descriptor$25, _this), _initDefineProp$26(_this, "header", _descriptor2$23, _this), _initDefineProp$26(_this, "circleImage", _descriptor3$21, _this), _initDefineProp$26(_this, "image", _descriptor4$18, _this), _initDefineProp$26(_this, "hr", _descriptor5$16, _this), _initDefineProp$26(_this, "padding", _descriptor6$13, _this), _initDefineProp$26(_this, "body", _descriptor7$11, _this), _initDefineProp$26(_this, "description", _descriptor8$10, _this), _initDefineProp$26(_this, "titleName", _descriptor9$9, _this), _initDefineProp$26(_this, "titleJob", _descriptor10$7, _this), _initDefineProp$26(_this, "footer", _descriptor11$7, _this), _initDefineProp$26(_this, "url", _descriptor12$5, _this), _initDefineProp$26(_this, "socialAccount", _descriptor13$5, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerImageDimensions = 160, _this.borderRadius = "50%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _initDefineProp$28(_this, "container", _descriptor$27, _this), _initDefineProp$28(_this, "header", _descriptor2$24, _this), _initDefineProp$28(_this, "circleImage", _descriptor3$22, _this), _initDefineProp$28(_this, "image", _descriptor4$18, _this), _initDefineProp$28(_this, "hr", _descriptor5$16, _this), _initDefineProp$28(_this, "padding", _descriptor6$13, _this), _initDefineProp$28(_this, "body", _descriptor7$11, _this), _initDefineProp$28(_this, "description", _descriptor8$10, _this), _initDefineProp$28(_this, "titleName", _descriptor9$9, _this), _initDefineProp$28(_this, "titleJob", _descriptor10$7, _this), _initDefineProp$28(_this, "footer", _descriptor11$6, _this), _initDefineProp$28(_this, "url", _descriptor12$4, _this), _initDefineProp$28(_this, "socialAccount", _descriptor13$4, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     createClass(TeamCardStyle, [{
@@ -36635,7 +36418,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
         }
     }]);
     return TeamCardStyle;
-}(StyleSheet), (_descriptor$25 = _applyDecoratedDescriptor$27(_class$55.prototype, "container", [styleRule], {
+}(StyleSheet), (_descriptor$27 = _applyDecoratedDescriptor$29(_class$57.prototype, "container", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36649,7 +36432,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor2$23 = _applyDecoratedDescriptor$27(_class$55.prototype, "header", [styleRule], {
+}), _descriptor2$24 = _applyDecoratedDescriptor$29(_class$57.prototype, "header", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36662,7 +36445,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             // backgroundColor: this.themeProperties.COLOR_ALTERNATIVE_WHITE,
         };
     }
-}), _descriptor3$21 = _applyDecoratedDescriptor$27(_class$55.prototype, "circleImage", [styleRule], {
+}), _descriptor3$22 = _applyDecoratedDescriptor$29(_class$57.prototype, "circleImage", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36672,7 +36455,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             // backgroundColor: this.elementBackgroundColor,
         };
     }
-}), _descriptor4$18 = _applyDecoratedDescriptor$27(_class$55.prototype, "image", [styleRule], {
+}), _descriptor4$18 = _applyDecoratedDescriptor$29(_class$57.prototype, "image", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36681,7 +36464,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             borderRadius: this.borderRadius
         };
     }
-}), _descriptor5$16 = _applyDecoratedDescriptor$27(_class$55.prototype, "hr", [styleRule], {
+}), _descriptor5$16 = _applyDecoratedDescriptor$29(_class$57.prototype, "hr", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36691,7 +36474,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             backgroundColor: this.themeProperties.COLOR_ALTERNATIVE_WHITE
         };
     }
-}), _descriptor6$13 = _applyDecoratedDescriptor$27(_class$55.prototype, "padding", [styleRule], {
+}), _descriptor6$13 = _applyDecoratedDescriptor$29(_class$57.prototype, "padding", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36699,7 +36482,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             paddingTop: this.bodyDescriptionPadding
         };
     }
-}), _descriptor7$11 = _applyDecoratedDescriptor$27(_class$55.prototype, "body", [styleRule], {
+}), _descriptor7$11 = _applyDecoratedDescriptor$29(_class$57.prototype, "body", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36709,7 +36492,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             flex: "1"
         };
     }
-}), _descriptor8$10 = _applyDecoratedDescriptor$27(_class$55.prototype, "description", [styleRule], {
+}), _descriptor8$10 = _applyDecoratedDescriptor$29(_class$57.prototype, "description", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36718,7 +36501,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             fontSize: "14px"
         };
     }
-}), _descriptor9$9 = _applyDecoratedDescriptor$27(_class$55.prototype, "titleName", [styleRule], {
+}), _descriptor9$9 = _applyDecoratedDescriptor$29(_class$57.prototype, "titleName", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36727,7 +36510,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             fontWeight: "600"
         };
     }
-}), _descriptor10$7 = _applyDecoratedDescriptor$27(_class$55.prototype, "titleJob", [styleRule], {
+}), _descriptor10$7 = _applyDecoratedDescriptor$29(_class$57.prototype, "titleJob", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36735,7 +36518,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             fontSize: "14px"
         };
     }
-}), _descriptor11$7 = _applyDecoratedDescriptor$27(_class$55.prototype, "footer", [styleRule], {
+}), _descriptor11$6 = _applyDecoratedDescriptor$29(_class$57.prototype, "footer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36747,7 +36530,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             flexDirection: "row"
         };
     }
-}), _descriptor12$5 = _applyDecoratedDescriptor$27(_class$55.prototype, "url", [styleRule], {
+}), _descriptor12$4 = _applyDecoratedDescriptor$29(_class$57.prototype, "url", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36756,7 +36539,7 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             textDecoration: "none"
         };
     }
-}), _descriptor13$5 = _applyDecoratedDescriptor$27(_class$55.prototype, "socialAccount", [styleRule], {
+}), _descriptor13$4 = _applyDecoratedDescriptor$29(_class$57.prototype, "socialAccount", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36776,8 +36559,8 @@ var TeamCardStyle = (_class$55 = function (_StyleSheet) {
             }
         };
     }
-})), _class$55);
-var TeamCard = (_dec$28 = registerStyle(TeamCardStyle), _dec$28(_class3$17 = function (_UI$Element) {
+})), _class$57);
+var TeamCard = (_dec$30 = registerStyle(TeamCardStyle), _dec$30(_class3$19 = function (_UI$Element) {
     inherits(TeamCard, _UI$Element);
 
     function TeamCard() {
@@ -36857,8 +36640,8 @@ var TeamCard = (_dec$28 = registerStyle(TeamCardStyle), _dec$28(_class3$17 = fun
         }
     }]);
     return TeamCard;
-}(UI.Element)) || _class3$17);
-var TeamSectionStyle = (_class4$4 = function (_StyleSheet2) {
+}(UI.Element)) || _class3$19);
+var TeamSectionStyle = (_class4$3 = function (_StyleSheet2) {
     inherits(TeamSectionStyle, _StyleSheet2);
 
     function TeamSectionStyle() {
@@ -36872,11 +36655,11 @@ var TeamSectionStyle = (_class4$4 = function (_StyleSheet2) {
             args[_key2] = arguments[_key2];
         }
 
-        return _ret2 = (_temp2 = (_this3 = possibleConstructorReturn(this, (_ref2 = TeamSectionStyle.__proto__ || Object.getPrototypeOf(TeamSectionStyle)).call.apply(_ref2, [this].concat(args))), _this3), _initDefineProp$26(_this3, "container", _descriptor14$5, _this3), _initDefineProp$26(_this3, "teamSectionContainer", _descriptor15$4, _this3), _temp2), possibleConstructorReturn(_this3, _ret2);
+        return _ret2 = (_temp2 = (_this3 = possibleConstructorReturn(this, (_ref2 = TeamSectionStyle.__proto__ || Object.getPrototypeOf(TeamSectionStyle)).call.apply(_ref2, [this].concat(args))), _this3), _initDefineProp$28(_this3, "container", _descriptor14$4, _this3), _initDefineProp$28(_this3, "teamSectionContainer", _descriptor15$4, _this3), _temp2), possibleConstructorReturn(_this3, _ret2);
     }
 
     return TeamSectionStyle;
-}(StyleSheet), (_descriptor14$5 = _applyDecoratedDescriptor$27(_class4$4.prototype, "container", [styleRule], {
+}(StyleSheet), (_descriptor14$4 = _applyDecoratedDescriptor$29(_class4$3.prototype, "container", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -36888,16 +36671,16 @@ var TeamSectionStyle = (_class4$4 = function (_StyleSheet2) {
             flexDirection: "row"
         };
     }
-}), _descriptor15$4 = _applyDecoratedDescriptor$27(_class4$4.prototype, "teamSectionContainer", [styleRule], {
+}), _descriptor15$4 = _applyDecoratedDescriptor$29(_class4$3.prototype, "teamSectionContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             padding: "12.5px"
         };
     }
-})), _class4$4);
+})), _class4$3);
 
-var TeamSection = (_dec2$12 = registerStyle(TeamSectionStyle), _dec2$12(_class6$3 = function (_UI$Element2) {
+var TeamSection = (_dec2$11 = registerStyle(TeamSectionStyle), _dec2$11(_class6$2 = function (_UI$Element2) {
     inherits(TeamSection, _UI$Element2);
 
     function TeamSection() {
@@ -36972,9 +36755,9 @@ var TeamSection = (_dec2$12 = registerStyle(TeamSectionStyle), _dec2$12(_class6$
         }
     }]);
     return TeamSection;
-}(UI.Element)) || _class6$3);
+}(UI.Element)) || _class6$2);
 
-var AboutSectionStyle = (_class7$5 = function (_StyleSheet3) {
+var AboutSectionStyle = (_class7$4 = function (_StyleSheet3) {
     inherits(AboutSectionStyle, _StyleSheet3);
 
     function AboutSectionStyle() {
@@ -36988,21 +36771,21 @@ var AboutSectionStyle = (_class7$5 = function (_StyleSheet3) {
             args[_key3] = arguments[_key3];
         }
 
-        return _ret3 = (_temp3 = (_this6 = possibleConstructorReturn(this, (_ref3 = AboutSectionStyle.__proto__ || Object.getPrototypeOf(AboutSectionStyle)).call.apply(_ref3, [this].concat(args))), _this6), _initDefineProp$26(_this6, "titleContainer", _descriptor16$4, _this6), _initDefineProp$26(_this6, "messageContainer", _descriptor17$3, _this6), _temp3), possibleConstructorReturn(_this6, _ret3);
+        return _ret3 = (_temp3 = (_this6 = possibleConstructorReturn(this, (_ref3 = AboutSectionStyle.__proto__ || Object.getPrototypeOf(AboutSectionStyle)).call.apply(_ref3, [this].concat(args))), _this6), _initDefineProp$28(_this6, "titleContainer", _descriptor16$4, _this6), _initDefineProp$28(_this6, "messageContainer", _descriptor17$3, _this6), _temp3), possibleConstructorReturn(_this6, _ret3);
     }
 
     return AboutSectionStyle;
-}(StyleSheet), (_descriptor16$4 = _applyDecoratedDescriptor$27(_class7$5.prototype, "titleContainer", [styleRule], {
+}(StyleSheet), (_descriptor16$4 = _applyDecoratedDescriptor$29(_class7$4.prototype, "titleContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             fontSize: "32px",
             fontWeight: "600",
             textAlign: "center",
-            marginTop: "40px"
+            marginTop: "60px"
         };
     }
-}), _descriptor17$3 = _applyDecoratedDescriptor$27(_class7$5.prototype, "messageContainer", [styleRule], {
+}), _descriptor17$3 = _applyDecoratedDescriptor$29(_class7$4.prototype, "messageContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37013,8 +36796,8 @@ var AboutSectionStyle = (_class7$5 = function (_StyleSheet3) {
             }
         };
     }
-})), _class7$5);
-var AboutSection = (_dec3$4 = registerStyle(AboutSectionStyle), _dec3$4(_class9$3 = function (_UI$Element3) {
+})), _class7$4);
+var AboutSection = (_dec3$3 = registerStyle(AboutSectionStyle), _dec3$3(_class9$2 = function (_UI$Element3) {
     inherits(AboutSection, _UI$Element3);
 
     function AboutSection() {
@@ -37023,6 +36806,13 @@ var AboutSection = (_dec3$4 = registerStyle(AboutSectionStyle), _dec3$4(_class9$
     }
 
     createClass(AboutSection, [{
+        key: "getDefaultOptions",
+        value: function getDefaultOptions() {
+            return {
+                hasLogo: true
+            };
+        }
+    }, {
         key: "render",
         value: function render() {
             var _options2 = this.options,
@@ -37032,6 +36822,7 @@ var AboutSection = (_dec3$4 = registerStyle(AboutSectionStyle), _dec3$4(_class9$
             return [UI.createElement(
                 "div",
                 { className: this.styleSheet.titleContainer },
+                this.options.hasLogo ? UI.createElement(MundipediaLogo, { size: 100 }) : "",
                 title
             ), UI.createElement(
                 "div",
@@ -37041,7 +36832,7 @@ var AboutSection = (_dec3$4 = registerStyle(AboutSectionStyle), _dec3$4(_class9$
         }
     }]);
     return AboutSection;
-}(UI.Element)) || _class9$3);
+}(UI.Element)) || _class9$2);
 var AboutPageStyle = (_class10 = function (_StyleSheet4) {
     inherits(AboutPageStyle, _StyleSheet4);
 
@@ -37056,11 +36847,18 @@ var AboutPageStyle = (_class10 = function (_StyleSheet4) {
             args[_key4] = arguments[_key4];
         }
 
-        return _ret4 = (_temp4 = (_this8 = possibleConstructorReturn(this, (_ref4 = AboutPageStyle.__proto__ || Object.getPrototypeOf(AboutPageStyle)).call.apply(_ref4, [this].concat(args))), _this8), _initDefineProp$26(_this8, "container", _descriptor18$3, _this8), _initDefineProp$26(_this8, "title", _descriptor19$3, _this8), _temp4), possibleConstructorReturn(_this8, _ret4);
+        return _ret4 = (_temp4 = (_this8 = possibleConstructorReturn(this, (_ref4 = AboutPageStyle.__proto__ || Object.getPrototypeOf(AboutPageStyle)).call.apply(_ref4, [this].concat(args))), _this8), _initDefineProp$28(_this8, "aboutPage", _descriptor18$3, _this8), _initDefineProp$28(_this8, "container", _descriptor19$3, _this8), _initDefineProp$28(_this8, "title", _descriptor20$3, _this8), _temp4), possibleConstructorReturn(_this8, _ret4);
     }
 
     return AboutPageStyle;
-}(StyleSheet), (_descriptor18$3 = _applyDecoratedDescriptor$27(_class10.prototype, "container", [styleRule], {
+}(StyleSheet), (_descriptor18$3 = _applyDecoratedDescriptor$29(_class10.prototype, "aboutPage", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            backgroundColor: this.themeProperties.COLOR_BACKGROUND
+        };
+    }
+}), _descriptor19$3 = _applyDecoratedDescriptor$29(_class10.prototype, "container", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37070,12 +36868,12 @@ var AboutPageStyle = (_class10 = function (_StyleSheet4) {
             margin: "0 auto"
         };
     }
-}), _descriptor19$3 = _applyDecoratedDescriptor$27(_class10.prototype, "title", [styleRule], {
+}), _descriptor20$3 = _applyDecoratedDescriptor$29(_class10.prototype, "title", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             fontSize: "46px",
-            marginTop: "50px",
+            paddingTop: "50px",
             textAlign: "center"
         };
     }
@@ -37095,81 +36893,105 @@ var AboutPage = (_dec4$2 = registerStyle(AboutPageStyle), _dec4$2(_class12 = fun
     createClass(AboutPage, [{
         key: "extraNodeAttributes",
         value: function extraNodeAttributes(attr) {
-            attr.addClass(this.styleSheet.container);
+            attr.addClass(this.styleSheet.aboutPage);
         }
     }, {
         key: "render",
         value: function render() {
-            return [
-            /*<MundipediaLogo size={150}/>,*/
-            UI.createElement(
+            return [UI.createElement(
                 "div",
-                { className: this.styleSheet.title },
-                "Mundipedia"
-            ), UI.createElement(AboutSection, { title: "About us",
-                message: [UI.createElement(
-                    "p",
-                    null,
-                    "We\u2019re a non-profit institution with the purpose of collecting, standardizing and visualizing information about the state of the world, currently and historically."
-                ), UI.createElement(
-                    "p",
-                    null,
-                    "Mundipedia was born because there was a need fora centralized database for historical information. It\u2019s intended not just as a historical map of the world, where you can just slide to what year you want. It\u2019s intended to show information like historical GDP, populations, the areas where certain languages are spoken."
-                ), UI.createElement(
-                    "p",
-                    null,
-                    "In short, we want to put a memorable visual representation on top of the world\u2019s historical information while also acting as the curators of this data."
-                ), UI.createElement(
-                    "p",
-                    null,
-                    "Everything that we\u2019ll collect will be made freely available to anyone, at first through our website and later on through a standardized API."
-                )] }), UI.createElement(AboutSection, { title: "Aren\u2019t there other websites that do this?",
-                message: [UI.createElement(
-                    "p",
-                    null,
-                    "There\u2019s little information that\u2019s not on the internet somewhere. It\u2019s in a multitude of different formats thought: scanned maps, spreadsheets, yet untranslated cuneiform tablets, you name it. The solution we want to be is a platform that gathers all that data and offers a single format for every type of data."
-                )] }), UI.createElement(AboutSection, { title: "We\u2019re not a wiki (yet)",
-                message: [UI.createElement(
-                    "p",
-                    null,
-                    "We don\u2019t accept user data right now, but that doesn\u2019t mean we don\u2019t want to in the future. One of the main principles of Mundipedia is that the way information is presented can be more important than the actual information. Every single type of data that we\u2019ll store has a different optimal way of presenting it, and that\u2019s why at first we want the people that are inputing the data to be close to the decisions of how it\u2019s displayed."
-                ), UI.createElement(
-                    "p",
-                    null,
-                    "Using crowdsourcing to generate data has become a panacea for many content platforms, many forgetting how important it is to have a system in place that enforces consistency and quality. Don\u2019t misunderstand us, openness to all voices and sources is extremely important, but we first want to set up an infrastructure that will make sure the end-user hears only a single coherent and high quality voice."
-                ), UI.createElement(
-                    "p",
-                    null,
-                    "Over time our software will mature, and we plan on opening up for contributors, first to accredited users and then hopefully to everyone."
-                )] }), UI.createElement(AboutSection, { title: "How we\u2019re funded",
-                message: [UI.createElement(
-                    "p",
-                    null,
-                    "We don\u2019t have any income right now, and we\u2019ll be accepting donations soon. We\u2019re still looking for ways to be funded, but whatever happens though, we will stand by our key principles:"
-                ), UI.createElement(
-                    "li",
-                    null,
-                    "All of our information will remain forever free and without copyright limitations to usage."
-                ), UI.createElement(
-                    "li",
-                    null,
-                    "We will never have banners or ads of any kind on our website."
-                ), UI.createElement(
-                    "li",
-                    null,
-                    "We will not compromise our content or direction for sponsorships."
-                )] }), UI.createElement(AboutSection, { title: "Contact us for more",
-                message: [UI.createElement(
-                    "p",
-                    null,
-                    "Write to us at ",
+                { className: this.styleSheet.container },
+                UI.createElement(
+                    "div",
+                    { className: this.styleSheet.title },
+                    UI.createElement(MundipediaLogo, { size: 120 }),
                     UI.createElement(
-                        "strong",
+                        "span",
                         null,
-                        "contact@mundipedia.org"
-                    ),
-                    " if you\u2019ve got any thoughts you want to send our way."
-                )] }), UI.createElement(TeamSection, null)];
+                        "Mundipedia"
+                    )
+                ),
+                UI.createElement(AboutSection, { title: "About us",
+                    message: [UI.createElement(
+                        "p",
+                        null,
+                        "We\u2019re a non-profit institution with the purpose of collecting, standardizing and visualizing information about the state of the world, currently and historically."
+                    ), UI.createElement(
+                        "p",
+                        null,
+                        "Mundipedia was born because there was a need fora centralized database for historical information. It\u2019s intended not just as a historical map of the world, where you can just slide to what year you want. It\u2019s intended to show information like historical GDP, populations, the areas where certain languages are spoken."
+                    ), UI.createElement(
+                        "p",
+                        null,
+                        "In short, we want to put a memorable visual representation on top of the world\u2019s historical information while also acting as the curators of this data."
+                    ), UI.createElement(
+                        "p",
+                        null,
+                        "Everything that we\u2019ll collect will be made freely available to anyone, at first through our website and later on through a standardized API."
+                    )],
+                    hasLogo: false }),
+                UI.createElement(AboutSection, { title: "Aren\u2019t there other websites that do this?",
+                    message: [UI.createElement(
+                        "p",
+                        null,
+                        "There\u2019s little information that\u2019s not on the internet somewhere. It\u2019s in a multitude of different formats thought: scanned maps, spreadsheets, yet untranslated cuneiform tablets, you name it. The solution we want to be is a platform that gathers all that data and offers a single format for every type of data."
+                    )]
+                    /*hasLogo*/ }),
+                UI.createElement(AboutSection, { title: "We\u2019re not a wiki (yet)",
+                    message: [UI.createElement(
+                        "p",
+                        null,
+                        "We don\u2019t accept user data right now, but that doesn\u2019t mean we don\u2019t want to in the future. One of the main principles of Mundipedia is that the way information is presented can be more important than the actual information. Every single type of data that we\u2019ll store has a different optimal way of presenting it, and that\u2019s why at first we want the people that are inputing the data to be close to the decisions of how it\u2019s displayed."
+                    ), UI.createElement(
+                        "p",
+                        null,
+                        "Using crowdsourcing to generate data has become a panacea for many content platforms, many forgetting how important it is to have a system in place that enforces consistency and quality. Don\u2019t misunderstand us, openness to all voices and sources is extremely important, but we first want to set up an infrastructure that will make sure the end-user hears only a single coherent and high quality voice."
+                    ), UI.createElement(
+                        "p",
+                        null,
+                        "Over time our software will mature, and we plan on opening up for contributors, first to accredited users and then hopefully to everyone."
+                    )] }),
+                UI.createElement(AboutSection, { title: "How we\u2019re funded",
+                    message: [UI.createElement(
+                        "p",
+                        null,
+                        "We don\u2019t have any income right now, and we\u2019ll be accepting donations soon. We\u2019re still looking for ways to be funded, but whatever happens though, we will stand by our key principles:"
+                    ), UI.createElement(
+                        "p",
+                        null,
+                        UI.createElement(
+                            "li",
+                            null,
+                            "All of our information will remain forever free and without copyright limitations to usage."
+                        ),
+                        UI.createElement(
+                            "li",
+                            null,
+                            "We will never have banners or ads of any kind on our website."
+                        ),
+                        UI.createElement(
+                            "li",
+                            null,
+                            "We will not compromise our content or direction for sponsorships."
+                        )
+                    )] }),
+                UI.createElement(AboutSection, { title: "Contact us for more",
+                    message: [UI.createElement(
+                        "p",
+                        null,
+                        "Write to us at ",
+                        UI.createElement(
+                            "strong",
+                            null,
+                            "contact@mundipedia.org"
+                        ),
+                        " if you\u2019ve got any thoughts you want to send our way."
+                    )] }),
+                UI.createElement(FeedbackForm, null),
+                UI.createElement(AboutSection, { title: "Our team",
+                    message: [UI.createElement(TeamSection, null)],
+                    hasLogo: false })
+            )];
         }
     }]);
     return AboutPage;
@@ -37184,46 +37006,72 @@ var GlobalChat = function (_StateDependentElemen) {
     }
 
     createClass(GlobalChat, [{
-        key: "getAjaxURL",
-        value: function getAjaxURL() {
+        key: "getAjaxUrl",
+        value: function getAjaxUrl() {
             return GroupChatStore.options.fetchURL;
         }
     }, {
         key: "getAjaxRequest",
         value: function getAjaxRequest() {
             return {
-                ids: [window.GLOBAL_CHAT_ID]
+                chatId: this.options.chatId
             };
+        }
+    }, {
+        key: "getDefaultOptions",
+        value: function getDefaultOptions(options) {
+            return Object.assign(get(GlobalChat.prototype.__proto__ || Object.getPrototypeOf(GlobalChat.prototype), "getDefaultOptions", this).call(this, options), {
+                chatId: window.GLOBAL_CHAT_ID,
+                style: {
+                    height: "100%",
+                    maxWidth: 800,
+                    margin: "0 auto"
+                }
+            });
+        }
+    }, {
+        key: "initializeShowLoadMoreButton",
+        value: function initializeShowLoadMoreButton() {}
+    }, {
+        key: "importState",
+        value: function importState(data) {
+            get(GlobalChat.prototype.__proto__ || Object.getPrototypeOf(GlobalChat.prototype), "importState", this).apply(this, arguments);
+            get(GlobalChat.prototype.__proto__ || Object.getPrototypeOf(GlobalChat.prototype), "initializeShowLoadMoreButton", this).call(this);
+        }
+    }, {
+        key: "messageThread",
+        get: function get$$1() {
+            return GroupChatStore.get(this.options.chatId).getMessageThread();
         }
     }]);
     return GlobalChat;
-}(StateDependentElement(UI.Element));
+}(StateDependentElement(GroupChatWidget));
 
 var MAIN_ROUTE = new Route(null, IndexPage, [new BlogRoute(), new ForumRoute(), new Route("chat", GlobalChat), new Route("about", AboutPage)]);
 
-var _class$58;
-var _descriptor$26;
-var _descriptor2$24;
-var _descriptor3$22;
-var _descriptor4$19;
-var _descriptor5$17;
-var _descriptor6$14;
-var _descriptor7$12;
-var _descriptor8$11;
-var _descriptor9$10;
-var _descriptor10$8;
+var _class$61;
+var _descriptor$29;
+var _descriptor2$26;
+var _descriptor3$24;
+var _descriptor4$20;
+var _descriptor5$18;
+var _descriptor6$15;
+var _descriptor7$13;
+var _descriptor8$12;
+var _descriptor9$11;
+var _descriptor10$9;
 var _descriptor11$8;
 var _descriptor12$6;
 var _descriptor13$6;
-var _descriptor14$6;
+var _descriptor14$5;
 var _descriptor15$5;
 var _descriptor16$5;
 var _descriptor17$4;
 var _descriptor18$4;
 var _descriptor19$4;
-var _descriptor20$3;
+var _descriptor20$4;
 
-function _initDefineProp$27(target, property, descriptor, context) {
+function _initDefineProp$30(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -37233,7 +37081,7 @@ function _initDefineProp$27(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$28(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$31(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -37262,7 +37110,7 @@ function _applyDecoratedDescriptor$28(target, property, decorators, descriptor, 
     return desc;
 }
 
-var NavStyle = (_class$58 = function (_StyleSheet) {
+var NavStyle = (_class$61 = function (_StyleSheet) {
     inherits(NavStyle, _StyleSheet);
 
     function NavStyle() {
@@ -37286,9 +37134,9 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             sidepanelTransitionDuration: ".15s",
             boxShadowWidth: "5px",
             backgroundTransitionDuration: ".2s"
-        }, _initDefineProp$27(_this, "icon", _descriptor$26, _this), _initDefineProp$27(_this, "sideIcon", _descriptor2$24, _this), _initDefineProp$27(_this, "wrappedIcon", _descriptor3$22, _this), _this.navElement = {
+        }, _initDefineProp$30(_this, "icon", _descriptor$29, _this), _initDefineProp$30(_this, "sideIcon", _descriptor2$26, _this), _initDefineProp$30(_this, "wrappedIcon", _descriptor3$24, _this), _this.navElement = {
             transition: "background-color " + _this.dimensions.backgroundTransitionDuration
-        }, _initDefineProp$27(_this, "navLinkElement", _descriptor4$19, _this), _initDefineProp$27(_this, "navManager", _descriptor5$17, _this), _initDefineProp$27(_this, "navElementHorizontal", _descriptor6$14, _this), _initDefineProp$27(_this, "navElementHorizontalArrow", _descriptor7$12, _this), _initDefineProp$27(_this, "navElementValueHorizontal", _descriptor8$11, _this), _initDefineProp$27(_this, "navSectionHorizontal", _descriptor9$10, _this), _this.sidePanel = {
+        }, _initDefineProp$30(_this, "navLinkElement", _descriptor4$20, _this), _initDefineProp$30(_this, "navManager", _descriptor5$18, _this), _initDefineProp$30(_this, "navElementHorizontal", _descriptor6$15, _this), _initDefineProp$30(_this, "navElementHorizontalArrow", _descriptor7$13, _this), _initDefineProp$30(_this, "navElementValueHorizontal", _descriptor8$12, _this), _initDefineProp$30(_this, "navSectionHorizontal", _descriptor9$11, _this), _this.sidePanel = {
             top: "0",
             bottom: "0",
             height: "100%",
@@ -37307,7 +37155,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             transitionDuration: function transitionDuration() {
                 return _this.dimensions.sidepanelTransitionDuration;
             }
-        }, _initDefineProp$27(_this, "leftSidePanel", _descriptor10$8, _this), _initDefineProp$27(_this, "rightSidePanel", _descriptor11$8, _this), _initDefineProp$27(_this, "navElementVertical", _descriptor12$6, _this), _initDefineProp$27(_this, "navElementVerticalArrow", _descriptor13$6, _this), _initDefineProp$27(_this, "navElementValueVertical", _descriptor14$6, _this), _initDefineProp$27(_this, "navSectionVertical", _descriptor15$5, _this), _initDefineProp$27(_this, "navCollapseElement", _descriptor16$5, _this), _initDefineProp$27(_this, "sidePanelGroup", _descriptor17$4, _this), _initDefineProp$27(_this, "hrStyle", _descriptor18$4, _this), _initDefineProp$27(_this, "navVerticalLeftHide", _descriptor19$4, _this), _initDefineProp$27(_this, "navVerticalRightHide", _descriptor20$3, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$30(_this, "leftSidePanel", _descriptor10$9, _this), _initDefineProp$30(_this, "rightSidePanel", _descriptor11$8, _this), _initDefineProp$30(_this, "navElementVertical", _descriptor12$6, _this), _initDefineProp$30(_this, "navElementVerticalArrow", _descriptor13$6, _this), _initDefineProp$30(_this, "navElementValueVertical", _descriptor14$5, _this), _initDefineProp$30(_this, "navSectionVertical", _descriptor15$5, _this), _initDefineProp$30(_this, "navCollapseElement", _descriptor16$5, _this), _initDefineProp$30(_this, "sidePanelGroup", _descriptor17$4, _this), _initDefineProp$30(_this, "hrStyle", _descriptor18$4, _this), _initDefineProp$30(_this, "navVerticalLeftHide", _descriptor19$4, _this), _initDefineProp$30(_this, "navVerticalRightHide", _descriptor20$4, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     createClass(NavStyle, [{
@@ -37357,7 +37205,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
 
     }]);
     return NavStyle;
-}(StyleSheet), (_descriptor$26 = _applyDecoratedDescriptor$28(_class$58.prototype, "icon", [styleRule], {
+}(StyleSheet), (_descriptor$29 = _applyDecoratedDescriptor$31(_class$61.prototype, "icon", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37373,14 +37221,14 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor2$24 = _applyDecoratedDescriptor$28(_class$58.prototype, "sideIcon", [styleRule], {
+}), _descriptor2$26 = _applyDecoratedDescriptor$31(_class$61.prototype, "sideIcon", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
             fontSize: "120%"
         };
     }
-}), _descriptor3$22 = _applyDecoratedDescriptor$28(_class$58.prototype, "wrappedIcon", [styleRule], {
+}), _descriptor3$24 = _applyDecoratedDescriptor$31(_class$61.prototype, "wrappedIcon", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37388,7 +37236,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             flex: "1"
         };
     }
-}), _descriptor4$19 = _applyDecoratedDescriptor$28(_class$58.prototype, "navLinkElement", [styleRule], {
+}), _descriptor4$20 = _applyDecoratedDescriptor$31(_class$61.prototype, "navLinkElement", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37415,7 +37263,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor5$17 = _applyDecoratedDescriptor$28(_class$58.prototype, "navManager", [styleRule], {
+}), _descriptor5$18 = _applyDecoratedDescriptor$31(_class$61.prototype, "navManager", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37429,7 +37277,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             position: "fixed"
         };
     }
-}), _descriptor6$14 = _applyDecoratedDescriptor$28(_class$58.prototype, "navElementHorizontal", [styleRule], {
+}), _descriptor6$15 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementHorizontal", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37442,7 +37290,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor7$12 = _applyDecoratedDescriptor$28(_class$58.prototype, "navElementHorizontalArrow", [styleRule], {
+}), _descriptor7$13 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementHorizontalArrow", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37450,7 +37298,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             verticalAlign: "middle"
         };
     }
-}), _descriptor8$11 = _applyDecoratedDescriptor$28(_class$58.prototype, "navElementValueHorizontal", [styleRule], {
+}), _descriptor8$12 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementValueHorizontal", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.navElement, {
@@ -37462,7 +37310,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         }];
     }
-}), _descriptor9$10 = _applyDecoratedDescriptor$28(_class$58.prototype, "navSectionHorizontal", [styleRule], {
+}), _descriptor9$11 = _applyDecoratedDescriptor$31(_class$61.prototype, "navSectionHorizontal", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37472,7 +37320,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             marginBottom: "0"
         };
     }
-}), _descriptor10$8 = _applyDecoratedDescriptor$28(_class$58.prototype, "leftSidePanel", [styleRule], {
+}), _descriptor10$9 = _applyDecoratedDescriptor$31(_class$61.prototype, "leftSidePanel", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.sidePanel, {
@@ -37485,12 +37333,12 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         }];
     }
-}), _descriptor11$8 = _applyDecoratedDescriptor$28(_class$58.prototype, "rightSidePanel", [styleRule], {
+}), _descriptor11$8 = _applyDecoratedDescriptor$31(_class$61.prototype, "rightSidePanel", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return this.sidePanel;
     }
-}), _descriptor12$6 = _applyDecoratedDescriptor$28(_class$58.prototype, "navElementVertical", [styleRule], {
+}), _descriptor12$6 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementVertical", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37505,7 +37353,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor13$6 = _applyDecoratedDescriptor$28(_class$58.prototype, "navElementVerticalArrow", [styleRule], {
+}), _descriptor13$6 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementVerticalArrow", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37513,7 +37361,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             textAlign: "center"
         };
     }
-}), _descriptor14$6 = _applyDecoratedDescriptor$28(_class$58.prototype, "navElementValueVertical", [styleRule], {
+}), _descriptor14$5 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementValueVertical", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.navElement, {
@@ -37528,7 +37376,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         }];
     }
-}), _descriptor15$5 = _applyDecoratedDescriptor$28(_class$58.prototype, "navSectionVertical", [styleRule], {
+}), _descriptor15$5 = _applyDecoratedDescriptor$31(_class$61.prototype, "navSectionVertical", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37537,7 +37385,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             width: "100%"
         };
     }
-}), _descriptor16$5 = _applyDecoratedDescriptor$28(_class$58.prototype, "navCollapseElement", [styleRule], {
+}), _descriptor16$5 = _applyDecoratedDescriptor$31(_class$61.prototype, "navCollapseElement", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37546,7 +37394,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             lineHeight: this.dimensions.sidepanelElementHeight
         };
     }
-}), _descriptor17$4 = _applyDecoratedDescriptor$28(_class$58.prototype, "sidePanelGroup", [styleRule], {
+}), _descriptor17$4 = _applyDecoratedDescriptor$31(_class$61.prototype, "sidePanelGroup", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37557,7 +37405,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             zIndex: "3"
         };
     }
-}), _descriptor18$4 = _applyDecoratedDescriptor$28(_class$58.prototype, "hrStyle", [styleRule], {
+}), _descriptor18$4 = _applyDecoratedDescriptor$31(_class$61.prototype, "hrStyle", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _this2 = this;
@@ -37569,7 +37417,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor19$4 = _applyDecoratedDescriptor$28(_class$58.prototype, "navVerticalLeftHide", [styleRule], {
+}), _descriptor19$4 = _applyDecoratedDescriptor$31(_class$61.prototype, "navVerticalLeftHide", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37577,7 +37425,7 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             overflow: "hidden"
         };
     }
-}), _descriptor20$3 = _applyDecoratedDescriptor$28(_class$58.prototype, "navVerticalRightHide", [styleRule], {
+}), _descriptor20$4 = _applyDecoratedDescriptor$31(_class$61.prototype, "navVerticalRightHide", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37585,16 +37433,16 @@ var NavStyle = (_class$58 = function (_StyleSheet) {
             overflow: "hidden"
         };
     }
-})), _class$58);
+})), _class$61);
 
-var _class$59;
+var _class$62;
 var _temp$8;
 
 // Class for working with the Window.localStorage and Window.sessionStorage objects
 // All keys are prefixed with our custom name, so we don't have to worry about polluting the global storage namespace
 // Keys must be strings, and values are modified by the serialize/deserialize methods,
 // which by default involve JSON conversion
-var StorageMap = (_temp$8 = _class$59 = function (_Dispatchable) {
+var StorageMap = (_temp$8 = _class$62 = function (_Dispatchable) {
     inherits(StorageMap, _Dispatchable);
 
     function StorageMap(storage) {
@@ -37741,7 +37589,7 @@ var StorageMap = (_temp$8 = _class$59 = function (_Dispatchable) {
         }
     }]);
     return StorageMap;
-}(Dispatchable), _class$59.SEPARATOR = "-@#%-", _temp$8);
+}(Dispatchable), _class$62.SEPARATOR = "-@#%-", _temp$8);
 
 // SessionStorageMap can be used to preserve data on tab refreshes
 
@@ -38130,7 +37978,7 @@ var NavAnchoredNotifications = function (_NavSection) {
     }, {
         key: "render",
         value: function render() {
-            return [this.options.children, UI.createElement(UI.Switcher, { ref: "switcher", style: this.getSwitcherStyle(), className: "hidden" })];
+            return [this.options.children, UI.createElement(Switcher, { ref: "switcher", style: this.getSwitcherStyle(), className: "hidden" })];
         }
     }, {
         key: "show",
@@ -38375,10 +38223,10 @@ function initializeSwipeEvents(navManager) {
     }
 }
 
-var _dec$29;
-var _class$57;
-var _dec2$13;
-var _class3$18;
+var _dec$32;
+var _class$60;
+var _dec2$12;
+var _class3$21;
 
 var SidePanelGroup = function (_UI$Element) {
     inherits(SidePanelGroup, _UI$Element);
@@ -38412,7 +38260,7 @@ var SidePanelGroup = function (_UI$Element) {
     return SidePanelGroup;
 }(UI.Element);
 
-var SidePanel = (_dec$29 = registerStyle(NavStyle), _dec$29(_class$57 = function (_UI$Element2) {
+var SidePanel = (_dec$32 = registerStyle(NavStyle), _dec$32(_class$60 = function (_UI$Element2) {
     inherits(SidePanel, _UI$Element2);
 
     function SidePanel() {
@@ -38504,7 +38352,7 @@ var SidePanel = (_dec$29 = registerStyle(NavStyle), _dec$29(_class$57 = function
         }
     }]);
     return SidePanel;
-}(UI.Element)) || _class$57);
+}(UI.Element)) || _class$60);
 
 var NavCarouselStyle = function (_CarouselStyle) {
     inherits(NavCarouselStyle, _CarouselStyle);
@@ -38532,7 +38380,7 @@ var NavCarouselStyle = function (_CarouselStyle) {
     return NavCarouselStyle;
 }(CarouselStyle);
 
-var NavManager = (_dec2$13 = registerStyle(NavStyle), _dec2$13(_class3$18 = function (_UI$Primitive) {
+var NavManager = (_dec2$12 = registerStyle(NavStyle), _dec2$12(_class3$21 = function (_UI$Primitive) {
     inherits(NavManager, _UI$Primitive);
     createClass(NavManager, [{
         key: "getCarouselStyleSheet",
@@ -38906,7 +38754,7 @@ var NavManager = (_dec2$13 = registerStyle(NavStyle), _dec2$13(_class3$18 = func
         }
     }]);
     return NavManager;
-}(UI.Primitive("nav"))) || _class3$18);
+}(UI.Primitive("nav"))) || _class3$21);
 
 function logout() {
     Dispatcher.Global.dispatch("logout");
@@ -38919,9 +38767,7 @@ function logout() {
 // UI components
 /*
  * This is the NavManager file of your app.
- *
- * Note that the whole app is a single page app.
- * Follow the instructions below in order to customize your application.
+ * Here's where you can add links in the navigation menu
  */
 
 var AppNavManager = function (_NavManager) {
@@ -38948,8 +38794,7 @@ var AppNavManager = function (_NavManager) {
                 NavSection,
                 { anchor: Direction.LEFT, style: { margin: 0 } },
                 UI.createElement(NavLinkElement, { value: "Home", href: "/" }),
-                UI.createElement(NavLinkElement, { value: "Blog", href: "/blog" }),
-                UI.createElement(NavLinkElement, { value: "Forum", href: "/forum" })
+                UI.createElement(NavLinkElement, { value: "Blog", href: "/blog" })
             )];
         }
     }, {
@@ -39599,27 +39444,27 @@ WebsocketSubscriber.addListener = function (streamName, callback) {
     return this.Global.addStreamListener(streamName, callback);
 };
 
-var _dec$30;
-var _dec2$14;
-var _dec3$5;
+var _dec$33;
+var _dec2$13;
+var _dec3$4;
 var _dec4$3;
 var _dec5$1;
 var _dec6$1;
 var _dec7$1;
 var _dec8;
 var _dec9;
-var _class$61;
-var _descriptor$27;
-var _descriptor2$25;
-var _descriptor3$23;
-var _descriptor4$20;
-var _descriptor5$18;
-var _descriptor6$15;
-var _descriptor7$13;
-var _descriptor8$12;
-var _descriptor9$11;
+var _class$64;
+var _descriptor$30;
+var _descriptor2$27;
+var _descriptor3$25;
+var _descriptor4$21;
+var _descriptor5$19;
+var _descriptor6$16;
+var _descriptor7$14;
+var _descriptor8$13;
+var _descriptor9$12;
 
-function _initDefineProp$28(target, property, descriptor, context) {
+function _initDefineProp$31(target, property, descriptor, context) {
     if (!descriptor) return;
     Object.defineProperty(target, property, {
         enumerable: descriptor.enumerable,
@@ -39629,7 +39474,7 @@ function _initDefineProp$28(target, property, descriptor, context) {
     });
 }
 
-function _applyDecoratedDescriptor$29(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$32(target, property, decorators, descriptor, context) {
     var desc = {};
     Object['ke' + 'ys'](descriptor).forEach(function (key) {
         desc[key] = descriptor[key];
@@ -39658,7 +39503,7 @@ function _applyDecoratedDescriptor$29(target, property, decorators, descriptor, 
     return desc;
 }
 
-var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$14 = styleRuleCustom({ selector: ".hidden" }), _dec3$5 = styleRuleCustom({ selector: "*" }), _dec4$3 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$61 = function (_StyleSheet) {
+var GlobalStyleSheet = (_dec$33 = styleRuleCustom({ selector: "body" }), _dec2$13 = styleRuleCustom({ selector: ".hidden" }), _dec3$4 = styleRuleCustom({ selector: "*" }), _dec4$3 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$64 = function (_StyleSheet) {
     inherits(GlobalStyleSheet, _StyleSheet);
 
     function GlobalStyleSheet() {
@@ -39672,11 +39517,11 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = GlobalStyleSheet.__proto__ || Object.getPrototypeOf(GlobalStyleSheet)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$28(_this, "body", _descriptor$27, _this), _initDefineProp$28(_this, "hidden", _descriptor2$25, _this), _initDefineProp$28(_this, "everything", _descriptor3$23, _this), _initDefineProp$28(_this, "a", _descriptor4$20, _this), _initDefineProp$28(_this, "hr", _descriptor5$18, _this), _initDefineProp$28(_this, "codeAndPre", _descriptor6$15, _this), _initDefineProp$28(_this, "code", _descriptor7$13, _this), _initDefineProp$28(_this, "pre", _descriptor8$12, _this), _initDefineProp$28(_this, "preInCode", _descriptor9$11, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = GlobalStyleSheet.__proto__ || Object.getPrototypeOf(GlobalStyleSheet)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$31(_this, "body", _descriptor$30, _this), _initDefineProp$31(_this, "hidden", _descriptor2$27, _this), _initDefineProp$31(_this, "everything", _descriptor3$25, _this), _initDefineProp$31(_this, "a", _descriptor4$21, _this), _initDefineProp$31(_this, "hr", _descriptor5$19, _this), _initDefineProp$31(_this, "codeAndPre", _descriptor6$16, _this), _initDefineProp$31(_this, "code", _descriptor7$14, _this), _initDefineProp$31(_this, "pre", _descriptor8$13, _this), _initDefineProp$31(_this, "preInCode", _descriptor9$12, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return GlobalStyleSheet;
-}(StyleSheet), (_descriptor$27 = _applyDecoratedDescriptor$29(_class$61.prototype, "body", [_dec$30], {
+}(StyleSheet), (_descriptor$30 = _applyDecoratedDescriptor$32(_class$64.prototype, "body", [_dec$33], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -39684,21 +39529,21 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             fontFamily: this.themeProperties.FONT_FAMILY_SANS_SERIF
         };
     }
-}), _descriptor2$25 = _applyDecoratedDescriptor$29(_class$61.prototype, "hidden", [_dec2$14], {
+}), _descriptor2$27 = _applyDecoratedDescriptor$32(_class$64.prototype, "hidden", [_dec2$13], {
     enumerable: true,
     initializer: function initializer() {
         return {
             display: "none !important"
         };
     }
-}), _descriptor3$23 = _applyDecoratedDescriptor$29(_class$61.prototype, "everything", [_dec3$5], {
+}), _descriptor3$25 = _applyDecoratedDescriptor$32(_class$64.prototype, "everything", [_dec3$4], {
     enumerable: true,
     initializer: function initializer() {
         return {
             boxSizing: "border-box"
         };
     }
-}), _descriptor4$20 = _applyDecoratedDescriptor$29(_class$61.prototype, "a", [_dec4$3], {
+}), _descriptor4$21 = _applyDecoratedDescriptor$32(_class$64.prototype, "a", [_dec4$3], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -39706,7 +39551,7 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             color: this.themeProperties.COLOR_LINK || "#337ab7"
         };
     }
-}), _descriptor5$18 = _applyDecoratedDescriptor$29(_class$61.prototype, "hr", [_dec5$1], {
+}), _descriptor5$19 = _applyDecoratedDescriptor$32(_class$64.prototype, "hr", [_dec5$1], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -39718,14 +39563,14 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             boxSizing: "content-box"
         };
     }
-}), _descriptor6$15 = _applyDecoratedDescriptor$29(_class$61.prototype, "codeAndPre", [_dec6$1], {
+}), _descriptor6$16 = _applyDecoratedDescriptor$32(_class$64.prototype, "codeAndPre", [_dec6$1], {
     enumerable: true,
     initializer: function initializer() {
         return {
             fontFamily: this.themeProperties.FONT_FAMILY_MONOSPACE
         };
     }
-}), _descriptor7$13 = _applyDecoratedDescriptor$29(_class$61.prototype, "code", [_dec7$1], {
+}), _descriptor7$14 = _applyDecoratedDescriptor$32(_class$64.prototype, "code", [_dec7$1], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -39736,7 +39581,7 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             borderRadius: this.themeProperties.BUTTON_BORDER_RADIUS
         };
     }
-}), _descriptor8$12 = _applyDecoratedDescriptor$29(_class$61.prototype, "pre", [_dec8], {
+}), _descriptor8$13 = _applyDecoratedDescriptor$32(_class$64.prototype, "pre", [_dec8], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -39753,7 +39598,7 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             border: "1px solid #ccc"
         };
     }
-}), _descriptor9$11 = _applyDecoratedDescriptor$29(_class$61.prototype, "preInCode", [_dec9], {
+}), _descriptor9$12 = _applyDecoratedDescriptor$32(_class$64.prototype, "preInCode", [_dec9], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -39765,12 +39610,12 @@ var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$1
             borderRadius: 0
         };
     }
-})), _class$61));
+})), _class$64));
 
-var _class$60;
+var _class$63;
 var _temp$9;
 
-var EstablishmentApp = (_temp$9 = _class$60 = function (_StemApp) {
+var EstablishmentApp = (_temp$9 = _class$63 = function (_StemApp) {
     inherits(EstablishmentApp, _StemApp);
 
     function EstablishmentApp() {
@@ -39808,6 +39653,17 @@ var EstablishmentApp = (_temp$9 = _class$60 = function (_StemApp) {
             // Add a postprocessor to load any state received from an Ajax response
             Ajax.addPostprocessor(function (payload) {
                 payload.state && GlobalState.importState(payload.state);
+            });
+
+            // Sync server time
+            Ajax.addPostprocessor(function (payload, xhrPromise) {
+                var responseHeaders = xhrPromise.getResponseHeaders();
+                var responseDate = responseHeaders.get("date");
+                if (responseDate) {
+                    // Estimate server time, with 500ms rounding and 100 ms latency
+                    var estimatedServerTime = new StemDate(responseDate).add(600);
+                    ServerTime.set(estimatedServerTime, true);
+                }
             });
 
             // Raise any error, to be handled by the error processor
@@ -39860,7 +39716,7 @@ var EstablishmentApp = (_temp$9 = _class$60 = function (_StemApp) {
         }
     }]);
     return EstablishmentApp;
-}(StemApp), _class$60.MIN_VIEWPORT_META_WIDTH = 375, _temp$9);
+}(StemApp), _class$63.MIN_VIEWPORT_META_WIDTH = 375, _temp$9);
 
 // The default page title
 PageTitleManager.setDefaultTitle("Mundipedia");
@@ -39871,6 +39727,7 @@ Theme.Global.setProperties({
     FONT_FAMILY_SANS_SERIF: "'Mundigrotesque Light', " + oldThemeProperties.FONT_FAMILY_SANS_SERIF,
     COLOR_ALTERNATIVE_WHITE: "#e3e3e3",
     COLOR_PALE_BRIGHT_BLUE: "#bbbbc9",
+    COLOR_BACKGROUND: "#f3f4f5",
     COLOR_TEXT: "#222",
     GLOBAL_YEAR_SELECT_HEIGHT: 60
 });
