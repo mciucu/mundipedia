@@ -2497,9 +2497,6 @@ function changeParent(element, newParent) {
     newParent.appendChild(element);
 }
 
-// TODO: should this be actually better done throught the dynamic CSS API, without doing through the DOM?
-// So far it's actually better like this, since browsers like Chrome allow users to edit classes
-
 var StyleInstance = function (_UI$TextElement) {
     inherits(StyleInstance, _UI$TextElement);
 
@@ -2996,9 +2993,6 @@ var keyframesRuleInherit = styleRuleWithOptions({
     getKey: getKeyframesRuleKey,
     inherit: true
 });
-
-// Class meant to group multiple classes inside a single <style> element, for convenience
-// TODO: pattern should be more robust, to be able to only update classes
 
 var StyleSheet = function (_Dispatchable) {
     inherits(StyleSheet, _Dispatchable);
@@ -4199,7 +4193,6 @@ function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, c
     return desc;
 }
 
-// TODO: export these properly, don't use a namespace here
 var GlobalStyle = {};
 
 Theme.Global.setProperties({
@@ -5176,8 +5169,6 @@ var ProgressBar = (_dec3 = registerStyle(ProgressBarStyle), _dec3(_class9 = func
 }(SimpleStyledElement)) || _class9);
 
 // TODO: this file existed to hold generic classes in a period of fast prototyping, has a lot of old code
-// A very simple class, all this does is implement the `getTitle()` method
-
 var Panel = function (_UI$Element) {
     inherits(Panel, _UI$Element);
 
@@ -6681,10 +6672,6 @@ var FormField = function (_FormGroup) {
     return FormField;
 }(FormGroup);
 
-// Setting these attributes as styles in mozilla has no effect.
-// To maintain compatibility between moz and webkit, whenever
-// one of these attributes is set as a style, it is also set as a
-// node attribute.
 var MozStyleElements = new Set(["width", "height", "rx", "ry", "cx", "cy", "x", "y"]);
 
 var SVGNodeAttributes = function (_NodeAttributes) {
@@ -8893,7 +8880,6 @@ var TerminalRoute = function (_Route) {
     return TerminalRoute;
 }(Route);
 
-// This is the object that will be used to translate text
 var translationMap = null;
 
 // Keep a set of all UI Element that need to be updated when the language changes
@@ -8990,6 +8976,11 @@ UI.TranslationTextElement = function (_UI$TextElement) {
 UI.T = function (str) {
     return new UI.TranslationTextElement(str);
 };
+
+// TODO @mciucu this should be wrapped in a way that previous requests that arrive later don't get processed
+// TODO: should this be done with promises?
+// Function to be called with a translation map
+// The translationMap object needs to implement .get(value) to return the translation for value
 
 var _class$9;
 var _descriptor$4;
@@ -9475,8 +9466,6 @@ var TabArea = (_dec$4 = registerStyle(DefaultTabAreaStyle), _dec$4(_class$8 = fu
     return TabArea;
 }(UI.Element)) || _class$8);
 
-// A map that supports multiple values to the same key
-
 var MultiMap = function () {
     function MultiMap() {
         classCallCheck(this, MultiMap);
@@ -9726,8 +9715,6 @@ var MultiMap = function () {
 var _class$12;
 var _temp$3;
 
-// This class currently mirrors the functionality of Headers on Chrome at the time of implementation
-// TODO: It is specified that the function get() should return the result of getAll() and getAll() deprecated
 var Headers$1 = (_temp$3 = _class$12 = function (_MultiMap) {
     inherits(Headers, _MultiMap);
 
@@ -10294,8 +10281,6 @@ function polyfillResponse(global) {
 // Tries to be a more flexible implementation of fetch()
 // Still work in progress
 
-// May need to polyfill Headers, Request, Response, Body, URLSearchParams classes, so import them
-// TODO: should only call this in the first call to fetch, to not create unneeded dependencies?
 if (window) {
     polyfillRequest(window);
     polyfillResponse(window);
@@ -13370,7 +13355,6 @@ var _dec2$3;
 var _class2$2;
 
 // TODO: Too much "hidden"
-// options.orientation is the orientation of the divided elements
 var DividerBar = (_dec$13 = registerStyle(SectionDividerStyle), _dec$13(_class$26 = function (_Divider) {
     inherits(DividerBar, _Divider);
 
@@ -14837,6 +14821,9 @@ var EntriesManager = function (_Dispatchable) {
     return EntriesManager;
 }(Dispatchable);
 
+// A wrapper for tables which optimizes rendering when many entries / updates are involved. It currently has hardcoded
+// row height for functionality reasons.
+
 var _class$32;
 var _descriptor$14;
 var _descriptor2$12;
@@ -14977,8 +14964,6 @@ var SortableTableStyle = (_class3$10 = function (_TableStyle) {
 
 var _dec$16;
 var _class$31;
-
-// TODO: the whole table architecture probably needs a rethinking
 
 var TableRow = function (_UI$Primitive) {
     inherits(TableRow, _UI$Primitive);
@@ -15992,10 +15977,6 @@ addCanonicalTimeUnits();
 
 var _class$34;
 
-// MAX_UNIX_TIME is either ~Feb 2106 in unix seconds or ~Feb 1970 in unix milliseconds
-// Any value less than this is interpreted as a unix time in seconds
-// If you want to go around this behavious, you can use the static method .fromUnixMilliseconds()
-// To disable, set this value to 0
 var MAX_AUTO_UNIX_TIME = Math.pow(2, 32);
 
 var BaseDate = self.Date;
@@ -16512,7 +16493,6 @@ StemDate.tokenFormattersMap = new Map([["ISO", function (date) {
     return date.format("MMMM Do, YYYY");
 }]]);
 
-// File meant to handle server time/client time differences
 var ServerTime = {
     now: function now() {
         return StemDate().subtract(this.getOffset());
@@ -16549,8 +16529,6 @@ function isDifferentDay(timeA, timeB) {
     // Check if different day of the month, when difference is less than a day
     return timeA.getDate() !== timeB.getDate();
 }
-
-// import {Button} from "./button/Button";
 
 var DatePickerTable = function (_UI$Element) {
     inherits(DatePickerTable, _UI$Element);
@@ -17842,7 +17820,6 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
   return rotation;
 }
 
-// Generates a circle centered at [0°, 0°], with a given radius and precision.
 function circleStream(stream, radius, delta, direction, t0, t1) {
   if (!delta) return;
   var cosRadius = cos(radius),
@@ -18610,8 +18587,6 @@ function boundsPoint$1(x, y) {
   if (y < y0$2) y0$2 = y;
   if (y > y1) y1 = y;
 }
-
-// TODO Enforce positive area for exterior, negative area for interior?
 
 var X0$1 = 0;
 var Y0$1 = 0;
@@ -19727,6 +19702,9 @@ function sqrt$1(x) {
   return x > 0 ? Math.sqrt(x) : 0;
 }
 
+// Abort if [x, y] is not within an ellipse centered at [0, 0] with
+// semi-major axis pi and semi-minor axis pi/2.
+
 var sqrt8 = sqrt$1(8);
 
 function mollweideBromleyTheta(cp, phi) {
@@ -19778,9 +19756,6 @@ eckert4Raw.invert = function (x, y) {
 var geoEckert4 = function () {
   return projection(eckert4Raw).scale(180.739);
 };
-
-// Returns [sn, cn, dn](u + iv|m).
-
 
 // Returns [sn, cn, dn, ph](u|m).
 
@@ -19834,13 +19809,16 @@ var geoHammer = function () {
   return p.scale(169.529);
 };
 
+// Latitudinal rotation by phi0.
+// Temporary hack until D3 supports arbitrary small-circle clipping origins.
+
 var sqrt6 = sqrt$1(6);
 var sqrt7 = sqrt$1(7);
 
-// Inverts a transform matrix.
-
-
 // Multiplies two 3x2 matrices.
+
+
+// Subtracts 2D vectors.
 
 // TODO generate on-the-fly to avoid external modification.
 var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
@@ -19858,8 +19836,6 @@ var K = [[0.9986, -0.062], [1.0000, 0.0000], [0.9986, 0.0620], [0.9954, 0.1240],
 K.forEach(function (d) {
   d[1] *= 1.0144;
 });
-
-// TODO clip to ellipse
 
 var A = 4 * pi$1 + 3 * sqrt$1(3);
 var B = 2 * sqrt$1(2 * pi$1 * sqrt$1(3) / A);
@@ -20844,12 +20820,12 @@ var HistoricalMap = function (_Zoomable) {
                 _this6.redraw();
             });
 
-            var rotate = function rotate() {
-                _this6.getProjection().rotate([Date.now() / 200, 0, 0]);
-                _this6.redraw();
-                requestAnimationFrame(rotate);
-            };
-            rotate();
+            // let rotate = () => {
+            //     this.getProjection().rotate([Date.now() / 200, 0, 0]);
+            //     this.redraw();
+            //     requestAnimationFrame(rotate);
+            // };
+            // rotate();
         }
     }]);
     return HistoricalMap;
@@ -21562,7 +21538,6 @@ var DefaultState = GlobalState;
 
 self.GlobalState = GlobalState;
 
-// The store information is kept in a symbol, to not interfere with serialization/deserialization
 var StoreSymbol = Symbol("Store");
 
 var StoreObject = function (_Dispatchable) {
@@ -24483,10 +24458,6 @@ MarkupParser.parseJSON5 = function () {
         }({ '': result }, '') : result;
     };
 }();
-
-// TODO: these should be in a unit test file, not here
-
-// Class that for every markup tag returns the UI class to instantiate for that element
 
 var MarkupClassMap = function () {
     function MarkupClassMap(fallback) {
@@ -27733,9 +27704,6 @@ var Popup = function (_BasePopup) {
     }]);
     return Popup;
 }(BasePopup);
-
-// import {Emoji as EmojiMini} from "EmojiMini";
-// import "EmojiUI";
 
 UI.Emoji = UI.Emoji || UI.Element;
 
@@ -32305,14 +32273,6 @@ var DelayedElement = function DelayedElement(BaseClass) {
     }(BaseClass);
 };
 
-// You can configure the loading/error states by defining the "renderLoading" and "renderError" attributes of the
-// function somewhere globally in your app.
-// Example:
-// StateDependentElement.renderLoading = "Loading...";
-// or
-// StateDependentElement.renderLoading = () => <MyCustomLoadingAnimation />
-// StateDependentElement.renderError = (error) => <MyCustomErrorMessageClass error={error} />
-
 var StateDependentElement = function StateDependentElement(BaseClass) {
     return function (_DelayedElement) {
         inherits(StateDependentElementClass, _DelayedElement);
@@ -33433,8 +33393,6 @@ function _applyDecoratedDescriptor$28(target, property, decorators, descriptor, 
 
     return desc;
 }
-
-//import {CSAStyle} from "CSAStyle";
 
 var colors = {
     // BLUE: "#20232d",
@@ -37438,10 +37396,6 @@ var NavStyle = (_class$61 = function (_StyleSheet) {
 var _class$62;
 var _temp$8;
 
-// Class for working with the Window.localStorage and Window.sessionStorage objects
-// All keys are prefixed with our custom name, so we don't have to worry about polluting the global storage namespace
-// Keys must be strings, and values are modified by the serialize/deserialize methods,
-// which by default involve JSON conversion
 var StorageMap = (_temp$8 = _class$62 = function (_Dispatchable) {
     inherits(StorageMap, _Dispatchable);
 
@@ -38765,11 +38719,6 @@ function logout() {
 }
 
 // UI components
-/*
- * This is the NavManager file of your app.
- * Here's where you can add links in the navigation menu
- */
-
 var AppNavManager = function (_NavManager) {
     inherits(AppNavManager, _NavManager);
 
@@ -39718,7 +39667,6 @@ var EstablishmentApp = (_temp$9 = _class$63 = function (_StemApp) {
     return EstablishmentApp;
 }(StemApp), _class$63.MIN_VIEWPORT_META_WIDTH = 375, _temp$9);
 
-// The default page title
 PageTitleManager.setDefaultTitle("Mundipedia");
 
 var oldThemeProperties = Theme.Global.getProperties();

@@ -1,4 +1,3 @@
-import {Dispatchable} from "../../stemjs/src/base/Dispatcher";
 import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, registerStyle, CheckboxInput} from "ui/UI";
 import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
 import D3PathString from "d3-geo/src/path/string";
@@ -230,8 +229,11 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
             this.redraw();
         });
 
-        window.addEventListener("resize", () => {
-            this.setDimensions(getPreferredDimensions());
-        });
+        // let rotate = () => {
+        //     this.getProjection().rotate([Date.now() / 200, 0, 0]);
+        //     this.redraw();
+        //     requestAnimationFrame(rotate);
+        // };
+        // rotate();
     }
 }
