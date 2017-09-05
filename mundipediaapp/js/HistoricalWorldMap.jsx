@@ -203,6 +203,9 @@ function getPreferredDimensions() {
 
 @registerStyle(HistoricalWorldMapStyle)
 export class HistoricalWorldMap extends UI.Element {
+    requestedYears = new Set();
+    geometries = new Map();
+
     constructor(options) {
         super(options);
         this.menuIsToggled = false;
@@ -211,8 +214,23 @@ export class HistoricalWorldMap extends UI.Element {
 
     getDefaultOptions() {
         return {
-            currentYear: self.WORLD_MAP_YEARS[0],
+            currentYear: window.WORLD_MAP_YEARS[0],
         }
+    }
+
+    getGeometry(feature, svgMap) {
+        let modes = ["", "-sm"];
+        const badPrecision = svgMap.options.isDragging;
+        if (badPrecision) {
+            modes.reverse();
+        }
+        for (let mode of modes) {
+            const key = this.getCurrentYear() + mode + feature.properties.entity_id;
+            if (this.geometries.has(key)) {
+                return this.geometries.get(key);
+            }
+        }
+        return feature.geometry;
     }
 
     extraNodeAttributes(attr) {
@@ -293,7 +311,10 @@ export class HistoricalWorldMap extends UI.Element {
                     currentYear={currentYear}
                     className={this.styleSheet.historyWorldMapTitle} />
             </div>,
-            <HistoricalMap ref="map" {...getPreferredDimensions()} />,
+            <HistoricalMap
+                ref="map"
+                geometryGetter={this.getGeometry.bind(this)}
+                {...getPreferredDimensions()} />,
         ]
     }
 
@@ -306,15 +327,28 @@ export class HistoricalWorldMap extends UI.Element {
         this.title.setCurrentYear(currentYear);
     }
 
+    getCurrentYear() {
+        return this.options.currentYear;
+    }
+
     loadCurrentYearData() {
         const year = this.yearSelect.getCurrentValue();
-        const fileName = "/static/json/world/" + year + "-sm.json";
-
-        Ajax.getJSON(fileName).then(data => {
-            this.map.setData(data);
-
-            this.setCurrentYear(this.yearSelect.getCurrentValue());
-        });
+        if (this.requestedYears.has(year)) {
+            return;
+        }
+        this.requestedYears.add(year);
+        const prefix = "/static/json/world/" + year;
+        const modes = ["", "-sm"];
+        for (const mode of modes) {
+            Ajax.getJSON(prefix + mode + ".json").then((data) => {
+                this.setCurrentYear(year);
+                this.map.setData(data);
+                for (let feature of data.features) {
+                    const key = year + mode + feature.properties.entity_id;
+                    this.geometries.set(key, feature.geometry);
+                }
+            })
+        }
     }
 
     onMount() {
@@ -344,5 +378,9 @@ export class HistoricalWorldMap extends UI.Element {
                 this.toggleMenu();
             }
         });
+
+        window.addEventListener("resize", () => {
+            console.log("Resize, needs to be handled");
+        })
     }
 }

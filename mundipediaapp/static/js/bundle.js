@@ -18772,7 +18772,7 @@ function PathString() {
 
 PathString.prototype = {
   _radius: 4.5,
-  _circle: circle$1(4.5),
+  _circle: circle(4.5),
   pointRadius: function pointRadius(_) {
     if ((_ = +_) !== this._radius) this._radius = _, this._circle = null;
     return this;
@@ -18805,7 +18805,7 @@ PathString.prototype = {
         }
       default:
         {
-          if (this._circle == null) this._circle = circle$1(this._radius);
+          if (this._circle == null) this._circle = circle(this._radius);
           this._string.push("M", x, ",", y, this._circle);
           break;
         }
@@ -18822,7 +18822,7 @@ PathString.prototype = {
   }
 };
 
-function circle$1(radius) {
+function circle(radius) {
   return "m0," + radius + "a" + radius + "," + radius + " 0 1,1 0," + -2 * radius + "a" + radius + "," + radius + " 0 1,1 0," + 2 * radius + "z";
 }
 
@@ -20521,28 +20521,6 @@ function _applyDecoratedDescriptor$21(target, property, decorators, descriptor, 
     return desc;
 }
 
-PathString.prototype.point = function (x, y) {
-    switch (this._point) {
-        case 0:
-            {
-                this._string.push("M" + x.toFixed(3) + "," + y.toFixed(3));
-                this._point = 1;
-                break;
-            }
-        case 1:
-            {
-                this._string.push("L" + x.toFixed(3) + "," + y.toFixed(3));
-                break;
-            }
-        default:
-            {
-                if (this._circle == null) this._circle = circle(this._radius);
-                this._string.push("M", x, ",", y, this._circle);
-                break;
-            }
-    }
-};
-
 var FeatureStyle = (_class$41 = function (_StyleSheet) {
     inherits(FeatureStyle, _StyleSheet);
 
@@ -20651,10 +20629,12 @@ var HistoricalMap = function (_Zoomable) {
         key: "getDefaultOptions",
         value: function getDefaultOptions(options) {
             options = Object.assign({
-                height: 600,
                 width: 800,
-                showGraticule: true
-
+                height: 600,
+                showGraticule: true,
+                geometryGetter: function geometryGetter(feature) {
+                    return feature.geometry;
+                }
             }, options);
 
             var VIEW_BOX_SIZE = Math.min(options.height, options.width);
@@ -20681,6 +20661,11 @@ var HistoricalMap = function (_Zoomable) {
         value: function setData(data) {
             this.data = data;
             this.redraw();
+        }
+    }, {
+        key: "getPrecisionLevel",
+        value: function getPrecisionLevel() {
+            return this.options.precisionLevel;
         }
     }, {
         key: "getProjection",
@@ -20732,6 +20717,11 @@ var HistoricalMap = function (_Zoomable) {
             console.log(dimensions.height, dimensions.width);
         }
     }, {
+        key: "getGeometry",
+        value: function getGeometry(feature) {
+            return this.options.geometryGetter(feature, this);
+        }
+    }, {
         key: "render",
         value: function render() {
             var _this5 = this;
@@ -20741,7 +20731,8 @@ var HistoricalMap = function (_Zoomable) {
             }
 
             var paths = this.data.features.map(function (feature) {
-                var path = _this5.makePath(feature.geometry);
+                var geometry = _this5.getGeometry(feature);
+                var path = geometry && _this5.makePath(geometry);
                 if (!path) {
                     return null;
                 }
@@ -20767,6 +20758,7 @@ var HistoricalMap = function (_Zoomable) {
         key: "handleDragStart",
         value: function handleDragStart(event) {
             this._dragStartPoint = this.getProjectionCoordinates();
+            this.options.isDragging = true;
             //this.options.drawMode = DrawMode.SIMPLIFIED;
         }
     }, {
@@ -20796,7 +20788,10 @@ var HistoricalMap = function (_Zoomable) {
         }
     }, {
         key: "handleDragEnd",
-        value: function handleDragEnd() {}
+        value: function handleDragEnd() {
+            this.options.isDragging = false;
+            this.redraw();
+        }
     }, {
         key: "onMount",
         value: function onMount() {
@@ -20819,14 +20814,15 @@ var HistoricalMap = function (_Zoomable) {
                 projection.scale(projection.scale() * zoomEvent.zoomFactor);
                 _this6.redraw();
             });
-
-            // let rotate = () => {
-            //     this.getProjection().rotate([Date.now() / 200, 0, 0]);
-            //     this.redraw();
-            //     requestAnimationFrame(rotate);
-            // };
-            // rotate();
         }
+
+        // let rotate = () => {
+        //     this.getProjection().rotate([Date.now() / 200, 0, 0]);
+        //     this.redraw();
+        //     requestAnimationFrame(rotate);
+        // };
+        // rotate();
+
     }]);
     return HistoricalMap;
 }(Zoomable(Draggable(SVG.SVGRoot)));
@@ -21155,6 +21151,9 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
 
         var _this4 = possibleConstructorReturn(this, (HistoricalWorldMap.__proto__ || Object.getPrototypeOf(HistoricalWorldMap)).call(this, options));
 
+        _this4.requestedYears = new Set();
+        _this4.geometries = new Map();
+
         _this4.menuIsToggled = false;
         _this4.graticuleIsToggled = true;
         return _this4;
@@ -21164,8 +21163,46 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
         key: "getDefaultOptions",
         value: function getDefaultOptions() {
             return {
-                currentYear: self.WORLD_MAP_YEARS[0]
+                currentYear: window.WORLD_MAP_YEARS[0]
             };
+        }
+    }, {
+        key: "getGeometry",
+        value: function getGeometry(feature, svgMap) {
+            var modes = ["", "-sm"];
+            var badPrecision = svgMap.options.isDragging;
+            if (badPrecision) {
+                modes.reverse();
+            }
+            var _iteratorNormalCompletion = true;
+            var _didIteratorError = false;
+            var _iteratorError = undefined;
+
+            try {
+                for (var _iterator = modes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var mode = _step.value;
+
+                    var key = this.getCurrentYear() + mode + feature.properties.entity_id;
+                    if (this.geometries.has(key)) {
+                        return this.geometries.get(key);
+                    }
+                }
+            } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                        _iterator.return();
+                    }
+                } finally {
+                    if (_didIteratorError) {
+                        throw _iteratorError;
+                    }
+                }
+            }
+
+            return feature.geometry;
         }
     }, {
         key: "extraNodeAttributes",
@@ -21255,7 +21292,10 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
                     years: self.WORLD_MAP_YEARS,
                     currentYear: currentYear,
                     className: this.styleSheet.historyWorldMapTitle })
-            ), UI.createElement(HistoricalMap, _extends({ ref: "map" }, getPreferredDimensions()))];
+            ), UI.createElement(HistoricalMap, _extends({
+                ref: "map",
+                geometryGetter: this.getGeometry.bind(this)
+            }, getPreferredDimensions()))];
         }
     }, {
         key: "setProjection",
@@ -21269,18 +21309,78 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
             this.title.setCurrentYear(currentYear);
         }
     }, {
+        key: "getCurrentYear",
+        value: function getCurrentYear() {
+            return this.options.currentYear;
+        }
+    }, {
         key: "loadCurrentYearData",
         value: function loadCurrentYearData() {
             var _this6 = this;
 
             var year = this.yearSelect.getCurrentValue();
-            var fileName = "/static/json/world/" + year + "-sm.json";
+            if (this.requestedYears.has(year)) {
+                return;
+            }
+            this.requestedYears.add(year);
+            var prefix = "/static/json/world/" + year;
+            var modes = ["", "-sm"];
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
 
-            Ajax.getJSON(fileName).then(function (data) {
-                _this6.map.setData(data);
+            try {
+                var _loop = function _loop() {
+                    var mode = _step2.value;
 
-                _this6.setCurrentYear(_this6.yearSelect.getCurrentValue());
-            });
+                    Ajax.getJSON(prefix + mode + ".json").then(function (data) {
+                        _this6.setCurrentYear(year);
+                        _this6.map.setData(data);
+                        var _iteratorNormalCompletion3 = true;
+                        var _didIteratorError3 = false;
+                        var _iteratorError3 = undefined;
+
+                        try {
+                            for (var _iterator3 = data.features[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                                var feature = _step3.value;
+
+                                var key = year + mode + feature.properties.entity_id;
+                                _this6.geometries.set(key, feature.geometry);
+                            }
+                        } catch (err) {
+                            _didIteratorError3 = true;
+                            _iteratorError3 = err;
+                        } finally {
+                            try {
+                                if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                                    _iterator3.return();
+                                }
+                            } finally {
+                                if (_didIteratorError3) {
+                                    throw _iteratorError3;
+                                }
+                            }
+                        }
+                    });
+                };
+
+                for (var _iterator2 = modes[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    _loop();
+                }
+            } catch (err) {
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
+                    }
+                } finally {
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
+                    }
+                }
+            }
         }
     }, {
         key: "onMount",
@@ -21312,6 +21412,10 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
                 if (_this7.menuIsToggled) {
                     _this7.toggleMenu();
                 }
+            });
+
+            window.addEventListener("resize", function () {
+                console.log("Resize, needs to be handled");
             });
         }
     }]);
@@ -39679,6 +39783,25 @@ Theme.Global.setProperties({
     COLOR_TEXT: "#222",
     GLOBAL_YEAR_SELECT_HEIGHT: 60
 });
+
+// D3PathString.prototype.point = function (x, y) {
+//     switch (this._point) {
+//         case 0: {
+//             this._string.push("M" + x.toFixed(1) + "," + y.toFixed(1));
+//             this._point = 1;
+//             break;
+//         }
+//         case 1: {
+//             this._string.push("L" + x.toFixed(1) + "," + y.toFixed(1));
+//             break;
+//         }
+//         default: {
+//             if (this._circle == null) this._circle = circle(this._radius);
+//             this._string.push("M", x, ",", y, this._circle);
+//             break;
+//         }
+//     }
+// };
 
 var _dec;
 var _class;

@@ -1,31 +1,11 @@
 import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, registerStyle, CheckboxInput} from "ui/UI";
 import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
-import D3PathString from "d3-geo/src/path/string";
 import {FAIcon} from "FontAwesome";
 import {getDragPointRotation} from "./geo/Transform";
 
 import {Draggable} from "ui/Draggable";
 import {Zoomable} from "ui/Zoomable";
 
-
-D3PathString.prototype.point = function (x, y) {
-    switch (this._point) {
-        case 0: {
-            this._string.push("M" + x.toFixed(3) + "," + y.toFixed(3));
-            this._point = 1;
-            break;
-        }
-        case 1: {
-            this._string.push("L" + x.toFixed(3) + "," + y.toFixed(3));
-            break;
-        }
-        default: {
-            if (this._circle == null) this._circle = circle(this._radius);
-            this._string.push("M", x, ",", y, this._circle);
-            break;
-        }
-    }
-};
 
 class FeatureStyle extends StyleSheet {
     @styleRule
@@ -85,10 +65,10 @@ class FeaturePath extends SVG.Path {
 export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     getDefaultOptions(options) {
         options = Object.assign({
-            height: 600,
             width: 800,
+            height: 600,
             showGraticule: true,
-
+            geometryGetter: (feature) => feature.geometry,
         }, options);
 
         const VIEW_BOX_SIZE = Math.min(options.height, options.width);
@@ -114,6 +94,10 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     setData(data) {
         this.data = data;
         this.redraw();
+    }
+
+    getPrecisionLevel() {
+        return this.options.precisionLevel;
     }
 
     getProjection() {
@@ -157,13 +141,18 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
         console.log(dimensions.height, dimensions.width);
     }
 
+    getGeometry(feature) {
+        return this.options.geometryGetter(feature, this);
+    }
+
     render() {
         if (!this.data) {
             return [];
         }
 
         let paths = this.data.features.map((feature) => {
-            const path = this.makePath(feature.geometry);
+            const geometry = this.getGeometry(feature);
+            const path = geometry && this.makePath(geometry);
             if (!path) {
                 return null;
             }
@@ -186,6 +175,7 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
 
     handleDragStart(event) {
         this._dragStartPoint = this.getProjectionCoordinates();
+        this.options.isDragging = true;
         //this.options.drawMode = DrawMode.SIMPLIFIED;
     }
 
@@ -214,6 +204,8 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     }
 
     handleDragEnd() {
+        this.options.isDragging = false;
+        this.redraw();
     }
 
     onMount() {
@@ -228,12 +220,12 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
             projection.scale(projection.scale() * zoomEvent.zoomFactor);
             this.redraw();
         });
-
-        // let rotate = () => {
-        //     this.getProjection().rotate([Date.now() / 200, 0, 0]);
-        //     this.redraw();
-        //     requestAnimationFrame(rotate);
-        // };
-        // rotate();
     }
+
+    // let rotate = () => {
+    //     this.getProjection().rotate([Date.now() / 200, 0, 0]);
+    //     this.redraw();
+    //     requestAnimationFrame(rotate);
+    // };
+    // rotate();
 }

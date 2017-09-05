@@ -1,3 +1,5 @@
+import D3PathString from "d3-geo/src/path/string";
+
 import {PageTitleManager} from "base/PageTitleManager";
 
 import {GlobalState} from "state/State";
@@ -16,3 +18,22 @@ Theme.Global.setProperties({
     COLOR_TEXT: "#222",
     GLOBAL_YEAR_SELECT_HEIGHT: 60,
 });
+
+// D3PathString.prototype.point = function (x, y) {
+//     switch (this._point) {
+//         case 0: {
+//             this._string.push("M" + x.toFixed(1) + "," + y.toFixed(1));
+//             this._point = 1;
+//             break;
+//         }
+//         case 1: {
+//             this._string.push("L" + x.toFixed(1) + "," + y.toFixed(1));
+//             break;
+//         }
+//         default: {
+//             if (this._circle == null) this._circle = circle(this._radius);
+//             this._string.push("M", x, ",", y, this._circle);
+//             break;
+//         }
+//     }
+// };
