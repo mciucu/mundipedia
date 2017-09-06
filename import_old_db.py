@@ -104,6 +104,10 @@ def load_events_from_db():
     cur.execute("""SELECT * from events order by \"ID\"""")
     events_db = cur.fetchall()
 
+    EventType.objects.get_or_create(desc="Map snapshot")
+    source_type, created = SourceType.objects.get_or_create(desc="Mundipedia")
+    Source.objects.get_or_create(type=source_type, desc="Mundipedia", url="https://mundipedia.org/")
+
     for event_old in events_db:
         event_obj = DBObject(cur, event_old)
         #print(event_old)
@@ -353,14 +357,14 @@ def load_official_script():
     print("Not implemented")
 
 
-# load_entities_from_db()
+load_entities_from_db()
 load_events_from_db()
-# load_names_from_db()
-# load_official_currency()
-# load_official_language()
-# load_official_script()
-# load_gov()
-# load_religious_information()
-# load_demographics()
-# load_official_script()
+load_names_from_db()
+load_official_currency()
+load_official_language()
+load_official_script()
+load_gov()
+load_religious_information()
+load_demographics()
+load_official_script()
 
