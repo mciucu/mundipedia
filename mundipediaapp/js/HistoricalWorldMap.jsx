@@ -245,6 +245,7 @@ class FeatureAreaStyle extends StyleSheet {
     @styleRule
     featureArea = {
         display: this.getDisplay(),
+        borderRadius: "3px",
         position: "absolute",
         backgroundColor: "rgba(40, 70, 90, 0.7)",
         color: "#fff",
