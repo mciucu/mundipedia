@@ -173,10 +173,18 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
         return this.getProjection().invert([point.x, point.y]);
     }
 
+    redrawSimplified() {
+        this.options.isDragging = true;
+        this.redraw();
+        clearTimeout(this.fullRedrawTimeout);
+        this.fullRedrawTimeout = setTimeout(() => {
+            this.options.isDragging = false;
+            this.redraw();
+        }, 500);
+    }
+
     handleDragStart(event) {
         this._dragStartPoint = this.getProjectionCoordinates();
-        this.options.isDragging = true;
-        //this.options.drawMode = DrawMode.SIMPLIFIED;
     }
 
     handleDrag() {
@@ -200,12 +208,10 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
 
         projection.rotate(newRotation);
 
-        this.redraw();
+        this.redrawSimplified();
     }
 
     handleDragEnd() {
-        this.options.isDragging = false;
-        this.redraw();
     }
 
     onMount() {
@@ -218,7 +224,7 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
         this.addZoomListener((zoomEvent) => {
             const projection = this.getProjection();
             projection.scale(projection.scale() * zoomEvent.zoomFactor);
-            this.redraw();
+            this.redrawSimplified();
         });
     }
 
