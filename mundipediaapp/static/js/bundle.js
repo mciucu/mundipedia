@@ -1,6 +1,7 @@
 var Bundle = (function (exports) {
 'use strict';
 
+var babelHelpers = {};
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {
@@ -307,6 +308,8 @@ var toConsumableArray = function (arr) {
     return Array.from(arr);
   }
 };
+
+babelHelpers;
 
 var _marked = [mapIterator, filterIterator].map(regeneratorRuntime.mark);
 
@@ -7336,9 +7339,43 @@ SVG.Circle = function (_SVG$Element6) {
     return SVGCircle;
 }(SVG.Element);
 
+SVG.Stop = function (_SVG$Element7) {
+    inherits(SVGStop, _SVG$Element7);
+
+    function SVGStop() {
+        classCallCheck(this, SVGStop);
+        return possibleConstructorReturn(this, (SVGStop.__proto__ || Object.getPrototypeOf(SVGStop)).apply(this, arguments));
+    }
+
+    createClass(SVGStop, [{
+        key: "getNodeType",
+        value: function getNodeType() {
+            return "stop";
+        }
+    }]);
+    return SVGStop;
+}(SVG.Element);
+
+SVG.RadialGradient = function (_SVG$Element8) {
+    inherits(SVGRadialGradient, _SVG$Element8);
+
+    function SVGRadialGradient() {
+        classCallCheck(this, SVGRadialGradient);
+        return possibleConstructorReturn(this, (SVGRadialGradient.__proto__ || Object.getPrototypeOf(SVGRadialGradient)).apply(this, arguments));
+    }
+
+    createClass(SVGRadialGradient, [{
+        key: "getNodeType",
+        value: function getNodeType() {
+            return "radialGradient";
+        }
+    }]);
+    return SVGRadialGradient;
+}(SVG.Element);
+
 //TODO Complete this class
-SVG.Ellipse = function (_SVG$Element7) {
-    inherits(SVGEllipse, _SVG$Element7);
+SVG.Ellipse = function (_SVG$Element9) {
+    inherits(SVGEllipse, _SVG$Element9);
 
     function SVGEllipse() {
         classCallCheck(this, SVGEllipse);
@@ -7399,8 +7436,8 @@ SVG.CircleArc = function (_SVG$Path) {
     return SVGCircleArc;
 }(SVG.Path);
 
-SVG.Rect = function (_SVG$Element8) {
-    inherits(SVGRect, _SVG$Element8);
+SVG.Rect = function (_SVG$Element10) {
+    inherits(SVGRect, _SVG$Element10);
 
     function SVGRect() {
         classCallCheck(this, SVGRect);
@@ -7460,8 +7497,8 @@ SVG.Rect = function (_SVG$Element8) {
     return SVGRect;
 }(SVG.Element);
 
-SVG.Line = function (_SVG$Element9) {
-    inherits(SVGLine, _SVG$Element9);
+SVG.Line = function (_SVG$Element11) {
+    inherits(SVGLine, _SVG$Element11);
 
     function SVGLine() {
         classCallCheck(this, SVGLine);
@@ -26496,7 +26533,7 @@ var DeleteArticleModal = function (_ActionModal) {
     return DeleteArticleModal;
 }(ActionModal);
 
-var ArticleEditor = function (_Panel) {
+var ArticleEditor$1 = function (_Panel) {
     inherits(ArticleEditor, _Panel);
 
     function ArticleEditor() {
@@ -32571,7 +32608,7 @@ var BlogEntryEditModal = function (_Modal) {
                     } }),
                 discussionButton,
                 UI.createElement(TemporaryMessageArea, { ref: "messageArea" })
-            ), UI.createElement(ArticleEditor, { ref: "contentEditor", articleId: article.id, style: { flex: "1" } })];
+            ), UI.createElement(ArticleEditor$1, { ref: "contentEditor", articleId: article.id, style: { flex: "1" } })];
         }
     }, {
         key: "changeSettings",
@@ -36317,7 +36354,7 @@ var FeedbackForm = (_dec$31 = registerStyle(FeedbackFormStyle), _dec$31(_class3$
                 UI.createElement(
                     "div",
                     { className: this.styleSheet.nameAndEmailContainer },
-                    UI.createElement(
+                    !USER.isAuthenticated ? [UI.createElement(
                         "div",
                         { className: this.styleSheet.field },
                         UI.createElement(
@@ -36328,8 +36365,7 @@ var FeedbackForm = (_dec$31 = registerStyle(FeedbackFormStyle), _dec$31(_class3$
                         UI.createElement(Input, { ref: "nameInput",
                             className: this.styleSheet.input,
                             disabled: this.isDisabled() })
-                    ),
-                    !USER.isAuthenticated ? UI.createElement(
+                    ), UI.createElement(
                         "div",
                         { className: this.styleSheet.field },
                         UI.createElement(
@@ -36340,7 +36376,7 @@ var FeedbackForm = (_dec$31 = registerStyle(FeedbackFormStyle), _dec$31(_class3$
                         UI.createElement(EmailInput, { ref: "emailInput",
                             className: this.styleSheet.input,
                             disabled: this.isDisabled() })
-                    ) : null
+                    )] : null
                 ),
                 UI.createElement(
                     "div",
@@ -36367,7 +36403,7 @@ var FeedbackForm = (_dec$31 = registerStyle(FeedbackFormStyle), _dec$31(_class3$
             var _this5 = this;
 
             var data = {
-                name: this.nameInput.getValue(),
+                name: this.nameInput && this.nameInput.getValue() || null,
                 email: this.emailInput && this.emailInput.getValue() || null,
                 message: this.messageInput.getValue()
             };
@@ -37109,7 +37145,7 @@ var GlobalChat = function (_StateDependentElemen) {
     return GlobalChat;
 }(StateDependentElement(GroupChatWidget));
 
-var MAIN_ROUTE = new Route(null, IndexPage, [new BlogRoute(), new ForumRoute(), new Route("chat", GlobalChat), new Route("about", AboutPage)]);
+var MAIN_ROUTE = new Route(null, IndexPage, [new BlogRoute(), new ForumRoute(), new Route("chat", GlobalChat), new Route("about", AboutPage), new Route(["edit_article", "%s"], StateDependentElement(ArticleEditor))]);
 
 var _class$61;
 var _descriptor$29;
