@@ -12,118 +12,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 
 
-var asyncGenerator = function () {
-  function AwaitValue(value) {
-    this.value = value;
-  }
 
-  function AsyncGenerator(gen) {
-    var front, back;
-
-    function send(key, arg) {
-      return new Promise(function (resolve, reject) {
-        var request = {
-          key: key,
-          arg: arg,
-          resolve: resolve,
-          reject: reject,
-          next: null
-        };
-
-        if (back) {
-          back = back.next = request;
-        } else {
-          front = back = request;
-          resume(key, arg);
-        }
-      });
-    }
-
-    function resume(key, arg) {
-      try {
-        var result = gen[key](arg);
-        var value = result.value;
-
-        if (value instanceof AwaitValue) {
-          Promise.resolve(value.value).then(function (arg) {
-            resume("next", arg);
-          }, function (arg) {
-            resume("throw", arg);
-          });
-        } else {
-          settle(result.done ? "return" : "normal", result.value);
-        }
-      } catch (err) {
-        settle("throw", err);
-      }
-    }
-
-    function settle(type, value) {
-      switch (type) {
-        case "return":
-          front.resolve({
-            value: value,
-            done: true
-          });
-          break;
-
-        case "throw":
-          front.reject(value);
-          break;
-
-        default:
-          front.resolve({
-            value: value,
-            done: false
-          });
-          break;
-      }
-
-      front = front.next;
-
-      if (front) {
-        resume(front.key, front.arg);
-      } else {
-        back = null;
-      }
-    }
-
-    this._invoke = send;
-
-    if (typeof gen.return !== "function") {
-      this.return = undefined;
-    }
-  }
-
-  if (typeof Symbol === "function" && Symbol.asyncIterator) {
-    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
-      return this;
-    };
-  }
-
-  AsyncGenerator.prototype.next = function (arg) {
-    return this._invoke("next", arg);
-  };
-
-  AsyncGenerator.prototype.throw = function (arg) {
-    return this._invoke("throw", arg);
-  };
-
-  AsyncGenerator.prototype.return = function (arg) {
-    return this._invoke("return", arg);
-  };
-
-  return {
-    wrap: function (fn) {
-      return function () {
-        return new AsyncGenerator(fn.apply(this, arguments));
-      };
-    },
-    await: function (value) {
-      return new AwaitValue(value);
-    }
-  };
-}();
 
 
 
@@ -1533,6 +1422,10 @@ var NodeAttributes = function () {
         key: "apply",
         value: function apply(node, attributesMap) {
             var addedAttributes = {};
+            var whitelistedAttributes = this.whitelistedAttributes || {};
+
+            // First update existing node attributes and delete old ones
+            // TODO: optimize to not run this if the node was freshly created
             var nodeAttributes = node.attributes;
             for (var i = nodeAttributes.length - 1; i >= 0; i--) {
                 var attr = nodeAttributes[i];
@@ -2500,6 +2393,9 @@ function changeParent(element, newParent) {
     newParent.appendChild(element);
 }
 
+// TODO: should this be actually better done throught the dynamic CSS API, without doing through the DOM?
+// So far it's actually better like this, since browsers like Chrome allow users to edit classes
+
 var StyleInstance = function (_UI$TextElement) {
     inherits(StyleInstance, _UI$TextElement);
 
@@ -2996,6 +2892,9 @@ var keyframesRuleInherit = styleRuleWithOptions({
     getKey: getKeyframesRuleKey,
     inherit: true
 });
+
+// Class meant to group multiple classes inside a single <style> element, for convenience
+// TODO: pattern should be more robust, to be able to only update classes
 
 var StyleSheet = function (_Dispatchable) {
     inherits(StyleSheet, _Dispatchable);
@@ -4196,6 +4095,7 @@ function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, c
     return desc;
 }
 
+// TODO: export these properly, don't use a namespace here
 var GlobalStyle = {};
 
 Theme.Global.setProperties({
@@ -5172,6 +5072,8 @@ var ProgressBar = (_dec3 = registerStyle(ProgressBarStyle), _dec3(_class9 = func
 }(SimpleStyledElement)) || _class9);
 
 // TODO: this file existed to hold generic classes in a period of fast prototyping, has a lot of old code
+// A very simple class, all this does is implement the `getTitle()` method
+
 var Panel = function (_UI$Element) {
     inherits(Panel, _UI$Element);
 
@@ -6675,6 +6577,10 @@ var FormField = function (_FormGroup) {
     return FormField;
 }(FormGroup);
 
+// Setting these attributes as styles in mozilla has no effect.
+// To maintain compatibility between moz and webkit, whenever
+// one of these attributes is set as a style, it is also set as a
+// node attribute.
 var MozStyleElements = new Set(["width", "height", "rx", "ry", "cx", "cy", "x", "y"]);
 
 var SVGNodeAttributes = function (_NodeAttributes) {
@@ -8917,6 +8823,7 @@ var TerminalRoute = function (_Route) {
     return TerminalRoute;
 }(Route);
 
+// This is the object that will be used to translate text
 var translationMap = null;
 
 // Keep a set of all UI Element that need to be updated when the language changes
@@ -9013,11 +8920,6 @@ UI.TranslationTextElement = function (_UI$TextElement) {
 UI.T = function (str) {
     return new UI.TranslationTextElement(str);
 };
-
-// TODO @mciucu this should be wrapped in a way that previous requests that arrive later don't get processed
-// TODO: should this be done with promises?
-// Function to be called with a translation map
-// The translationMap object needs to implement .get(value) to return the translation for value
 
 var _class$9;
 var _descriptor$4;
@@ -9503,6 +9405,8 @@ var TabArea = (_dec$4 = registerStyle(DefaultTabAreaStyle), _dec$4(_class$8 = fu
     return TabArea;
 }(UI.Element)) || _class$8);
 
+// A map that supports multiple values to the same key
+
 var MultiMap = function () {
     function MultiMap() {
         classCallCheck(this, MultiMap);
@@ -9752,6 +9656,8 @@ var MultiMap = function () {
 var _class$12;
 var _temp$3;
 
+// This class currently mirrors the functionality of Headers on Chrome at the time of implementation
+// TODO: It is specified that the function get() should return the result of getAll() and getAll() deprecated
 var Headers$1 = (_temp$3 = _class$12 = function (_MultiMap) {
     inherits(Headers, _MultiMap);
 
@@ -10318,6 +10224,8 @@ function polyfillResponse(global) {
 // Tries to be a more flexible implementation of fetch()
 // Still work in progress
 
+// May need to polyfill Headers, Request, Response, Body, URLSearchParams classes, so import them
+// TODO: should only call this in the first call to fetch, to not create unneeded dependencies?
 if (window) {
     polyfillRequest(window);
     polyfillResponse(window);
@@ -13392,6 +13300,7 @@ var _dec2$3;
 var _class2$2;
 
 // TODO: Too much "hidden"
+// options.orientation is the orientation of the divided elements
 var DividerBar = (_dec$13 = registerStyle(SectionDividerStyle), _dec$13(_class$26 = function (_Divider) {
     inherits(DividerBar, _Divider);
 
@@ -14342,6 +14251,8 @@ var Accordion = (_dec2$4 = registerStyle(AccordionStyle), _dec2$4(_class2$3 = fu
 
             try {
                 for (var _iterator7 = this.panels[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+                    var panel = _step7.value;
+
                     childrenStatus.push({
                         flex: 1,
                         collapsed: false
@@ -14858,9 +14769,6 @@ var EntriesManager = function (_Dispatchable) {
     return EntriesManager;
 }(Dispatchable);
 
-// A wrapper for tables which optimizes rendering when many entries / updates are involved. It currently has hardcoded
-// row height for functionality reasons.
-
 var _class$32;
 var _descriptor$14;
 var _descriptor2$12;
@@ -15001,6 +14909,8 @@ var SortableTableStyle = (_class3$10 = function (_TableStyle) {
 
 var _dec$16;
 var _class$31;
+
+// TODO: the whole table architecture probably needs a rethinking
 
 var TableRow = function (_UI$Primitive) {
     inherits(TableRow, _UI$Primitive);
@@ -16014,6 +15924,10 @@ addCanonicalTimeUnits();
 
 var _class$34;
 
+// MAX_UNIX_TIME is either ~Feb 2106 in unix seconds or ~Feb 1970 in unix milliseconds
+// Any value less than this is interpreted as a unix time in seconds
+// If you want to go around this behavious, you can use the static method .fromUnixMilliseconds()
+// To disable, set this value to 0
 var MAX_AUTO_UNIX_TIME = Math.pow(2, 32);
 
 var BaseDate = self.Date;
@@ -16530,6 +16444,7 @@ StemDate.tokenFormattersMap = new Map([["ISO", function (date) {
     return date.format("MMMM Do, YYYY");
 }]]);
 
+// File meant to handle server time/client time differences
 var ServerTime = {
     now: function now() {
         return StemDate().subtract(this.getOffset());
@@ -16545,6 +16460,8 @@ var ServerTime = {
         }
     },
     setPageLoadTime: function setPageLoadTime(unixTime) {
+        var estimatedLatency = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+
         this.serverPageLoad = unixTime;
         this.offset = performance.timing.responseStart - unixTime * 1000;
     }
@@ -16566,6 +16483,8 @@ function isDifferentDay(timeA, timeB) {
     // Check if different day of the month, when difference is less than a day
     return timeA.getDate() !== timeB.getDate();
 }
+
+// import {Button} from "./button/Button";
 
 var DatePickerTable = function (_UI$Element) {
     inherits(DatePickerTable, _UI$Element);
@@ -17615,7 +17534,7 @@ function _add(adder, a, b) {
 }
 
 var epsilon = 1e-6;
-
+var epsilon2 = 1e-12;
 var pi = Math.PI;
 var halfPi = pi / 2;
 var quarterPi = pi / 4;
@@ -17752,6 +17671,66 @@ var geoStream = function (object, stream) {
 var areaRingSum = adder();
 
 var areaSum = adder();
+var lambda00;
+var phi00;
+var lambda0;
+var cosPhi0;
+var sinPhi0;
+
+var areaStream = {
+  point: noop,
+  lineStart: noop,
+  lineEnd: noop,
+  polygonStart: function polygonStart() {
+    areaRingSum.reset();
+    areaStream.lineStart = areaRingStart;
+    areaStream.lineEnd = areaRingEnd;
+  },
+  polygonEnd: function polygonEnd() {
+    var areaRing = +areaRingSum;
+    areaSum.add(areaRing < 0 ? tau + areaRing : areaRing);
+    this.lineStart = this.lineEnd = this.point = noop;
+  },
+  sphere: function sphere() {
+    areaSum.add(tau);
+  }
+};
+
+function areaRingStart() {
+  areaStream.point = areaPointFirst;
+}
+
+function areaRingEnd() {
+  areaPoint(lambda00, phi00);
+}
+
+function areaPointFirst(lambda, phi) {
+  areaStream.point = areaPoint;
+  lambda00 = lambda, phi00 = phi;
+  lambda *= radians, phi *= radians;
+  lambda0 = lambda, cosPhi0 = cos(phi = phi / 2 + quarterPi), sinPhi0 = sin(phi);
+}
+
+function areaPoint(lambda, phi) {
+  lambda *= radians, phi *= radians;
+  phi = phi / 2 + quarterPi; // half the angular distance from south pole
+
+  // Spherical excess E for a spherical triangle with vertices: south pole,
+  // previous point, current point.  Uses a formula derived from Cagnoli’s
+  // theorem.  See Todhunter, Spherical Trig. (1871), Sec. 103, Eq. (2).
+  var dLambda = lambda - lambda0,
+      sdLambda = dLambda >= 0 ? 1 : -1,
+      adLambda = sdLambda * dLambda,
+      cosPhi = cos(phi),
+      sinPhi = sin(phi),
+      k = sinPhi0 * sinPhi,
+      u = cosPhi0 * cosPhi + k * cos(adLambda),
+      v = k * sdLambda * sin(adLambda);
+  areaRingSum.add(atan2(v, u));
+
+  // Advance the previous points.
+  lambda0 = lambda, cosPhi0 = cosPhi, sinPhi0 = sinPhi;
+}
 
 function spherical(cartesian) {
   return [atan2(cartesian[1], cartesian[0]), asin(cartesian[2])];
@@ -17787,7 +17766,321 @@ function cartesianNormalizeInPlace(d) {
   d[0] /= l, d[1] /= l, d[2] /= l;
 }
 
+var lambda0$1;
+var phi0;
+var lambda1;
+var phi1;
+var lambda2;
+var lambda00$1;
+var phi00$1;
+var p0;
 var deltaSum = adder();
+var ranges;
+var range;
+
+var boundsStream = {
+  point: boundsPoint,
+  lineStart: boundsLineStart,
+  lineEnd: boundsLineEnd,
+  polygonStart: function polygonStart() {
+    boundsStream.point = boundsRingPoint;
+    boundsStream.lineStart = boundsRingStart;
+    boundsStream.lineEnd = boundsRingEnd;
+    deltaSum.reset();
+    areaStream.polygonStart();
+  },
+  polygonEnd: function polygonEnd() {
+    areaStream.polygonEnd();
+    boundsStream.point = boundsPoint;
+    boundsStream.lineStart = boundsLineStart;
+    boundsStream.lineEnd = boundsLineEnd;
+    if (areaRingSum < 0) lambda0$1 = -(lambda1 = 180), phi0 = -(phi1 = 90);else if (deltaSum > epsilon) phi1 = 90;else if (deltaSum < -epsilon) phi0 = -90;
+    range[0] = lambda0$1, range[1] = lambda1;
+  }
+};
+
+function boundsPoint(lambda, phi) {
+  ranges.push(range = [lambda0$1 = lambda, lambda1 = lambda]);
+  if (phi < phi0) phi0 = phi;
+  if (phi > phi1) phi1 = phi;
+}
+
+function linePoint(lambda, phi) {
+  var p = cartesian([lambda * radians, phi * radians]);
+  if (p0) {
+    var normal = cartesianCross(p0, p),
+        equatorial = [normal[1], -normal[0], 0],
+        inflection = cartesianCross(equatorial, normal);
+    cartesianNormalizeInPlace(inflection);
+    inflection = spherical(inflection);
+    var delta = lambda - lambda2,
+        sign$$1 = delta > 0 ? 1 : -1,
+        lambdai = inflection[0] * degrees * sign$$1,
+        phii,
+        antimeridian = abs(delta) > 180;
+    if (antimeridian ^ (sign$$1 * lambda2 < lambdai && lambdai < sign$$1 * lambda)) {
+      phii = inflection[1] * degrees;
+      if (phii > phi1) phi1 = phii;
+    } else if (lambdai = (lambdai + 360) % 360 - 180, antimeridian ^ (sign$$1 * lambda2 < lambdai && lambdai < sign$$1 * lambda)) {
+      phii = -inflection[1] * degrees;
+      if (phii < phi0) phi0 = phii;
+    } else {
+      if (phi < phi0) phi0 = phi;
+      if (phi > phi1) phi1 = phi;
+    }
+    if (antimeridian) {
+      if (lambda < lambda2) {
+        if (angle(lambda0$1, lambda) > angle(lambda0$1, lambda1)) lambda1 = lambda;
+      } else {
+        if (angle(lambda, lambda1) > angle(lambda0$1, lambda1)) lambda0$1 = lambda;
+      }
+    } else {
+      if (lambda1 >= lambda0$1) {
+        if (lambda < lambda0$1) lambda0$1 = lambda;
+        if (lambda > lambda1) lambda1 = lambda;
+      } else {
+        if (lambda > lambda2) {
+          if (angle(lambda0$1, lambda) > angle(lambda0$1, lambda1)) lambda1 = lambda;
+        } else {
+          if (angle(lambda, lambda1) > angle(lambda0$1, lambda1)) lambda0$1 = lambda;
+        }
+      }
+    }
+  } else {
+    ranges.push(range = [lambda0$1 = lambda, lambda1 = lambda]);
+  }
+  if (phi < phi0) phi0 = phi;
+  if (phi > phi1) phi1 = phi;
+  p0 = p, lambda2 = lambda;
+}
+
+function boundsLineStart() {
+  boundsStream.point = linePoint;
+}
+
+function boundsLineEnd() {
+  range[0] = lambda0$1, range[1] = lambda1;
+  boundsStream.point = boundsPoint;
+  p0 = null;
+}
+
+function boundsRingPoint(lambda, phi) {
+  if (p0) {
+    var delta = lambda - lambda2;
+    deltaSum.add(abs(delta) > 180 ? delta + (delta > 0 ? 360 : -360) : delta);
+  } else {
+    lambda00$1 = lambda, phi00$1 = phi;
+  }
+  areaStream.point(lambda, phi);
+  linePoint(lambda, phi);
+}
+
+function boundsRingStart() {
+  areaStream.lineStart();
+}
+
+function boundsRingEnd() {
+  boundsRingPoint(lambda00$1, phi00$1);
+  areaStream.lineEnd();
+  if (abs(deltaSum) > epsilon) lambda0$1 = -(lambda1 = 180);
+  range[0] = lambda0$1, range[1] = lambda1;
+  p0 = null;
+}
+
+// Finds the left-right distance between two longitudes.
+// This is almost the same as (lambda1 - lambda0 + 360°) % 360°, except that we want
+// the distance between ±180° to be 360°.
+function angle(lambda0, lambda1) {
+  return (lambda1 -= lambda0) < 0 ? lambda1 + 360 : lambda1;
+}
+
+function rangeCompare(a, b) {
+  return a[0] - b[0];
+}
+
+function rangeContains(range, x) {
+  return range[0] <= range[1] ? range[0] <= x && x <= range[1] : x < range[0] || range[1] < x;
+}
+
+var bounds = function (feature) {
+  var i, n, a, b, merged, deltaMax, delta;
+
+  phi1 = lambda1 = -(lambda0$1 = phi0 = Infinity);
+  ranges = [];
+  geoStream(feature, boundsStream);
+
+  // First, sort ranges by their minimum longitudes.
+  if (n = ranges.length) {
+    ranges.sort(rangeCompare);
+
+    // Then, merge any ranges that overlap.
+    for (i = 1, a = ranges[0], merged = [a]; i < n; ++i) {
+      b = ranges[i];
+      if (rangeContains(a, b[0]) || rangeContains(a, b[1])) {
+        if (angle(a[0], b[1]) > angle(a[0], a[1])) a[1] = b[1];
+        if (angle(b[0], a[1]) > angle(a[0], a[1])) a[0] = b[0];
+      } else {
+        merged.push(a = b);
+      }
+    }
+
+    // Finally, find the largest gap between the merged ranges.
+    // The final bounding box will be the inverse of this gap.
+    for (deltaMax = -Infinity, n = merged.length - 1, i = 0, a = merged[n]; i <= n; a = b, ++i) {
+      b = merged[i];
+      if ((delta = angle(a[1], b[0])) > deltaMax) deltaMax = delta, lambda0$1 = b[0], lambda1 = a[1];
+    }
+  }
+
+  ranges = range = null;
+
+  return lambda0$1 === Infinity || phi0 === Infinity ? [[NaN, NaN], [NaN, NaN]] : [[lambda0$1, phi0], [lambda1, phi1]];
+};
+
+var W0;
+var W1;
+var X0;
+var Y0;
+var Z0;
+var X1;
+var Y1;
+var Z1;
+var X2;
+var Y2;
+var Z2;
+var lambda00$2;
+var phi00$2;
+var x0;
+var y0;
+var z0; // previous point
+
+var centroidStream = {
+  sphere: noop,
+  point: centroidPoint,
+  lineStart: centroidLineStart,
+  lineEnd: centroidLineEnd,
+  polygonStart: function polygonStart() {
+    centroidStream.lineStart = centroidRingStart;
+    centroidStream.lineEnd = centroidRingEnd;
+  },
+  polygonEnd: function polygonEnd() {
+    centroidStream.lineStart = centroidLineStart;
+    centroidStream.lineEnd = centroidLineEnd;
+  }
+};
+
+// Arithmetic mean of Cartesian vectors.
+function centroidPoint(lambda, phi) {
+  lambda *= radians, phi *= radians;
+  var cosPhi = cos(phi);
+  centroidPointCartesian(cosPhi * cos(lambda), cosPhi * sin(lambda), sin(phi));
+}
+
+function centroidPointCartesian(x, y, z) {
+  ++W0;
+  X0 += (x - X0) / W0;
+  Y0 += (y - Y0) / W0;
+  Z0 += (z - Z0) / W0;
+}
+
+function centroidLineStart() {
+  centroidStream.point = centroidLinePointFirst;
+}
+
+function centroidLinePointFirst(lambda, phi) {
+  lambda *= radians, phi *= radians;
+  var cosPhi = cos(phi);
+  x0 = cosPhi * cos(lambda);
+  y0 = cosPhi * sin(lambda);
+  z0 = sin(phi);
+  centroidStream.point = centroidLinePoint;
+  centroidPointCartesian(x0, y0, z0);
+}
+
+function centroidLinePoint(lambda, phi) {
+  lambda *= radians, phi *= radians;
+  var cosPhi = cos(phi),
+      x = cosPhi * cos(lambda),
+      y = cosPhi * sin(lambda),
+      z = sin(phi),
+      w = atan2(sqrt((w = y0 * z - z0 * y) * w + (w = z0 * x - x0 * z) * w + (w = x0 * y - y0 * x) * w), x0 * x + y0 * y + z0 * z);
+  W1 += w;
+  X1 += w * (x0 + (x0 = x));
+  Y1 += w * (y0 + (y0 = y));
+  Z1 += w * (z0 + (z0 = z));
+  centroidPointCartesian(x0, y0, z0);
+}
+
+function centroidLineEnd() {
+  centroidStream.point = centroidPoint;
+}
+
+// See J. E. Brock, The Inertia Tensor for a Spherical Triangle,
+// J. Applied Mechanics 42, 239 (1975).
+function centroidRingStart() {
+  centroidStream.point = centroidRingPointFirst;
+}
+
+function centroidRingEnd() {
+  centroidRingPoint(lambda00$2, phi00$2);
+  centroidStream.point = centroidPoint;
+}
+
+function centroidRingPointFirst(lambda, phi) {
+  lambda00$2 = lambda, phi00$2 = phi;
+  lambda *= radians, phi *= radians;
+  centroidStream.point = centroidRingPoint;
+  var cosPhi = cos(phi);
+  x0 = cosPhi * cos(lambda);
+  y0 = cosPhi * sin(lambda);
+  z0 = sin(phi);
+  centroidPointCartesian(x0, y0, z0);
+}
+
+function centroidRingPoint(lambda, phi) {
+  lambda *= radians, phi *= radians;
+  var cosPhi = cos(phi),
+      x = cosPhi * cos(lambda),
+      y = cosPhi * sin(lambda),
+      z = sin(phi),
+      cx = y0 * z - z0 * y,
+      cy = z0 * x - x0 * z,
+      cz = x0 * y - y0 * x,
+      m = sqrt(cx * cx + cy * cy + cz * cz),
+      w = asin(m),
+      // line weight = angle
+  v = m && -w / m; // area weight multiplier
+  X2 += v * cx;
+  Y2 += v * cy;
+  Z2 += v * cz;
+  W1 += w;
+  X1 += w * (x0 + (x0 = x));
+  Y1 += w * (y0 + (y0 = y));
+  Z1 += w * (z0 + (z0 = z));
+  centroidPointCartesian(x0, y0, z0);
+}
+
+var centroid = function (object) {
+  W0 = W1 = X0 = Y0 = Z0 = X1 = Y1 = Z1 = X2 = Y2 = Z2 = 0;
+  geoStream(object, centroidStream);
+
+  var x = X2,
+      y = Y2,
+      z = Z2,
+      m = x * x + y * y + z * z;
+
+  // If the area-weighted ccentroid is undefined, fall back to length-weighted ccentroid.
+  if (m < epsilon2) {
+    x = X1, y = Y1, z = Z1;
+    // If the feature has zero length, fall back to arithmetic mean of point vectors.
+    if (W1 < epsilon) x = X0, y = Y0, z = Z0;
+    m = x * x + y * y + z * z;
+    // If the feature still has an undefined ccentroid, then return.
+    if (m < epsilon2) return [NaN, NaN];
+  }
+
+  return [atan2(y, x) * degrees, asin(z / sqrt(m)) * degrees];
+};
 
 var constant = function (x) {
   return function () {
@@ -17857,6 +18150,7 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
   return rotation;
 }
 
+// Generates a circle centered at [0°, 0°], with a given radius and precision.
 function circleStream(stream, radius, delta, direction, t0, t1) {
   if (!delta) return;
   var cosRadius = cos(radius),
@@ -18120,6 +18414,95 @@ function link(array) {
   b.p = a;
 }
 
+var ascending = function (a, b) {
+  return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
+};
+
+var bisector = function (compare) {
+  if (compare.length === 1) compare = ascendingComparator(compare);
+  return {
+    left: function left(a, x, lo, hi) {
+      if (lo == null) lo = 0;
+      if (hi == null) hi = a.length;
+      while (lo < hi) {
+        var mid = lo + hi >>> 1;
+        if (compare(a[mid], x) < 0) lo = mid + 1;else hi = mid;
+      }
+      return lo;
+    },
+    right: function right(a, x, lo, hi) {
+      if (lo == null) lo = 0;
+      if (hi == null) hi = a.length;
+      while (lo < hi) {
+        var mid = lo + hi >>> 1;
+        if (compare(a[mid], x) > 0) hi = mid;else lo = mid + 1;
+      }
+      return lo;
+    }
+  };
+};
+
+function ascendingComparator(f) {
+  return function (d, x) {
+    return ascending(f(d), x);
+  };
+}
+
+var ascendingBisect = bisector(ascending);
+var bisectRight = ascendingBisect.right;
+
+function pair(a, b) {
+  return [a, b];
+}
+
+var number = function (x) {
+  return x === null ? NaN : +x;
+};
+
+var extent$1 = function (values, valueof) {
+  var n = values.length,
+      i = -1,
+      value,
+      min,
+      max;
+
+  if (valueof == null) {
+    while (++i < n) {
+      // Find the first comparable value.
+      if ((value = values[i]) != null && value >= value) {
+        min = max = value;
+        while (++i < n) {
+          // Compare the remaining values.
+          if ((value = values[i]) != null) {
+            if (min > value) min = value;
+            if (max < value) max = value;
+          }
+        }
+      }
+    }
+  } else {
+    while (++i < n) {
+      // Find the first comparable value.
+      if ((value = valueof(values[i], i, values)) != null && value >= value) {
+        min = max = value;
+        while (++i < n) {
+          // Compare the remaining values.
+          if ((value = valueof(values[i], i, values)) != null) {
+            if (min > value) min = value;
+            if (max < value) max = value;
+          }
+        }
+      }
+    }
+  }
+
+  return [min, max];
+};
+
+var identity = function (x) {
+  return x;
+};
+
 var range$1 = function (start, stop, step) {
   start = +start, stop = +stop, step = (n = arguments.length) < 2 ? (stop = start, start = 0, 1) : n < 3 ? 1 : +step;
 
@@ -18132,6 +18515,42 @@ var range$1 = function (start, stop, step) {
   }
 
   return range;
+};
+
+var e10 = Math.sqrt(50);
+var e5 = Math.sqrt(10);
+var e2 = Math.sqrt(2);
+
+function tickIncrement(start, stop, count) {
+    var step = (stop - start) / Math.max(0, count),
+        power = Math.floor(Math.log(step) / Math.LN10),
+        error = step / Math.pow(10, power);
+    return power >= 0 ? (error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1) * Math.pow(10, power) : -Math.pow(10, -power) / (error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1);
+}
+
+function tickStep(start, stop, count) {
+    var step0 = Math.abs(stop - start) / Math.max(0, count),
+        step1 = Math.pow(10, Math.floor(Math.log(step0) / Math.LN10)),
+        error = step0 / step1;
+    if (error >= e10) step1 *= 10;else if (error >= e5) step1 *= 5;else if (error >= e2) step1 *= 2;
+    return stop < start ? -step1 : step1;
+}
+
+var sturges = function (values) {
+  return Math.ceil(Math.log(values.length) / Math.LN2) + 1;
+};
+
+var quantile = function (values, p, valueof) {
+  if (valueof == null) valueof = number;
+  if (!(n = values.length)) return;
+  if ((p = +p) <= 0 || n < 2) return +valueof(values[0], 0, values);
+  if (p >= 1) return +valueof(values[n - 1], n - 1, values);
+  var n,
+      i = (n - 1) * p,
+      i0 = Math.floor(i),
+      value0 = +valueof(values[i0], i0, values),
+      value1 = +valueof(values[i0 + 1], i0 + 1, values);
+  return value0 + (value1 - value0) * (i - i0);
 };
 
 var merge = function (arrays) {
@@ -18157,6 +18576,43 @@ var merge = function (arrays) {
   return merged;
 };
 
+var min = function (values, valueof) {
+  var n = values.length,
+      i = -1,
+      value,
+      min;
+
+  if (valueof == null) {
+    while (++i < n) {
+      // Find the first comparable value.
+      if ((value = values[i]) != null && value >= value) {
+        min = value;
+        while (++i < n) {
+          // Compare the remaining values.
+          if ((value = values[i]) != null && min > value) {
+            min = value;
+          }
+        }
+      }
+    }
+  } else {
+    while (++i < n) {
+      // Find the first comparable value.
+      if ((value = valueof(values[i], i, values)) != null && value >= value) {
+        min = value;
+        while (++i < n) {
+          // Compare the remaining values.
+          if ((value = valueof(values[i], i, values)) != null && min > value) {
+            min = value;
+          }
+        }
+      }
+    }
+  }
+
+  return min;
+};
+
 var shuffle = function (array, i0, i1) {
   var m = (i1 == null ? array.length : i1) - (i0 = i0 == null ? 0 : +i0),
       t,
@@ -18171,6 +18627,10 @@ var shuffle = function (array, i0, i1) {
 
   return array;
 };
+
+function length(d) {
+  return d.length;
+}
 
 var clipMax = 1e9;
 var clipMin = -clipMax;
@@ -18403,6 +18863,136 @@ var polygonContains = function (polygon, point) {
 };
 
 var lengthSum = adder();
+var lambda0$2;
+var sinPhi0$1;
+var cosPhi0$1;
+
+var lengthStream = {
+  sphere: noop,
+  point: noop,
+  lineStart: lengthLineStart,
+  lineEnd: noop,
+  polygonStart: noop,
+  polygonEnd: noop
+};
+
+function lengthLineStart() {
+  lengthStream.point = lengthPointFirst;
+  lengthStream.lineEnd = lengthLineEnd;
+}
+
+function lengthLineEnd() {
+  lengthStream.point = lengthStream.lineEnd = noop;
+}
+
+function lengthPointFirst(lambda, phi) {
+  lambda *= radians, phi *= radians;
+  lambda0$2 = lambda, sinPhi0$1 = sin(phi), cosPhi0$1 = cos(phi);
+  lengthStream.point = lengthPoint;
+}
+
+function lengthPoint(lambda, phi) {
+  lambda *= radians, phi *= radians;
+  var sinPhi = sin(phi),
+      cosPhi = cos(phi),
+      delta = abs(lambda - lambda0$2),
+      cosDelta = cos(delta),
+      sinDelta = sin(delta),
+      x = cosPhi * sinDelta,
+      y = cosPhi0$1 * sinPhi - sinPhi0$1 * cosPhi * cosDelta,
+      z = sinPhi0$1 * sinPhi + cosPhi0$1 * cosPhi * cosDelta;
+  lengthSum.add(atan2(sqrt(x * x + y * y), z));
+  lambda0$2 = lambda, sinPhi0$1 = sinPhi, cosPhi0$1 = cosPhi;
+}
+
+var length$1 = function (object) {
+  lengthSum.reset();
+  geoStream(object, lengthStream);
+  return +lengthSum;
+};
+
+var coordinates = [null, null];
+var object = { type: "LineString", coordinates: coordinates };
+
+var distance$1 = function (a, b) {
+  coordinates[0] = a;
+  coordinates[1] = b;
+  return length$1(object);
+};
+
+var containsGeometryType = {
+  Sphere: function Sphere() {
+    return true;
+  },
+  Point: function Point(object, point) {
+    return containsPoint(object.coordinates, point);
+  },
+  MultiPoint: function MultiPoint(object, point) {
+    var coordinates = object.coordinates,
+        i = -1,
+        n = coordinates.length;
+    while (++i < n) {
+      if (containsPoint(coordinates[i], point)) return true;
+    }return false;
+  },
+  LineString: function LineString(object, point) {
+    return containsLine(object.coordinates, point);
+  },
+  MultiLineString: function MultiLineString(object, point) {
+    var coordinates = object.coordinates,
+        i = -1,
+        n = coordinates.length;
+    while (++i < n) {
+      if (containsLine(coordinates[i], point)) return true;
+    }return false;
+  },
+  Polygon: function Polygon(object, point) {
+    return containsPolygon(object.coordinates, point);
+  },
+  MultiPolygon: function MultiPolygon(object, point) {
+    var coordinates = object.coordinates,
+        i = -1,
+        n = coordinates.length;
+    while (++i < n) {
+      if (containsPolygon(coordinates[i], point)) return true;
+    }return false;
+  },
+  GeometryCollection: function GeometryCollection(object, point) {
+    var geometries = object.geometries,
+        i = -1,
+        n = geometries.length;
+    while (++i < n) {
+      if (containsGeometry(geometries[i], point)) return true;
+    }return false;
+  }
+};
+
+function containsGeometry(geometry, point) {
+  return geometry && containsGeometryType.hasOwnProperty(geometry.type) ? containsGeometryType[geometry.type](geometry, point) : false;
+}
+
+function containsPoint(coordinates, point) {
+  return distance$1(coordinates, point) === 0;
+}
+
+function containsLine(coordinates, point) {
+  var ab = distance$1(coordinates[0], coordinates[1]),
+      ao = distance$1(coordinates[0], point),
+      ob = distance$1(point, coordinates[1]);
+  return ao + ob <= ab + epsilon;
+}
+
+function containsPolygon(coordinates, point) {
+  return !!polygonContains(coordinates.map(ringRadians), pointRadians(point));
+}
+
+function ringRadians(ring) {
+  return ring = ring.map(pointRadians), ring.pop(), ring;
+}
+
+function pointRadians(point) {
+  return [point[0] * radians, point[1] * radians];
+}
 
 function graticuleX(y0, y1, dy) {
   var y = range$1(y0, y1 - epsilon, dy).concat(y1);
@@ -18624,6 +19214,8 @@ function boundsPoint$1(x, y) {
   if (y < y0$2) y0$2 = y;
   if (y > y1) y1 = y;
 }
+
+// TODO Enforce positive area for exterior, negative area for interior?
 
 var X0$1 = 0;
 var Y0$1 = 0;
@@ -19671,14 +20263,6 @@ var geoConicEquidistant = function () {
   return conicProjection(conicEquidistantRaw).scale(131.154).center([0, 13.9389]);
 };
 
-function gnomonicRaw(x, y) {
-  var cy = cos(y),
-      k = cos(x) * cy;
-  return [cy * sin(x) / k, sin(y) / k];
-}
-
-gnomonicRaw.invert = azimuthalInvert(atan);
-
 function orthographicRaw(x, y) {
   return [cos(y) * sin(x), sin(y)];
 }
@@ -19689,26 +20273,16 @@ var geoOrthographic = function () {
   return projection(orthographicRaw).scale(249.5).clipAngle(90 + epsilon);
 };
 
-function stereographicRaw(x, y) {
-  var cy = cos(y),
-      k = 1 + cos(x) * cy;
-  return [cy * sin(x) / k, sin(y) / k];
-}
-
-stereographicRaw.invert = azimuthalInvert(function (z) {
-  return 2 * atan(z);
-});
-
 var abs$1 = Math.abs;
-
-
+var atan$1 = Math.atan;
+var atan2$1 = Math.atan2;
 
 var cos$1 = Math.cos;
 
+var floor$1 = Math.floor;
 
-
-
-
+var max$1 = Math.max;
+var min$1 = Math.min;
 
 
 
@@ -19716,16 +20290,16 @@ var sin$1 = Math.sin;
 
 
 var epsilon$1 = 1e-6;
-
+var epsilon2$1 = 1e-12;
 var pi$1 = Math.PI;
 var halfPi$1 = pi$1 / 2;
 
 
-var sqrt2 = sqrt$1(2);
-var sqrtPi = sqrt$1(pi$1);
 
 
 
+var degrees$1 = 180 / pi$1;
+var radians$1 = pi$1 / 180;
 
 
 
@@ -19738,40 +20312,6 @@ function asin$1(x) {
 function sqrt$1(x) {
   return x > 0 ? Math.sqrt(x) : 0;
 }
-
-// Abort if [x, y] is not within an ellipse centered at [0, 0] with
-// semi-major axis pi and semi-minor axis pi/2.
-
-var sqrt8 = sqrt$1(8);
-
-function mollweideBromleyTheta(cp, phi) {
-  var cpsinPhi = cp * sin$1(phi),
-      i = 30,
-      delta;
-  do {
-    phi -= delta = (phi + sin$1(phi) - cpsinPhi) / (1 + cos$1(phi));
-  } while (abs$1(delta) > epsilon$1 && --i > 0);
-  return phi / 2;
-}
-
-function mollweideBromleyRaw(cx, cy, cp) {
-
-  function forward(lambda, phi) {
-    return [cx * lambda * cos$1(phi = mollweideBromleyTheta(cp, phi)), cy * sin$1(phi)];
-  }
-
-  forward.invert = function (x, y) {
-    return y = asin$1(y / cy), [x / (cx * cos$1(y)), asin$1((2 * y + sin$1(2 * y)) / cp)];
-  };
-
-  return forward;
-}
-
-var mollweideRaw = mollweideBromleyRaw(sqrt2 / halfPi$1, sqrt2, pi$1);
-
-var bromleyRaw = mollweideBromleyRaw(1, 4 / pi$1, pi$1);
-
-var sqrt3 = sqrt$1(3);
 
 function eckert4Raw(lambda, phi) {
   var k = (2 + halfPi$1) * sin$1(phi);
@@ -19793,6 +20333,74 @@ eckert4Raw.invert = function (x, y) {
 var geoEckert4 = function () {
   return projection(eckert4Raw).scale(180.739);
 };
+
+var ginzburgPolyconicRaw = function (a, b, c, d, e, f, g, h) {
+  if (arguments.length < 8) h = 0;
+
+  function forward(lambda, phi) {
+    if (!phi) return [a * lambda / pi$1, 0];
+    var phi2 = phi * phi,
+        xB = a + phi2 * (b + phi2 * (c + phi2 * d)),
+        yB = phi * (e - 1 + phi2 * (f - h + phi2 * g)),
+        m = (xB * xB + yB * yB) / (2 * yB),
+        alpha = lambda * asin$1(xB / m) / pi$1;
+    return [m * sin$1(alpha), phi * (1 + phi2 * h) + m * (1 - cos$1(alpha))];
+  }
+
+  forward.invert = function (x, y) {
+    var lambda = pi$1 * x / a,
+        phi = y,
+        deltaLambda,
+        deltaPhi,
+        i = 50;
+    do {
+      var phi2 = phi * phi,
+          xB = a + phi2 * (b + phi2 * (c + phi2 * d)),
+          yB = phi * (e - 1 + phi2 * (f - h + phi2 * g)),
+          p = xB * xB + yB * yB,
+          q = 2 * yB,
+          m = p / q,
+          m2 = m * m,
+          dAlphadLambda = asin$1(xB / m) / pi$1,
+          alpha = lambda * dAlphadLambda,
+          xB2 = xB * xB,
+          dxBdPhi = (2 * b + phi2 * (4 * c + phi2 * 6 * d)) * phi,
+          dyBdPhi = e + phi2 * (3 * f + phi2 * 5 * g),
+          dpdPhi = 2 * (xB * dxBdPhi + yB * (dyBdPhi - 1)),
+          dqdPhi = 2 * (dyBdPhi - 1),
+          dmdPhi = (dpdPhi * q - p * dqdPhi) / (q * q),
+          cosAlpha = cos$1(alpha),
+          sinAlpha = sin$1(alpha),
+          mcosAlpha = m * cosAlpha,
+          msinAlpha = m * sinAlpha,
+          dAlphadPhi = lambda / pi$1 * (1 / sqrt$1(1 - xB2 / m2)) * (dxBdPhi * m - xB * dmdPhi) / m2,
+          fx = msinAlpha - x,
+          fy = phi * (1 + phi2 * h) + m - mcosAlpha - y,
+          deltaxDeltaPhi = dmdPhi * sinAlpha + mcosAlpha * dAlphadPhi,
+          deltaxDeltaLambda = mcosAlpha * dAlphadLambda,
+          deltayDeltaPhi = 1 + dmdPhi - (dmdPhi * cosAlpha - msinAlpha * dAlphadPhi),
+          deltayDeltaLambda = msinAlpha * dAlphadLambda,
+          denominator = deltaxDeltaPhi * deltayDeltaLambda - deltayDeltaPhi * deltaxDeltaLambda;
+      if (!denominator) break;
+      lambda -= deltaLambda = (fy * deltaxDeltaPhi - fx * deltayDeltaPhi) / denominator;
+      phi -= deltaPhi = (fx * deltayDeltaLambda - fy * deltaxDeltaLambda) / denominator;
+    } while ((abs$1(deltaLambda) > epsilon$1 || abs$1(deltaPhi) > epsilon$1) && --i > 0);
+    return [lambda, phi];
+  };
+
+  return forward;
+};
+
+var ginzburg4Raw = ginzburgPolyconicRaw(2.8284, -1.6988, 0.75432, -0.18071, 1.76003, -0.38914, 0.042555);
+
+var ginzburg5Raw = ginzburgPolyconicRaw(2.583819, -0.835827, 0.170354, -0.038094, 1.543313, -0.411435, 0.082742);
+
+var ginzburg6Raw = ginzburgPolyconicRaw(5 / 6 * pi$1, -0.62636, -0.0344, 0, 1.3493, -0.05524, 0, 0.045);
+
+var ginzburg9Raw = ginzburgPolyconicRaw(2.6516, -0.76534, 0.19123, -0.047094, 1.36289, -0.13965, 0.031762);
+
+// Returns [sn, cn, dn](u + iv|m).
+
 
 // Returns [sn, cn, dn, ph](u|m).
 
@@ -19846,16 +20454,65 @@ var geoHammer = function () {
   return p.scale(169.529);
 };
 
-// Latitudinal rotation by phi0.
-// Temporary hack until D3 supports arbitrary small-circle clipping origins.
+function interpolateLine(coordinates, m) {
+  var i = -1,
+      n = coordinates.length,
+      p0 = coordinates[0],
+      p1,
+      dx,
+      dy,
+      resampled = [];
+  while (++i < n) {
+    p1 = coordinates[i];
+    dx = (p1[0] - p0[0]) / m;
+    dy = (p1[1] - p0[1]) / m;
+    for (var j = 0; j < m; ++j) {
+      resampled.push([p0[0] + j * dx, p0[1] + j * dy]);
+    }p0 = p1;
+  }
+  resampled.push(p1);
+  return resampled;
+}
 
-var sqrt6 = sqrt$1(6);
-var sqrt7 = sqrt$1(7);
+// Inverts a transform matrix.
+
 
 // Multiplies two 3x2 matrices.
 
-
-// Subtracts 2D vectors.
+function outline(stream, node, parent) {
+  var point,
+      edges = node.edges,
+      n = edges.length,
+      edge,
+      multiPoint = { type: "MultiPoint", coordinates: node.face },
+      notPoles = node.face.filter(function (d) {
+    return abs$1(d[1]) !== 90;
+  }),
+      b = bounds({ type: "MultiPoint", coordinates: notPoles }),
+      inside = false,
+      j = -1,
+      dx = b[1][0] - b[0][0];
+  // TODO
+  var c = dx === 180 || dx === 360 ? [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2] : centroid(multiPoint);
+  // First find the shared edge…
+  if (parent) while (++j < n) {
+    if (edges[j] === parent) break;
+  }
+  ++j;
+  for (var i = 0; i < n; ++i) {
+    edge = edges[(i + j) % n];
+    if (Array.isArray(edge)) {
+      if (!inside) {
+        stream.point((point = geoInterpolate(edge[0], c)(epsilon$1))[0], point[1]);
+        inside = true;
+      }
+      stream.point((point = geoInterpolate(edge[1], c)(epsilon$1))[0], point[1]);
+    } else {
+      inside = false;
+      if (edge !== parent) outline(stream, edge, node);
+    }
+  }
+}
 
 // TODO generate on-the-fly to avoid external modification.
 var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
@@ -19866,7 +20523,8 @@ var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
   });
 });
 
-var kx = 2 / sqrt$1(3);
+var points = [];
+var lines = [];
 
 var K = [[0.9986, -0.062], [1.0000, 0.0000], [0.9986, 0.0620], [0.9954, 0.1240], [0.9900, 0.1860], [0.9822, 0.2480], [0.9730, 0.3100], [0.9600, 0.3720], [0.9427, 0.4340], [0.9216, 0.4958], [0.8962, 0.5571], [0.8679, 0.6176], [0.8350, 0.6769], [0.7986, 0.7346], [0.7597, 0.7903], [0.7186, 0.8435], [0.6732, 0.8936], [0.6213, 0.9394], [0.5722, 0.9761], [0.5322, 1.0000]];
 
@@ -19874,10 +20532,215 @@ K.forEach(function (d) {
   d[1] *= 1.0144;
 });
 
-var A = 4 * pi$1 + 3 * sqrt$1(3);
-var B = 2 * sqrt$1(2 * pi$1 * sqrt$1(3) / A);
+var epsilon$2 = 1e-4;
+var epsilonInverse = 1e4;
+var x0$5 = -180;
+var x0e = x0$5 + epsilon$2;
+var x1$1 = 180;
+var x1e = x1$1 - epsilon$2;
+var y0$5 = -90;
+var y0e = y0$5 + epsilon$2;
+var y1$1 = 90;
+var y1e = y1$1 - epsilon$2;
 
-var wagner4Raw = mollweideBromleyRaw(B * sqrt$1(3) / pi$1, B, A / 6);
+function nonempty(coordinates) {
+  return coordinates.length > 0;
+}
+
+function quantize$1(x) {
+  return Math.floor(x * epsilonInverse) / epsilonInverse;
+}
+
+function normalizePoint(y) {
+  return y === y0$5 || y === y1$1 ? [0, y] : [x0$5, quantize$1(y)]; // pole or antimeridian?
+}
+
+function clampPoint(p) {
+  var x = p[0],
+      y = p[1],
+      clamped = false;
+  if (x <= x0e) x = x0$5, clamped = true;else if (x >= x1e) x = x1$1, clamped = true;
+  if (y <= y0e) y = y0$5, clamped = true;else if (y >= y1e) y = y1$1, clamped = true;
+  return clamped ? [x, y] : p;
+}
+
+function clampPoints(points) {
+  return points.map(clampPoint);
+}
+
+// For each ring, detect where it crosses the antimeridian or pole.
+function extractFragments(rings, polygon, fragments) {
+  for (var j = 0, m = rings.length; j < m; ++j) {
+    var ring = rings[j].slice();
+
+    // By default, assume that this ring doesn’t need any stitching.
+    fragments.push({ index: -1, polygon: polygon, ring: ring });
+
+    for (var i = 0, n = ring.length; i < n; ++i) {
+      var point = ring[i],
+          x = point[0],
+          y = point[1];
+
+      // If this is an antimeridian or polar point…
+      if (x <= x0e || x >= x1e || y <= y0e || y >= y1e) {
+        ring[i] = clampPoint(point);
+
+        // Advance through any antimeridian or polar points…
+        for (var k = i + 1; k < n; ++k) {
+          var pointk = ring[k],
+              xk = pointk[0],
+              yk = pointk[1];
+          if (xk > x0e && xk < x1e && yk > y0e && yk < y1e) break;
+        }
+
+        // If this was just a single antimeridian or polar point,
+        // we don’t need to cut this ring into a fragment;
+        // we can just leave it as-is.
+        if (k === i + 1) continue;
+
+        // Otherwise, if this is not the first point in the ring,
+        // cut the current fragment so that it ends at the current point.
+        // The current point is also normalized for later joining.
+        if (i) {
+          var fragmentBefore = { index: -1, polygon: polygon, ring: ring.slice(0, i + 1) };
+          fragmentBefore.ring[fragmentBefore.ring.length - 1] = normalizePoint(y);
+          fragments[fragments.length - 1] = fragmentBefore;
+        }
+
+        // If the ring started with an antimeridian fragment,
+        // we can ignore that fragment entirely.
+        else fragments.pop();
+
+        // If the remainder of the ring is an antimeridian fragment,
+        // move on to the next ring.
+        if (k >= n) break;
+
+        // Otherwise, add the remaining ring fragment and continue.
+        fragments.push({ index: -1, polygon: polygon, ring: ring = ring.slice(k - 1) });
+        ring[0] = normalizePoint(ring[0][1]);
+        i = -1;
+        n = ring.length;
+      }
+    }
+  }
+}
+
+// Now stitch the fragments back together into rings.
+function stitchFragments(fragments) {
+  var i,
+      n = fragments.length;
+
+  // To connect the fragments start-to-end, create a simple index by end.
+  var fragmentByStart = {},
+      fragmentByEnd = {},
+      fragment,
+      start,
+      startFragment,
+      end,
+      endFragment;
+
+  // For each fragment…
+  for (i = 0; i < n; ++i) {
+    fragment = fragments[i];
+    start = fragment.ring[0];
+    end = fragment.ring[fragment.ring.length - 1];
+
+    // If this fragment is closed, add it as a standalone ring.
+    if (start[0] === end[0] && start[1] === end[1]) {
+      fragment.polygon.push(fragment.ring);
+      fragments[i] = null;
+      continue;
+    }
+
+    fragment.index = i;
+    fragmentByStart[start] = fragmentByEnd[end] = fragment;
+  }
+
+  // For each open fragment…
+  for (i = 0; i < n; ++i) {
+    fragment = fragments[i];
+    if (fragment) {
+      start = fragment.ring[0];
+      end = fragment.ring[fragment.ring.length - 1];
+      startFragment = fragmentByEnd[start];
+      endFragment = fragmentByStart[end];
+
+      delete fragmentByStart[start];
+      delete fragmentByEnd[end];
+
+      // If this fragment is closed, add it as a standalone ring.
+      if (start[0] === end[0] && start[1] === end[1]) {
+        fragment.polygon.push(fragment.ring);
+        continue;
+      }
+
+      if (startFragment) {
+        delete fragmentByEnd[start];
+        delete fragmentByStart[startFragment.ring[0]];
+        startFragment.ring.pop(); // drop the shared coordinate
+        fragments[startFragment.index] = null;
+        fragment = { index: -1, polygon: startFragment.polygon, ring: startFragment.ring.concat(fragment.ring) };
+
+        if (startFragment === endFragment) {
+          // Connect both ends to this single fragment to create a ring.
+          fragment.polygon.push(fragment.ring);
+        } else {
+          fragment.index = n++;
+          fragments.push(fragmentByStart[fragment.ring[0]] = fragmentByEnd[fragment.ring[fragment.ring.length - 1]] = fragment);
+        }
+      } else if (endFragment) {
+        delete fragmentByStart[end];
+        delete fragmentByEnd[endFragment.ring[endFragment.ring.length - 1]];
+        fragment.ring.pop(); // drop the shared coordinate
+        fragment = { index: n++, polygon: endFragment.polygon, ring: fragment.ring.concat(endFragment.ring) };
+        fragments[endFragment.index] = null;
+        fragments.push(fragmentByStart[fragment.ring[0]] = fragmentByEnd[fragment.ring[fragment.ring.length - 1]] = fragment);
+      } else {
+        fragment.ring.push(fragment.ring[0]); // close ring
+        fragment.polygon.push(fragment.ring);
+      }
+    }
+  }
+}
+
+function stitchGeometry(input) {
+  if (input == null) return input;
+  var output, fragments, i, n;
+  switch (input.type) {
+    case "GeometryCollection":
+      output = { type: "GeometryCollection", geometries: input.geometries.map(stitchGeometry) };break;
+    case "Point":
+      output = { type: "Point", coordinates: clampPoint(input.coordinates) };break;
+    case "MultiPoint":case "LineString":
+      output = { type: input.type, coordinates: clampPoints(input.coordinates) };break;
+    case "MultiLineString":
+      output = { type: "MultiLineString", coordinates: input.coordinates.map(clampPoints) };break;
+    case "Polygon":
+      {
+        var polygon = [];
+        extractFragments(input.coordinates, polygon, fragments = []);
+        stitchFragments(fragments);
+        output = { type: "Polygon", coordinates: polygon };
+        break;
+      }
+    case "MultiPolygon":
+      {
+        fragments = [], i = -1, n = input.coordinates.length;
+        var polygons = new Array(n);
+        while (++i < n) {
+          extractFragments(input.coordinates[i], polygons[i] = [], fragments);
+        }stitchFragments(fragments);
+        output = { type: "MultiPolygon", coordinates: polygons.filter(nonempty) };
+        break;
+      }
+    default:
+      return input;
+  }
+  if (input.bbox != null) output.bbox = input.bbox;
+  return output;
+}
+
+// TODO clip to ellipse
 
 var _class$40;
 var _descriptor$18;
@@ -20792,11 +21655,22 @@ var HistoricalMap = function (_Zoomable) {
             return this.getProjection().invert([point.x, point.y]);
         }
     }, {
+        key: "redrawSimplified",
+        value: function redrawSimplified() {
+            var _this6 = this;
+
+            this.options.isDragging = true;
+            this.redraw();
+            clearTimeout(this.fullRedrawTimeout);
+            this.fullRedrawTimeout = setTimeout(function () {
+                _this6.options.isDragging = false;
+                _this6.redraw();
+            }, 500);
+        }
+    }, {
         key: "handleDragStart",
         value: function handleDragStart(event) {
             this._dragStartPoint = this.getProjectionCoordinates();
-            this.options.isDragging = true;
-            //this.options.drawMode = DrawMode.SIMPLIFIED;
         }
     }, {
         key: "handleDrag",
@@ -20821,35 +21695,32 @@ var HistoricalMap = function (_Zoomable) {
 
             projection.rotate(newRotation);
 
-            this.redraw();
+            this.redrawSimplified();
         }
     }, {
         key: "handleDragEnd",
-        value: function handleDragEnd() {
-            this.options.isDragging = false;
-            this.redraw();
-        }
+        value: function handleDragEnd() {}
     }, {
         key: "onMount",
         value: function onMount() {
-            var _this6 = this;
+            var _this7 = this;
 
             this.addDragListener({
                 onStart: function onStart(event) {
-                    return _this6.handleDragStart();
+                    return _this7.handleDragStart();
                 },
                 onDrag: function onDrag(deltaX, deltaY, event) {
-                    return _this6.handleDrag();
+                    return _this7.handleDrag();
                 },
                 onEnd: function onEnd(event) {
-                    return _this6.handleDragEnd();
+                    return _this7.handleDragEnd();
                 }
             });
 
             this.addZoomListener(function (zoomEvent) {
-                var projection = _this6.getProjection();
+                var projection = _this7.getProjection();
                 projection.scale(projection.scale() * zoomEvent.zoomFactor);
-                _this6.redraw();
+                _this7.redrawSimplified();
             });
         }
 
@@ -21679,6 +22550,7 @@ var DefaultState = GlobalState;
 
 self.GlobalState = GlobalState;
 
+// The store information is kept in a symbol, to not interfere with serialization/deserialization
 var StoreSymbol = Symbol("Store");
 
 var StoreObject = function (_Dispatchable) {
@@ -21822,6 +22694,8 @@ var GenericObjectStore = function (_BaseStore) {
     inherits(GenericObjectStore, _BaseStore);
 
     function GenericObjectStore(objectType) {
+        var ObjectWrapper = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : StoreObject;
+        var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
         classCallCheck(this, GenericObjectStore);
 
         var _this4 = possibleConstructorReturn(this, (GenericObjectStore.__proto__ || Object.getPrototypeOf(GenericObjectStore)).apply(this, arguments));
@@ -22393,6 +23267,8 @@ var VirtualStoreMixin = function VirtualStoreMixin(BaseStoreClass) {
         }, {
             key: "applyCreateEvent",
             value: function applyCreateEvent(event) {
+                var sendDispatch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+
                 if (event.virtualId) {
                     var existingVirtualObject = this.getVirtualObject(event);
                     if (existingVirtualObject) {
@@ -23954,9 +24830,13 @@ var MarkupParser = function () {
     }, {
         key: "parseTextLine",
         value: function parseTextLine(stream) {
+            var lastModifier = new Map();
+
             var capturedContent = [];
 
             // This will always be set to the last closed modifier
+            var capturedEnd = -1;
+
             var textStart = stream.pointer;
             var contentStart = stream.pointer;
 
@@ -24599,6 +25479,10 @@ MarkupParser.parseJSON5 = function () {
         }({ '': result }, '') : result;
     };
 }();
+
+// TODO: these should be in a unit test file, not here
+
+// Class that for every markup tag returns the UI class to instantiate for that element
 
 var MarkupClassMap = function () {
     function MarkupClassMap(fallback) {
@@ -27845,6 +28729,9 @@ var Popup = function (_BasePopup) {
     }]);
     return Popup;
 }(BasePopup);
+
+// import {Emoji as EmojiMini} from "EmojiMini";
+// import "EmojiUI";
 
 UI.Emoji = UI.Emoji || UI.Element;
 
@@ -32414,6 +33301,14 @@ var DelayedElement = function DelayedElement(BaseClass) {
     }(BaseClass);
 };
 
+// You can configure the loading/error states by defining the "renderLoading" and "renderError" attributes of the
+// function somewhere globally in your app.
+// Example:
+// StateDependentElement.renderLoading = "Loading...";
+// or
+// StateDependentElement.renderLoading = () => <MyCustomLoadingAnimation />
+// StateDependentElement.renderError = (error) => <MyCustomErrorMessageClass error={error} />
+
 var StateDependentElement = function StateDependentElement(BaseClass) {
     return function (_DelayedElement) {
         inherits(StateDependentElementClass, _DelayedElement);
@@ -33534,6 +34429,8 @@ function _applyDecoratedDescriptor$28(target, property, decorators, descriptor, 
 
     return desc;
 }
+
+//import {CSAStyle} from "CSAStyle";
 
 var colors = {
     // BLUE: "#20232d",
@@ -35545,7 +36442,7 @@ var ForumRoute = function (_Route) {
     return ForumRoute;
 }(Route);
 
-var d3$1 = { geo: {} };
+var d3 = { geo: {} };
 
 // adapted from d3.geo.voronoi by Jason Davies, http://www.jasondavies.com/
 var π = Math.PI;
@@ -35553,8 +36450,8 @@ var degrees$2 = 180 / π;
 var radians$2 = π / 180;
 var ε = 1e-15;
 
-d3$1.geo.voronoi = function (points, triangles) {
-    if (arguments.length < 2) triangles = d3$1.geo.delaunay(points);
+d3.geo.voronoi = function (points, triangles) {
+    if (arguments.length < 2) triangles = d3.geo.delaunay(points);
     if (!triangles) triangles = [];
 
     var n = points.length;
@@ -35596,8 +36493,8 @@ d3$1.geo.voronoi = function (points, triangles) {
     };
 };
 
-d3$1.geo.voronoi.topology = function (points, triangles) {
-    if (arguments.length < 2) triangles = d3$1.geo.delaunay(points);
+d3.geo.voronoi.topology = function (points, triangles) {
+    if (arguments.length < 2) triangles = d3.geo.delaunay(points);
     if (!triangles) triangles = [];
 
     var n = points.length,
@@ -35653,10 +36550,10 @@ d3$1.geo.voronoi.topology = function (points, triangles) {
     };
 };
 
-d3$1.geo.delaunay = function (points) {
+d3.geo.delaunay = function (points) {
     var p = points.map(cartesian$2),
         n = points.length,
-        triangles = d3$1.convexhull3d(p);
+        triangles = d3.convexhull3d(p);
 
     if (triangles.length) return triangles.forEach(function (t) {
         t.coordinates = [points[t.a.p.i], points[t.b.p.i], points[t.c.p.i]];
@@ -35673,7 +36570,7 @@ function hemispheres(a, b) {
     return [{ type: "Polygon", coordinates: [ring] }, { type: "Polygon", coordinates: [ring.slice().reverse()] }];
 }
 
-d3$1.convexhull3d = function (points) {
+d3.convexhull3d = function (points) {
     var n = points.length,
         i = void 0;
 
@@ -35928,7 +36825,7 @@ function neighbors(a, b) {
     (a.neighbor = b).neighbor = a;
 }
 
-var geoVoronoi = d3$1.geo.voronoi;
+var geoVoronoi = d3.geo.voronoi;
 
 var _class$58;
 var _temp$7;
@@ -37536,6 +38433,10 @@ var NavStyle = (_class$61 = function (_StyleSheet) {
 var _class$62;
 var _temp$8;
 
+// Class for working with the Window.localStorage and Window.sessionStorage objects
+// All keys are prefixed with our custom name, so we don't have to worry about polluting the global storage namespace
+// Keys must be strings, and values are modified by the serialize/deserialize methods,
+// which by default involve JSON conversion
 var StorageMap = (_temp$8 = _class$62 = function (_Dispatchable) {
     inherits(StorageMap, _Dispatchable);
 
@@ -38859,6 +39760,11 @@ function logout() {
 }
 
 // UI components
+/*
+ * This is the NavManager file of your app.
+ * Here's where you can add links in the navigation menu
+ */
+
 var AppNavManager = function (_NavManager) {
     inherits(AppNavManager, _NavManager);
 
@@ -39807,6 +40713,7 @@ var EstablishmentApp = (_temp$9 = _class$63 = function (_StemApp) {
     return EstablishmentApp;
 }(StemApp), _class$63.MIN_VIEWPORT_META_WIDTH = 375, _temp$9);
 
+// The default page title
 PageTitleManager.setDefaultTitle("Mundipedia");
 
 var oldThemeProperties = Theme.Global.getProperties();
