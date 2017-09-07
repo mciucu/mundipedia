@@ -1,8 +1,4 @@
 {
-  "build": {
-    "configPath": "mundipediaapp/js",
-    "type": "rollup"
-  },
   "project": {
     "author": "Mihai",
     "description": "Mapping a changing world",
@@ -12,7 +8,7 @@
     "link": "https://github.com/mciucu/mundipedia",
     "type": "git"
   },
-  "django_run": {
+  "djangoRun": {
     "isCommand": true,
     "command": [{
         "type": "django",
@@ -22,17 +18,38 @@
         "command": "generate_public_state"
       }, {
       "type": "django",
-      "command": "runserver"
+      "command": "runserver",
+      "extraArgs": ["80"]
     }
     ]
+  },
+  "build": {
+    "isCommand": true,
+    "path": "mundipediaapp/js",
+    "command": "rollup",
+    "extraArgs": ["-c"]
   },
   "run": {
     "isCommand": true,
     "command": [{
-      "newProcess": true,
+      "background": true,
+      "daemon": true,
       "type": "stem",
-      "command": "build"
+      "command": "build",
+      "extraArgs": ["--watch"]
+    }, {
+      "background": true,
+      "type": "stem",
+      "command": "djangoRun"
+    }]
+  },
+  "setup": {
+    "dev": {
+      "dependencies": ["redis-server", "nodejs", "postgresql", "postgis"],
+      "npmDependencies": ["babel-cli", "rollup"]
+    },
+    "production": {
+
     }
-    ]
   }
 }
