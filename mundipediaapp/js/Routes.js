@@ -5,6 +5,7 @@ import {ForumRoute} from "ForumPanel";
 import {AboutPage} from "./AboutMundipedia";
 import {GlobalChat} from "./GlobalChat";
 import {StateDependentElement} from "ui/StateDependentElement";
+import {ArticleEditor} from "ArticleEditor";
 
 export const MAIN_ROUTE = new Route(null, IndexPage, [
     new BlogRoute(),
