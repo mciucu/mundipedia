@@ -393,11 +393,11 @@ export class AboutPage extends UI.Element {
                 <AboutSection title="About us"
                               message={[
                                   <p>
-                                      We’re a non-profit institution with the purpose of collecting, standardizing
+                                      We’re a non-profit with the purpose of collecting, standardizing
                                       and visualizing information about the state of the world, currently and historically.
                                   </p>,
                                   <p>
-                                      Mundipedia was born because there was a need fora centralized database for historical
+                                      Mundipedia was born because there was a need for a centralized database for historical
                                       information. It’s intended not just as a historical map of the world, where you can
                                       just slide to what year you want. It’s intended to show information like historical GDP,
                                       populations, the areas where certain languages are spoken.
@@ -409,6 +409,10 @@ export class AboutPage extends UI.Element {
                                   <p>
                                       Everything that we’ll collect will be made freely available to anyone, at first through our
                                       website and later on through a standardized API.
+                                  </p>,
+                                  <p>
+                                      This website is built with <Link href="https://stemjs.org/">Stem JS</Link>.
+                                      The souce code is available <Link href="https://github.com/mciucu/mundipedia" newTab>on github</Link>.
                                   </p>
                               ]}
                               hasLogo={false} />
@@ -416,8 +420,8 @@ export class AboutPage extends UI.Element {
                               message={[
                                   <p>
                                       There’s little information that’s not on the internet somewhere. It’s in a multitude of different
-                                      formats thought: scanned maps, spreadsheets, yet untranslated cuneiform tablets, you name it. The
-                                      solution we want to be is a platform that gathers all that data and offers a single format for every
+                                      formats thought: scanned maps, spreadsheets, yet untranslated cuneiform tablets, you name it. Mundipedia
+                                      wants to be is a platform that gathers all that data and offers a single format for every
                                       type of data.
                                   </p>
                               ]}
@@ -425,42 +429,39 @@ export class AboutPage extends UI.Element {
                 <AboutSection title="We’re not a wiki (yet)"
                               message={[
                                   <p>
-                                      We don’t accept user data right now, but that doesn’t mean we don’t want to in the future. One of the
+                                      We don’t accept user data right now, but we want to in the future. One of the
                                       main principles of Mundipedia is that the way information is presented can be more important than the
-                                      actual information. Every single type of data that we’ll store has a different optimal way of presenting
+                                      actual information. Every single type of data that we’ll store has a different way of best presenting
                                       it, and that’s why at first we want the people that are inputing the data to be close to the decisions
                                       of how it’s displayed.
                                   </p>,
                                   <p>
                                       Using crowdsourcing to generate data has become a panacea for many content platforms, many forgetting how
                                       important it is to have a system in place that enforces consistency and quality. Don’t misunderstand us,
-                                      openness to all voices and sources is extremely important, but we first want to set up an infrastructure
-                                      that will make sure the end-user hears only a single coherent and high quality voice.
-                                  </p>,
-                                  <p>
-                                      Over time our software will mature, and we plan on opening up for contributors, first to accredited users
-                                      and then hopefully to everyone.
+                                      openness to community efforts is critically important, it's just that at first we want to set up an infrastructure
+                                      that will make sure the end-user hears only a single coherent and high quality voice. Anyone that's interested in
+                                      a collaboration is welcomed to contact us using the form bellow or via email.
                                   </p>
                               ]} />
                 <AboutSection title="How we’re funded"
                               message={[
                                   <p>
-                                      We don’t have any income right now, and we’ll be accepting donations soon. We’re still looking for ways to
+                                      We're not right now, and are still looking for ways to
                                       be funded, but whatever happens though, we will stand by our key principles:
                                   </p>,
                                   <p>
                                       <li>
-                                          All of our information will remain forever free and without copyright limitations to usage.
+                                          All of the information will remain forever free and without copyright limitations to usage.
                                       </li>
                                       <li>
                                           We will never have banners or ads of any kind on our website.
                                       </li>
                                       <li>
-                                          We will not compromise our content or direction for sponsorships.
+                                          We will not compromise our content for sponsorships.
                                       </li>
                                   </p>
                               ]} />
-                <AboutSection title="Contact us for more"
+                <AboutSection title="Contact us"
                               message={[
                                   <p>
                                       Write to us at <strong>contact@mundipedia.org</strong> if you’ve got any thoughts you want to send our way.
