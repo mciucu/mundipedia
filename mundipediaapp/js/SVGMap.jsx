@@ -57,12 +57,27 @@ class FeaturePath extends SVG.Path {
         return hashToColor(id);
     }
 
+    getMap() {
+        return this.options.map;
+    }
+
+    dispatchFeatureToMap(type) {
+        const map = this.getMap();
+        map && map.dispatch(type, this.options.feature, this);
+    }
+
     onMount() {
-        this.addNodeListener("mouseenter", () => this.toFront());
+        this.addNodeListener("mouseenter", () => {
+            this.toFront();
+            this.dispatchFeatureToMap("mouseEnterFeature");
+        });
+        this.addNodeListener("mouseleave", () => {
+            this.dispatchFeatureToMap("mouseLeaveFeature");
+        });
     }
 }
 
-export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
+export class SVGMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     getDefaultOptions(options) {
         options = Object.assign({
             width: 800,
@@ -157,7 +172,7 @@ export class HistoricalMap extends Zoomable(Draggable(SVG.SVGRoot)) {
                 return null;
             }
 
-            return <FeaturePath feature={feature} d={path}/>;
+            return <FeaturePath feature={feature} d={path} map={this} />;
         });
 
         return [

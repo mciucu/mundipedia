@@ -8,7 +8,7 @@ import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimutha
 import {geoEckert4, geoHammer} from "d3-geo-projection/index";
 
 import {YearSelect} from "./YearSelect";
-import {HistoricalMap} from "./SVGMap";
+import {SVGMap} from "./SVGMap";
 import {UnorderedCallDropper} from "base/Utils";
 
 
@@ -54,6 +54,9 @@ class HistoricalWorldMapStyle extends StyleSheet {
     menuExtraPaddingVertical = 10;
     menuExtraPaddingHorizontal = 20;
     toggleOptionsHeight = 50;
+    toggleOptionsMobileHeight = 35;
+    toggleOptionsFontSize = 22;
+    toggleOptionsMobileFontSize = 18;
     boxShadowWidth = 5;
 
     getYearSelectContainerWidth() {
@@ -67,7 +70,14 @@ class HistoricalWorldMapStyle extends StyleSheet {
         if (window.innerWidth >= this.resizeWidthLimit) {
             return 5;
         }
-        return `${this.toggleOptionsHeight}px`;
+        return `${this.getToggleOptionsHeight()}px`;
+    }
+
+    getYearSelectContainerMarginBottom() {
+        if (window.innerWidth >= this.resizeWidthLimit) {
+            return 15;
+        }
+        return 0;
     }
 
     getYearSelectContainerPaddingLeft() {
@@ -75,6 +85,20 @@ class HistoricalWorldMapStyle extends StyleSheet {
             return this.menuWidth;
         }
         return this.menuExtraPaddingHorizontal;
+    }
+
+    getToggleOptionsHeight() {
+        if (window.innerWidth >= this.resizeWidthLimit) {
+            return this.toggleOptionsHeight;
+        }
+        return this.toggleOptionsMobileHeight;
+    }
+
+    getToggleOptionsFontSize() {
+        if (window.innerWidth >= this.resizeWidthLimit) {
+            return this.toggleOptionsFontSize;
+        }
+        return this.toggleOptionsMobileFontSize;
     }
 
     @styleRule
@@ -85,14 +109,14 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     yearSelectContainer = {
-        width: () => this.getYearSelectContainerWidth(),
-        marginTop: () => this.getYearSelectContainerMarginTop(),
-        paddingLeft: () => this.getYearSelectContainerPaddingLeft(),
+        width: "100%",
+        marginTop: this.getYearSelectContainerMarginTop(),
+        paddingLeft: this.getYearSelectContainerPaddingLeft(),
         paddingRight: this.menuExtraPaddingHorizontal,
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: "15px",
+        marginBottom: this.getYearSelectContainerMarginBottom(),
         flexDirection: "row",
     };
 
@@ -133,10 +157,10 @@ class HistoricalWorldMapStyle extends StyleSheet {
 
     @styleRule
     toggleOptions = {
-        height: this.toggleOptionsHeight,
+        height: this.getToggleOptionsHeight(),
         padding: `0 ${this.menuExtraPaddingHorizontal}px`,
         backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
-        fontSize: "22px !important",
+        fontSize: this.getToggleOptionsFontSize() + "px !important",
         transition: "0.2s",
         cursor: "pointer",
         color: "#fff",
@@ -199,6 +223,93 @@ function getPreferredDimensions() {
         height: window.innerHeight - (themeProperties.NAV_MANAGER_NAVBAR_HEIGHT + themeProperties.GLOBAL_YEAR_SELECT_HEIGHT + 25),
         width: window.innerWidth,
     };
+}
+
+class FeatureAreaStyle extends StyleSheet {
+    constructor() {
+        super({
+            updateOnResize: true,
+        })
+
+    }
+    height = 45;
+    items = 2;
+
+    getDisplay() {
+        if (window.innerWidth >= 500) {
+            return "block";
+        }
+        return "none";
+    }
+
+    @styleRule
+    featureArea = {
+        display: this.getDisplay(),
+        position: "absolute",
+        backgroundColor: "rgba(40, 70, 90, 0.7)",
+        color: "#fff",
+        top: 110,
+        right: 0,
+        width: 240,
+        pointerEvents: "none",
+    };
+
+    @styleRule
+    container = {
+        height: this.height * this.items,
+    };
+
+    @styleRule
+    title = {
+        justifyContent: "center",
+    };
+
+    @styleRule
+    row = {
+        height: this.height,
+        width: "100%",
+        padding: "0 10px",
+        display: "flex",
+        alignItems: "center",
+    };
+}
+
+@registerStyle(FeatureAreaStyle)
+class FeatureArea extends UI.Element {
+    extraNodeAttributes(attr) {
+        attr.addClass(this.styleSheet.featureArea);
+    }
+
+    setFeature(feature) {
+        this.setOptions({
+            feature: feature,
+        });
+        this.redraw();
+    }
+
+    render() {
+        const {feature} = this.options;
+        const {styleSheet} = this;
+
+        if (!feature || !feature.properties) {
+            return null;
+        }
+
+        const {name, currency} = feature.properties;
+
+        return <div className={styleSheet.container}>
+            <div className={styleSheet.row + styleSheet.title}>
+                {name}
+            </div>
+            {
+                currency && (
+                    <div className={styleSheet.row}>
+                        Currency: {currency}
+                    </div>
+                )
+            }
+        </div>;
+    }
 }
 
 
@@ -287,7 +398,7 @@ export class HistoricalWorldMap extends UI.Element {
     }
 
     render() {
-        const {currentYear} = this.options;
+        const {currentYear, feature} = this.options;
 
         return [
             <div ref="menu" className={this.styleSheet.menuContainer + this.styleSheet.menuUntoggled}>
@@ -313,10 +424,11 @@ export class HistoricalWorldMap extends UI.Element {
                     currentYear={currentYear}
                     className={this.styleSheet.historyWorldMapTitle} />
             </div>,
-            <HistoricalMap
+            <SVGMap
                 ref="map"
                 geometryGetter={this.getGeometry.bind(this)}
                 {...getPreferredDimensions()} />,
+            <FeatureArea ref="featureArea" feature={this.options.feature}/>,
         ]
     }
 
@@ -372,6 +484,16 @@ export class HistoricalWorldMap extends UI.Element {
             this.graticuleIsToggled = !this.graticuleIsToggled;
             this.map.setShowGraticule(this.graticuleIsToggled);
             this.drawGraticuleContainer.setChildren([this.getGraticuleLabel()]);
+        });
+
+        this.map.addListener("mouseEnterFeature", (feature) => {
+            console.log("entering", feature);
+            this.featureArea.setFeature(feature);
+        });
+
+        this.map.addListener("mouseLeaveFeature", (feature) => {
+            console.log("leaving", feature);
+            this.featureArea.setFeature(null);
         });
 
         document.body.addEventListener("click", () => {
