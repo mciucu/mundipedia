@@ -9,6 +9,7 @@ import {geoEckert4, geoHammer} from "d3-geo-projection/index";
 
 import {YearSelect} from "./YearSelect";
 import {HistoricalMap} from "./SVGMap";
+import {UnorderedCallDropper} from "base/Utils";
 
 
 class HistoricalWorldMapTitle extends UI.Element {
@@ -203,8 +204,9 @@ function getPreferredDimensions() {
 
 @registerStyle(HistoricalWorldMapStyle)
 export class HistoricalWorldMap extends UI.Element {
-    requestedYears = new Set();
+    requestedYears = new Set(); // TODO: cache which years were loaded, to not request a second time
     geometries = new Map();
+    redrawDropper = UnorderedCallDropper.newInstance();
 
     constructor(options) {
         super(options);
@@ -333,20 +335,19 @@ export class HistoricalWorldMap extends UI.Element {
 
     loadCurrentYearData() {
         const year = this.yearSelect.getCurrentValue();
-        if (this.requestedYears.has(year)) {
-            return;
-        }
-        this.requestedYears.add(year);
         const prefix = "/static/json/world/" + year;
-        const modes = ["", "-sm"];
+        const modes = ["-sm", ""];
         for (const mode of modes) {
-            Ajax.getJSON(prefix + mode + ".json").then((data) => {
+            const updateMap = this.redrawDropper((data) => {
                 this.setCurrentYear(year);
                 this.map.setData(data);
+            });
+            Ajax.getJSON(prefix + mode + ".json").then((data) => {
                 for (let feature of data.features) {
                     const key = year + mode + feature.properties.entity_id;
                     this.geometries.set(key, feature.geometry);
                 }
+                updateMap(data);
             })
         }
     }
