@@ -12,5 +12,5 @@ export const MAIN_ROUTE = new Route(null, IndexPage, [
     new ForumRoute(),
     new Route("chat", GlobalChat),
     new Route("about", AboutPage),
-    new Route(["edit_article", "%s"], StateDependentElement(ArticleEditor)),
+    new Route(["article", "%s", "edit"], StateDependentElement(ArticleEditor)),
 ]);
