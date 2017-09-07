@@ -1,7 +1,6 @@
 var Bundle = (function (exports) {
 'use strict';
 
-var babelHelpers = {};
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {
@@ -12,7 +11,118 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 
 
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
 
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
 
 
 
@@ -197,8 +307,6 @@ var toConsumableArray = function (arr) {
     return Array.from(arr);
   }
 };
-
-babelHelpers;
 
 var _marked = [mapIterator, filterIterator].map(regeneratorRuntime.mark);
 
@@ -730,6 +838,38 @@ function filterIterator(iter, func) {
         }
     }, _marked[1], this, [[3, 15, 19, 27], [20,, 22, 26]]);
 }
+
+var UnorderedCallDropper = function () {
+    function UnorderedCallDropper() {
+        classCallCheck(this, UnorderedCallDropper);
+        this.index = 1;
+        this.lastExecuted = 0;
+    }
+
+    createClass(UnorderedCallDropper, [{
+        key: "wrap",
+        value: function wrap(callback) {
+            var _this = this;
+
+            var currentIndex = this.index++;
+            return function () {
+                if (currentIndex > _this.lastExecuted) {
+                    _this.lastExecuted = currentIndex;
+                    return callback.apply(undefined, arguments);
+                }
+            };
+        }
+    }], [{
+        key: "newInstance",
+        value: function newInstance() {
+            var instance = new this();
+            return function (func) {
+                return instance.wrap(func);
+            };
+        }
+    }]);
+    return UnorderedCallDropper;
+}();
 
 var DispatcherHandle = function () {
     function DispatcherHandle(dispatcher, callback) {
@@ -1422,10 +1562,6 @@ var NodeAttributes = function () {
         key: "apply",
         value: function apply(node, attributesMap) {
             var addedAttributes = {};
-            var whitelistedAttributes = this.whitelistedAttributes || {};
-
-            // First update existing node attributes and delete old ones
-            // TODO: optimize to not run this if the node was freshly created
             var nodeAttributes = node.attributes;
             for (var i = nodeAttributes.length - 1; i >= 0; i--) {
                 var attr = nodeAttributes[i];
@@ -2393,9 +2529,6 @@ function changeParent(element, newParent) {
     newParent.appendChild(element);
 }
 
-// TODO: should this be actually better done throught the dynamic CSS API, without doing through the DOM?
-// So far it's actually better like this, since browsers like Chrome allow users to edit classes
-
 var StyleInstance = function (_UI$TextElement) {
     inherits(StyleInstance, _UI$TextElement);
 
@@ -2892,9 +3025,6 @@ var keyframesRuleInherit = styleRuleWithOptions({
     getKey: getKeyframesRuleKey,
     inherit: true
 });
-
-// Class meant to group multiple classes inside a single <style> element, for convenience
-// TODO: pattern should be more robust, to be able to only update classes
 
 var StyleSheet = function (_Dispatchable) {
     inherits(StyleSheet, _Dispatchable);
@@ -4095,7 +4225,6 @@ function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, c
     return desc;
 }
 
-// TODO: export these properly, don't use a namespace here
 var GlobalStyle = {};
 
 Theme.Global.setProperties({
@@ -5072,8 +5201,6 @@ var ProgressBar = (_dec3 = registerStyle(ProgressBarStyle), _dec3(_class9 = func
 }(SimpleStyledElement)) || _class9);
 
 // TODO: this file existed to hold generic classes in a period of fast prototyping, has a lot of old code
-// A very simple class, all this does is implement the `getTitle()` method
-
 var Panel = function (_UI$Element) {
     inherits(Panel, _UI$Element);
 
@@ -6577,10 +6704,6 @@ var FormField = function (_FormGroup) {
     return FormField;
 }(FormGroup);
 
-// Setting these attributes as styles in mozilla has no effect.
-// To maintain compatibility between moz and webkit, whenever
-// one of these attributes is set as a style, it is also set as a
-// node attribute.
 var MozStyleElements = new Set(["width", "height", "rx", "ry", "cx", "cy", "x", "y"]);
 
 var SVGNodeAttributes = function (_NodeAttributes) {
@@ -8823,7 +8946,6 @@ var TerminalRoute = function (_Route) {
     return TerminalRoute;
 }(Route);
 
-// This is the object that will be used to translate text
 var translationMap = null;
 
 // Keep a set of all UI Element that need to be updated when the language changes
@@ -8920,6 +9042,11 @@ UI.TranslationTextElement = function (_UI$TextElement) {
 UI.T = function (str) {
     return new UI.TranslationTextElement(str);
 };
+
+// TODO @mciucu this should be wrapped in a way that previous requests that arrive later don't get processed
+// TODO: should this be done with promises?
+// Function to be called with a translation map
+// The translationMap object needs to implement .get(value) to return the translation for value
 
 var _class$9;
 var _descriptor$4;
@@ -9405,8 +9532,6 @@ var TabArea = (_dec$4 = registerStyle(DefaultTabAreaStyle), _dec$4(_class$8 = fu
     return TabArea;
 }(UI.Element)) || _class$8);
 
-// A map that supports multiple values to the same key
-
 var MultiMap = function () {
     function MultiMap() {
         classCallCheck(this, MultiMap);
@@ -9656,8 +9781,6 @@ var MultiMap = function () {
 var _class$12;
 var _temp$3;
 
-// This class currently mirrors the functionality of Headers on Chrome at the time of implementation
-// TODO: It is specified that the function get() should return the result of getAll() and getAll() deprecated
 var Headers$1 = (_temp$3 = _class$12 = function (_MultiMap) {
     inherits(Headers, _MultiMap);
 
@@ -10224,8 +10347,6 @@ function polyfillResponse(global) {
 // Tries to be a more flexible implementation of fetch()
 // Still work in progress
 
-// May need to polyfill Headers, Request, Response, Body, URLSearchParams classes, so import them
-// TODO: should only call this in the first call to fetch, to not create unneeded dependencies?
 if (window) {
     polyfillRequest(window);
     polyfillResponse(window);
@@ -13300,7 +13421,6 @@ var _dec2$3;
 var _class2$2;
 
 // TODO: Too much "hidden"
-// options.orientation is the orientation of the divided elements
 var DividerBar = (_dec$13 = registerStyle(SectionDividerStyle), _dec$13(_class$26 = function (_Divider) {
     inherits(DividerBar, _Divider);
 
@@ -14251,8 +14371,6 @@ var Accordion = (_dec2$4 = registerStyle(AccordionStyle), _dec2$4(_class2$3 = fu
 
             try {
                 for (var _iterator7 = this.panels[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-                    var panel = _step7.value;
-
                     childrenStatus.push({
                         flex: 1,
                         collapsed: false
@@ -14769,6 +14887,9 @@ var EntriesManager = function (_Dispatchable) {
     return EntriesManager;
 }(Dispatchable);
 
+// A wrapper for tables which optimizes rendering when many entries / updates are involved. It currently has hardcoded
+// row height for functionality reasons.
+
 var _class$32;
 var _descriptor$14;
 var _descriptor2$12;
@@ -14909,8 +15030,6 @@ var SortableTableStyle = (_class3$10 = function (_TableStyle) {
 
 var _dec$16;
 var _class$31;
-
-// TODO: the whole table architecture probably needs a rethinking
 
 var TableRow = function (_UI$Primitive) {
     inherits(TableRow, _UI$Primitive);
@@ -15924,10 +16043,6 @@ addCanonicalTimeUnits();
 
 var _class$34;
 
-// MAX_UNIX_TIME is either ~Feb 2106 in unix seconds or ~Feb 1970 in unix milliseconds
-// Any value less than this is interpreted as a unix time in seconds
-// If you want to go around this behavious, you can use the static method .fromUnixMilliseconds()
-// To disable, set this value to 0
 var MAX_AUTO_UNIX_TIME = Math.pow(2, 32);
 
 var BaseDate = self.Date;
@@ -16444,7 +16559,6 @@ StemDate.tokenFormattersMap = new Map([["ISO", function (date) {
     return date.format("MMMM Do, YYYY");
 }]]);
 
-// File meant to handle server time/client time differences
 var ServerTime = {
     now: function now() {
         return StemDate().subtract(this.getOffset());
@@ -16460,8 +16574,6 @@ var ServerTime = {
         }
     },
     setPageLoadTime: function setPageLoadTime(unixTime) {
-        var estimatedLatency = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-
         this.serverPageLoad = unixTime;
         this.offset = performance.timing.responseStart - unixTime * 1000;
     }
@@ -16483,8 +16595,6 @@ function isDifferentDay(timeA, timeB) {
     // Check if different day of the month, when difference is less than a day
     return timeA.getDate() !== timeB.getDate();
 }
-
-// import {Button} from "./button/Button";
 
 var DatePickerTable = function (_UI$Element) {
     inherits(DatePickerTable, _UI$Element);
@@ -17534,7 +17644,7 @@ function _add(adder, a, b) {
 }
 
 var epsilon = 1e-6;
-var epsilon2 = 1e-12;
+
 var pi = Math.PI;
 var halfPi = pi / 2;
 var quarterPi = pi / 4;
@@ -17671,66 +17781,6 @@ var geoStream = function (object, stream) {
 var areaRingSum = adder();
 
 var areaSum = adder();
-var lambda00;
-var phi00;
-var lambda0;
-var cosPhi0;
-var sinPhi0;
-
-var areaStream = {
-  point: noop,
-  lineStart: noop,
-  lineEnd: noop,
-  polygonStart: function polygonStart() {
-    areaRingSum.reset();
-    areaStream.lineStart = areaRingStart;
-    areaStream.lineEnd = areaRingEnd;
-  },
-  polygonEnd: function polygonEnd() {
-    var areaRing = +areaRingSum;
-    areaSum.add(areaRing < 0 ? tau + areaRing : areaRing);
-    this.lineStart = this.lineEnd = this.point = noop;
-  },
-  sphere: function sphere() {
-    areaSum.add(tau);
-  }
-};
-
-function areaRingStart() {
-  areaStream.point = areaPointFirst;
-}
-
-function areaRingEnd() {
-  areaPoint(lambda00, phi00);
-}
-
-function areaPointFirst(lambda, phi) {
-  areaStream.point = areaPoint;
-  lambda00 = lambda, phi00 = phi;
-  lambda *= radians, phi *= radians;
-  lambda0 = lambda, cosPhi0 = cos(phi = phi / 2 + quarterPi), sinPhi0 = sin(phi);
-}
-
-function areaPoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  phi = phi / 2 + quarterPi; // half the angular distance from south pole
-
-  // Spherical excess E for a spherical triangle with vertices: south pole,
-  // previous point, current point.  Uses a formula derived from Cagnoli’s
-  // theorem.  See Todhunter, Spherical Trig. (1871), Sec. 103, Eq. (2).
-  var dLambda = lambda - lambda0,
-      sdLambda = dLambda >= 0 ? 1 : -1,
-      adLambda = sdLambda * dLambda,
-      cosPhi = cos(phi),
-      sinPhi = sin(phi),
-      k = sinPhi0 * sinPhi,
-      u = cosPhi0 * cosPhi + k * cos(adLambda),
-      v = k * sdLambda * sin(adLambda);
-  areaRingSum.add(atan2(v, u));
-
-  // Advance the previous points.
-  lambda0 = lambda, cosPhi0 = cosPhi, sinPhi0 = sinPhi;
-}
 
 function spherical(cartesian) {
   return [atan2(cartesian[1], cartesian[0]), asin(cartesian[2])];
@@ -17766,321 +17816,7 @@ function cartesianNormalizeInPlace(d) {
   d[0] /= l, d[1] /= l, d[2] /= l;
 }
 
-var lambda0$1;
-var phi0;
-var lambda1;
-var phi1;
-var lambda2;
-var lambda00$1;
-var phi00$1;
-var p0;
 var deltaSum = adder();
-var ranges;
-var range;
-
-var boundsStream = {
-  point: boundsPoint,
-  lineStart: boundsLineStart,
-  lineEnd: boundsLineEnd,
-  polygonStart: function polygonStart() {
-    boundsStream.point = boundsRingPoint;
-    boundsStream.lineStart = boundsRingStart;
-    boundsStream.lineEnd = boundsRingEnd;
-    deltaSum.reset();
-    areaStream.polygonStart();
-  },
-  polygonEnd: function polygonEnd() {
-    areaStream.polygonEnd();
-    boundsStream.point = boundsPoint;
-    boundsStream.lineStart = boundsLineStart;
-    boundsStream.lineEnd = boundsLineEnd;
-    if (areaRingSum < 0) lambda0$1 = -(lambda1 = 180), phi0 = -(phi1 = 90);else if (deltaSum > epsilon) phi1 = 90;else if (deltaSum < -epsilon) phi0 = -90;
-    range[0] = lambda0$1, range[1] = lambda1;
-  }
-};
-
-function boundsPoint(lambda, phi) {
-  ranges.push(range = [lambda0$1 = lambda, lambda1 = lambda]);
-  if (phi < phi0) phi0 = phi;
-  if (phi > phi1) phi1 = phi;
-}
-
-function linePoint(lambda, phi) {
-  var p = cartesian([lambda * radians, phi * radians]);
-  if (p0) {
-    var normal = cartesianCross(p0, p),
-        equatorial = [normal[1], -normal[0], 0],
-        inflection = cartesianCross(equatorial, normal);
-    cartesianNormalizeInPlace(inflection);
-    inflection = spherical(inflection);
-    var delta = lambda - lambda2,
-        sign$$1 = delta > 0 ? 1 : -1,
-        lambdai = inflection[0] * degrees * sign$$1,
-        phii,
-        antimeridian = abs(delta) > 180;
-    if (antimeridian ^ (sign$$1 * lambda2 < lambdai && lambdai < sign$$1 * lambda)) {
-      phii = inflection[1] * degrees;
-      if (phii > phi1) phi1 = phii;
-    } else if (lambdai = (lambdai + 360) % 360 - 180, antimeridian ^ (sign$$1 * lambda2 < lambdai && lambdai < sign$$1 * lambda)) {
-      phii = -inflection[1] * degrees;
-      if (phii < phi0) phi0 = phii;
-    } else {
-      if (phi < phi0) phi0 = phi;
-      if (phi > phi1) phi1 = phi;
-    }
-    if (antimeridian) {
-      if (lambda < lambda2) {
-        if (angle(lambda0$1, lambda) > angle(lambda0$1, lambda1)) lambda1 = lambda;
-      } else {
-        if (angle(lambda, lambda1) > angle(lambda0$1, lambda1)) lambda0$1 = lambda;
-      }
-    } else {
-      if (lambda1 >= lambda0$1) {
-        if (lambda < lambda0$1) lambda0$1 = lambda;
-        if (lambda > lambda1) lambda1 = lambda;
-      } else {
-        if (lambda > lambda2) {
-          if (angle(lambda0$1, lambda) > angle(lambda0$1, lambda1)) lambda1 = lambda;
-        } else {
-          if (angle(lambda, lambda1) > angle(lambda0$1, lambda1)) lambda0$1 = lambda;
-        }
-      }
-    }
-  } else {
-    ranges.push(range = [lambda0$1 = lambda, lambda1 = lambda]);
-  }
-  if (phi < phi0) phi0 = phi;
-  if (phi > phi1) phi1 = phi;
-  p0 = p, lambda2 = lambda;
-}
-
-function boundsLineStart() {
-  boundsStream.point = linePoint;
-}
-
-function boundsLineEnd() {
-  range[0] = lambda0$1, range[1] = lambda1;
-  boundsStream.point = boundsPoint;
-  p0 = null;
-}
-
-function boundsRingPoint(lambda, phi) {
-  if (p0) {
-    var delta = lambda - lambda2;
-    deltaSum.add(abs(delta) > 180 ? delta + (delta > 0 ? 360 : -360) : delta);
-  } else {
-    lambda00$1 = lambda, phi00$1 = phi;
-  }
-  areaStream.point(lambda, phi);
-  linePoint(lambda, phi);
-}
-
-function boundsRingStart() {
-  areaStream.lineStart();
-}
-
-function boundsRingEnd() {
-  boundsRingPoint(lambda00$1, phi00$1);
-  areaStream.lineEnd();
-  if (abs(deltaSum) > epsilon) lambda0$1 = -(lambda1 = 180);
-  range[0] = lambda0$1, range[1] = lambda1;
-  p0 = null;
-}
-
-// Finds the left-right distance between two longitudes.
-// This is almost the same as (lambda1 - lambda0 + 360°) % 360°, except that we want
-// the distance between ±180° to be 360°.
-function angle(lambda0, lambda1) {
-  return (lambda1 -= lambda0) < 0 ? lambda1 + 360 : lambda1;
-}
-
-function rangeCompare(a, b) {
-  return a[0] - b[0];
-}
-
-function rangeContains(range, x) {
-  return range[0] <= range[1] ? range[0] <= x && x <= range[1] : x < range[0] || range[1] < x;
-}
-
-var bounds = function (feature) {
-  var i, n, a, b, merged, deltaMax, delta;
-
-  phi1 = lambda1 = -(lambda0$1 = phi0 = Infinity);
-  ranges = [];
-  geoStream(feature, boundsStream);
-
-  // First, sort ranges by their minimum longitudes.
-  if (n = ranges.length) {
-    ranges.sort(rangeCompare);
-
-    // Then, merge any ranges that overlap.
-    for (i = 1, a = ranges[0], merged = [a]; i < n; ++i) {
-      b = ranges[i];
-      if (rangeContains(a, b[0]) || rangeContains(a, b[1])) {
-        if (angle(a[0], b[1]) > angle(a[0], a[1])) a[1] = b[1];
-        if (angle(b[0], a[1]) > angle(a[0], a[1])) a[0] = b[0];
-      } else {
-        merged.push(a = b);
-      }
-    }
-
-    // Finally, find the largest gap between the merged ranges.
-    // The final bounding box will be the inverse of this gap.
-    for (deltaMax = -Infinity, n = merged.length - 1, i = 0, a = merged[n]; i <= n; a = b, ++i) {
-      b = merged[i];
-      if ((delta = angle(a[1], b[0])) > deltaMax) deltaMax = delta, lambda0$1 = b[0], lambda1 = a[1];
-    }
-  }
-
-  ranges = range = null;
-
-  return lambda0$1 === Infinity || phi0 === Infinity ? [[NaN, NaN], [NaN, NaN]] : [[lambda0$1, phi0], [lambda1, phi1]];
-};
-
-var W0;
-var W1;
-var X0;
-var Y0;
-var Z0;
-var X1;
-var Y1;
-var Z1;
-var X2;
-var Y2;
-var Z2;
-var lambda00$2;
-var phi00$2;
-var x0;
-var y0;
-var z0; // previous point
-
-var centroidStream = {
-  sphere: noop,
-  point: centroidPoint,
-  lineStart: centroidLineStart,
-  lineEnd: centroidLineEnd,
-  polygonStart: function polygonStart() {
-    centroidStream.lineStart = centroidRingStart;
-    centroidStream.lineEnd = centroidRingEnd;
-  },
-  polygonEnd: function polygonEnd() {
-    centroidStream.lineStart = centroidLineStart;
-    centroidStream.lineEnd = centroidLineEnd;
-  }
-};
-
-// Arithmetic mean of Cartesian vectors.
-function centroidPoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var cosPhi = cos(phi);
-  centroidPointCartesian(cosPhi * cos(lambda), cosPhi * sin(lambda), sin(phi));
-}
-
-function centroidPointCartesian(x, y, z) {
-  ++W0;
-  X0 += (x - X0) / W0;
-  Y0 += (y - Y0) / W0;
-  Z0 += (z - Z0) / W0;
-}
-
-function centroidLineStart() {
-  centroidStream.point = centroidLinePointFirst;
-}
-
-function centroidLinePointFirst(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var cosPhi = cos(phi);
-  x0 = cosPhi * cos(lambda);
-  y0 = cosPhi * sin(lambda);
-  z0 = sin(phi);
-  centroidStream.point = centroidLinePoint;
-  centroidPointCartesian(x0, y0, z0);
-}
-
-function centroidLinePoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var cosPhi = cos(phi),
-      x = cosPhi * cos(lambda),
-      y = cosPhi * sin(lambda),
-      z = sin(phi),
-      w = atan2(sqrt((w = y0 * z - z0 * y) * w + (w = z0 * x - x0 * z) * w + (w = x0 * y - y0 * x) * w), x0 * x + y0 * y + z0 * z);
-  W1 += w;
-  X1 += w * (x0 + (x0 = x));
-  Y1 += w * (y0 + (y0 = y));
-  Z1 += w * (z0 + (z0 = z));
-  centroidPointCartesian(x0, y0, z0);
-}
-
-function centroidLineEnd() {
-  centroidStream.point = centroidPoint;
-}
-
-// See J. E. Brock, The Inertia Tensor for a Spherical Triangle,
-// J. Applied Mechanics 42, 239 (1975).
-function centroidRingStart() {
-  centroidStream.point = centroidRingPointFirst;
-}
-
-function centroidRingEnd() {
-  centroidRingPoint(lambda00$2, phi00$2);
-  centroidStream.point = centroidPoint;
-}
-
-function centroidRingPointFirst(lambda, phi) {
-  lambda00$2 = lambda, phi00$2 = phi;
-  lambda *= radians, phi *= radians;
-  centroidStream.point = centroidRingPoint;
-  var cosPhi = cos(phi);
-  x0 = cosPhi * cos(lambda);
-  y0 = cosPhi * sin(lambda);
-  z0 = sin(phi);
-  centroidPointCartesian(x0, y0, z0);
-}
-
-function centroidRingPoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var cosPhi = cos(phi),
-      x = cosPhi * cos(lambda),
-      y = cosPhi * sin(lambda),
-      z = sin(phi),
-      cx = y0 * z - z0 * y,
-      cy = z0 * x - x0 * z,
-      cz = x0 * y - y0 * x,
-      m = sqrt(cx * cx + cy * cy + cz * cz),
-      w = asin(m),
-      // line weight = angle
-  v = m && -w / m; // area weight multiplier
-  X2 += v * cx;
-  Y2 += v * cy;
-  Z2 += v * cz;
-  W1 += w;
-  X1 += w * (x0 + (x0 = x));
-  Y1 += w * (y0 + (y0 = y));
-  Z1 += w * (z0 + (z0 = z));
-  centroidPointCartesian(x0, y0, z0);
-}
-
-var centroid = function (object) {
-  W0 = W1 = X0 = Y0 = Z0 = X1 = Y1 = Z1 = X2 = Y2 = Z2 = 0;
-  geoStream(object, centroidStream);
-
-  var x = X2,
-      y = Y2,
-      z = Z2,
-      m = x * x + y * y + z * z;
-
-  // If the area-weighted ccentroid is undefined, fall back to length-weighted ccentroid.
-  if (m < epsilon2) {
-    x = X1, y = Y1, z = Z1;
-    // If the feature has zero length, fall back to arithmetic mean of point vectors.
-    if (W1 < epsilon) x = X0, y = Y0, z = Z0;
-    m = x * x + y * y + z * z;
-    // If the feature still has an undefined ccentroid, then return.
-    if (m < epsilon2) return [NaN, NaN];
-  }
-
-  return [atan2(y, x) * degrees, asin(z / sqrt(m)) * degrees];
-};
 
 var constant = function (x) {
   return function () {
@@ -18150,7 +17886,6 @@ function rotationPhiGamma(deltaPhi, deltaGamma) {
   return rotation;
 }
 
-// Generates a circle centered at [0°, 0°], with a given radius and precision.
 function circleStream(stream, radius, delta, direction, t0, t1) {
   if (!delta) return;
   var cosRadius = cos(radius),
@@ -18414,95 +18149,6 @@ function link(array) {
   b.p = a;
 }
 
-var ascending = function (a, b) {
-  return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
-};
-
-var bisector = function (compare) {
-  if (compare.length === 1) compare = ascendingComparator(compare);
-  return {
-    left: function left(a, x, lo, hi) {
-      if (lo == null) lo = 0;
-      if (hi == null) hi = a.length;
-      while (lo < hi) {
-        var mid = lo + hi >>> 1;
-        if (compare(a[mid], x) < 0) lo = mid + 1;else hi = mid;
-      }
-      return lo;
-    },
-    right: function right(a, x, lo, hi) {
-      if (lo == null) lo = 0;
-      if (hi == null) hi = a.length;
-      while (lo < hi) {
-        var mid = lo + hi >>> 1;
-        if (compare(a[mid], x) > 0) hi = mid;else lo = mid + 1;
-      }
-      return lo;
-    }
-  };
-};
-
-function ascendingComparator(f) {
-  return function (d, x) {
-    return ascending(f(d), x);
-  };
-}
-
-var ascendingBisect = bisector(ascending);
-var bisectRight = ascendingBisect.right;
-
-function pair(a, b) {
-  return [a, b];
-}
-
-var number = function (x) {
-  return x === null ? NaN : +x;
-};
-
-var extent$1 = function (values, valueof) {
-  var n = values.length,
-      i = -1,
-      value,
-      min,
-      max;
-
-  if (valueof == null) {
-    while (++i < n) {
-      // Find the first comparable value.
-      if ((value = values[i]) != null && value >= value) {
-        min = max = value;
-        while (++i < n) {
-          // Compare the remaining values.
-          if ((value = values[i]) != null) {
-            if (min > value) min = value;
-            if (max < value) max = value;
-          }
-        }
-      }
-    }
-  } else {
-    while (++i < n) {
-      // Find the first comparable value.
-      if ((value = valueof(values[i], i, values)) != null && value >= value) {
-        min = max = value;
-        while (++i < n) {
-          // Compare the remaining values.
-          if ((value = valueof(values[i], i, values)) != null) {
-            if (min > value) min = value;
-            if (max < value) max = value;
-          }
-        }
-      }
-    }
-  }
-
-  return [min, max];
-};
-
-var identity = function (x) {
-  return x;
-};
-
 var range$1 = function (start, stop, step) {
   start = +start, stop = +stop, step = (n = arguments.length) < 2 ? (stop = start, start = 0, 1) : n < 3 ? 1 : +step;
 
@@ -18515,42 +18161,6 @@ var range$1 = function (start, stop, step) {
   }
 
   return range;
-};
-
-var e10 = Math.sqrt(50);
-var e5 = Math.sqrt(10);
-var e2 = Math.sqrt(2);
-
-function tickIncrement(start, stop, count) {
-    var step = (stop - start) / Math.max(0, count),
-        power = Math.floor(Math.log(step) / Math.LN10),
-        error = step / Math.pow(10, power);
-    return power >= 0 ? (error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1) * Math.pow(10, power) : -Math.pow(10, -power) / (error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1);
-}
-
-function tickStep(start, stop, count) {
-    var step0 = Math.abs(stop - start) / Math.max(0, count),
-        step1 = Math.pow(10, Math.floor(Math.log(step0) / Math.LN10)),
-        error = step0 / step1;
-    if (error >= e10) step1 *= 10;else if (error >= e5) step1 *= 5;else if (error >= e2) step1 *= 2;
-    return stop < start ? -step1 : step1;
-}
-
-var sturges = function (values) {
-  return Math.ceil(Math.log(values.length) / Math.LN2) + 1;
-};
-
-var quantile = function (values, p, valueof) {
-  if (valueof == null) valueof = number;
-  if (!(n = values.length)) return;
-  if ((p = +p) <= 0 || n < 2) return +valueof(values[0], 0, values);
-  if (p >= 1) return +valueof(values[n - 1], n - 1, values);
-  var n,
-      i = (n - 1) * p,
-      i0 = Math.floor(i),
-      value0 = +valueof(values[i0], i0, values),
-      value1 = +valueof(values[i0 + 1], i0 + 1, values);
-  return value0 + (value1 - value0) * (i - i0);
 };
 
 var merge = function (arrays) {
@@ -18576,43 +18186,6 @@ var merge = function (arrays) {
   return merged;
 };
 
-var min = function (values, valueof) {
-  var n = values.length,
-      i = -1,
-      value,
-      min;
-
-  if (valueof == null) {
-    while (++i < n) {
-      // Find the first comparable value.
-      if ((value = values[i]) != null && value >= value) {
-        min = value;
-        while (++i < n) {
-          // Compare the remaining values.
-          if ((value = values[i]) != null && min > value) {
-            min = value;
-          }
-        }
-      }
-    }
-  } else {
-    while (++i < n) {
-      // Find the first comparable value.
-      if ((value = valueof(values[i], i, values)) != null && value >= value) {
-        min = value;
-        while (++i < n) {
-          // Compare the remaining values.
-          if ((value = valueof(values[i], i, values)) != null && min > value) {
-            min = value;
-          }
-        }
-      }
-    }
-  }
-
-  return min;
-};
-
 var shuffle = function (array, i0, i1) {
   var m = (i1 == null ? array.length : i1) - (i0 = i0 == null ? 0 : +i0),
       t,
@@ -18627,10 +18200,6 @@ var shuffle = function (array, i0, i1) {
 
   return array;
 };
-
-function length(d) {
-  return d.length;
-}
 
 var clipMax = 1e9;
 var clipMin = -clipMax;
@@ -18863,136 +18432,6 @@ var polygonContains = function (polygon, point) {
 };
 
 var lengthSum = adder();
-var lambda0$2;
-var sinPhi0$1;
-var cosPhi0$1;
-
-var lengthStream = {
-  sphere: noop,
-  point: noop,
-  lineStart: lengthLineStart,
-  lineEnd: noop,
-  polygonStart: noop,
-  polygonEnd: noop
-};
-
-function lengthLineStart() {
-  lengthStream.point = lengthPointFirst;
-  lengthStream.lineEnd = lengthLineEnd;
-}
-
-function lengthLineEnd() {
-  lengthStream.point = lengthStream.lineEnd = noop;
-}
-
-function lengthPointFirst(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  lambda0$2 = lambda, sinPhi0$1 = sin(phi), cosPhi0$1 = cos(phi);
-  lengthStream.point = lengthPoint;
-}
-
-function lengthPoint(lambda, phi) {
-  lambda *= radians, phi *= radians;
-  var sinPhi = sin(phi),
-      cosPhi = cos(phi),
-      delta = abs(lambda - lambda0$2),
-      cosDelta = cos(delta),
-      sinDelta = sin(delta),
-      x = cosPhi * sinDelta,
-      y = cosPhi0$1 * sinPhi - sinPhi0$1 * cosPhi * cosDelta,
-      z = sinPhi0$1 * sinPhi + cosPhi0$1 * cosPhi * cosDelta;
-  lengthSum.add(atan2(sqrt(x * x + y * y), z));
-  lambda0$2 = lambda, sinPhi0$1 = sinPhi, cosPhi0$1 = cosPhi;
-}
-
-var length$1 = function (object) {
-  lengthSum.reset();
-  geoStream(object, lengthStream);
-  return +lengthSum;
-};
-
-var coordinates = [null, null];
-var object = { type: "LineString", coordinates: coordinates };
-
-var distance$1 = function (a, b) {
-  coordinates[0] = a;
-  coordinates[1] = b;
-  return length$1(object);
-};
-
-var containsGeometryType = {
-  Sphere: function Sphere() {
-    return true;
-  },
-  Point: function Point(object, point) {
-    return containsPoint(object.coordinates, point);
-  },
-  MultiPoint: function MultiPoint(object, point) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      if (containsPoint(coordinates[i], point)) return true;
-    }return false;
-  },
-  LineString: function LineString(object, point) {
-    return containsLine(object.coordinates, point);
-  },
-  MultiLineString: function MultiLineString(object, point) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      if (containsLine(coordinates[i], point)) return true;
-    }return false;
-  },
-  Polygon: function Polygon(object, point) {
-    return containsPolygon(object.coordinates, point);
-  },
-  MultiPolygon: function MultiPolygon(object, point) {
-    var coordinates = object.coordinates,
-        i = -1,
-        n = coordinates.length;
-    while (++i < n) {
-      if (containsPolygon(coordinates[i], point)) return true;
-    }return false;
-  },
-  GeometryCollection: function GeometryCollection(object, point) {
-    var geometries = object.geometries,
-        i = -1,
-        n = geometries.length;
-    while (++i < n) {
-      if (containsGeometry(geometries[i], point)) return true;
-    }return false;
-  }
-};
-
-function containsGeometry(geometry, point) {
-  return geometry && containsGeometryType.hasOwnProperty(geometry.type) ? containsGeometryType[geometry.type](geometry, point) : false;
-}
-
-function containsPoint(coordinates, point) {
-  return distance$1(coordinates, point) === 0;
-}
-
-function containsLine(coordinates, point) {
-  var ab = distance$1(coordinates[0], coordinates[1]),
-      ao = distance$1(coordinates[0], point),
-      ob = distance$1(point, coordinates[1]);
-  return ao + ob <= ab + epsilon;
-}
-
-function containsPolygon(coordinates, point) {
-  return !!polygonContains(coordinates.map(ringRadians), pointRadians(point));
-}
-
-function ringRadians(ring) {
-  return ring = ring.map(pointRadians), ring.pop(), ring;
-}
-
-function pointRadians(point) {
-  return [point[0] * radians, point[1] * radians];
-}
 
 function graticuleX(y0, y1, dy) {
   var y = range$1(y0, y1 - epsilon, dy).concat(y1);
@@ -19214,8 +18653,6 @@ function boundsPoint$1(x, y) {
   if (y < y0$2) y0$2 = y;
   if (y > y1) y1 = y;
 }
-
-// TODO Enforce positive area for exterior, negative area for interior?
 
 var X0$1 = 0;
 var Y0$1 = 0;
@@ -20263,6 +19700,14 @@ var geoConicEquidistant = function () {
   return conicProjection(conicEquidistantRaw).scale(131.154).center([0, 13.9389]);
 };
 
+function gnomonicRaw(x, y) {
+  var cy = cos(y),
+      k = cos(x) * cy;
+  return [cy * sin(x) / k, sin(y) / k];
+}
+
+gnomonicRaw.invert = azimuthalInvert(atan);
+
 function orthographicRaw(x, y) {
   return [cos(y) * sin(x), sin(y)];
 }
@@ -20273,16 +19718,26 @@ var geoOrthographic = function () {
   return projection(orthographicRaw).scale(249.5).clipAngle(90 + epsilon);
 };
 
+function stereographicRaw(x, y) {
+  var cy = cos(y),
+      k = 1 + cos(x) * cy;
+  return [cy * sin(x) / k, sin(y) / k];
+}
+
+stereographicRaw.invert = azimuthalInvert(function (z) {
+  return 2 * atan(z);
+});
+
 var abs$1 = Math.abs;
-var atan$1 = Math.atan;
-var atan2$1 = Math.atan2;
+
+
 
 var cos$1 = Math.cos;
 
-var floor$1 = Math.floor;
 
-var max$1 = Math.max;
-var min$1 = Math.min;
+
+
+
 
 
 
@@ -20290,16 +19745,16 @@ var sin$1 = Math.sin;
 
 
 var epsilon$1 = 1e-6;
-var epsilon2$1 = 1e-12;
+
 var pi$1 = Math.PI;
 var halfPi$1 = pi$1 / 2;
 
 
+var sqrt2 = sqrt$1(2);
+var sqrtPi = sqrt$1(pi$1);
 
 
 
-var degrees$1 = 180 / pi$1;
-var radians$1 = pi$1 / 180;
 
 
 
@@ -20312,6 +19767,40 @@ function asin$1(x) {
 function sqrt$1(x) {
   return x > 0 ? Math.sqrt(x) : 0;
 }
+
+// Abort if [x, y] is not within an ellipse centered at [0, 0] with
+// semi-major axis pi and semi-minor axis pi/2.
+
+var sqrt8 = sqrt$1(8);
+
+function mollweideBromleyTheta(cp, phi) {
+  var cpsinPhi = cp * sin$1(phi),
+      i = 30,
+      delta;
+  do {
+    phi -= delta = (phi + sin$1(phi) - cpsinPhi) / (1 + cos$1(phi));
+  } while (abs$1(delta) > epsilon$1 && --i > 0);
+  return phi / 2;
+}
+
+function mollweideBromleyRaw(cx, cy, cp) {
+
+  function forward(lambda, phi) {
+    return [cx * lambda * cos$1(phi = mollweideBromleyTheta(cp, phi)), cy * sin$1(phi)];
+  }
+
+  forward.invert = function (x, y) {
+    return y = asin$1(y / cy), [x / (cx * cos$1(y)), asin$1((2 * y + sin$1(2 * y)) / cp)];
+  };
+
+  return forward;
+}
+
+var mollweideRaw = mollweideBromleyRaw(sqrt2 / halfPi$1, sqrt2, pi$1);
+
+var bromleyRaw = mollweideBromleyRaw(1, 4 / pi$1, pi$1);
+
+var sqrt3 = sqrt$1(3);
 
 function eckert4Raw(lambda, phi) {
   var k = (2 + halfPi$1) * sin$1(phi);
@@ -20333,74 +19822,6 @@ eckert4Raw.invert = function (x, y) {
 var geoEckert4 = function () {
   return projection(eckert4Raw).scale(180.739);
 };
-
-var ginzburgPolyconicRaw = function (a, b, c, d, e, f, g, h) {
-  if (arguments.length < 8) h = 0;
-
-  function forward(lambda, phi) {
-    if (!phi) return [a * lambda / pi$1, 0];
-    var phi2 = phi * phi,
-        xB = a + phi2 * (b + phi2 * (c + phi2 * d)),
-        yB = phi * (e - 1 + phi2 * (f - h + phi2 * g)),
-        m = (xB * xB + yB * yB) / (2 * yB),
-        alpha = lambda * asin$1(xB / m) / pi$1;
-    return [m * sin$1(alpha), phi * (1 + phi2 * h) + m * (1 - cos$1(alpha))];
-  }
-
-  forward.invert = function (x, y) {
-    var lambda = pi$1 * x / a,
-        phi = y,
-        deltaLambda,
-        deltaPhi,
-        i = 50;
-    do {
-      var phi2 = phi * phi,
-          xB = a + phi2 * (b + phi2 * (c + phi2 * d)),
-          yB = phi * (e - 1 + phi2 * (f - h + phi2 * g)),
-          p = xB * xB + yB * yB,
-          q = 2 * yB,
-          m = p / q,
-          m2 = m * m,
-          dAlphadLambda = asin$1(xB / m) / pi$1,
-          alpha = lambda * dAlphadLambda,
-          xB2 = xB * xB,
-          dxBdPhi = (2 * b + phi2 * (4 * c + phi2 * 6 * d)) * phi,
-          dyBdPhi = e + phi2 * (3 * f + phi2 * 5 * g),
-          dpdPhi = 2 * (xB * dxBdPhi + yB * (dyBdPhi - 1)),
-          dqdPhi = 2 * (dyBdPhi - 1),
-          dmdPhi = (dpdPhi * q - p * dqdPhi) / (q * q),
-          cosAlpha = cos$1(alpha),
-          sinAlpha = sin$1(alpha),
-          mcosAlpha = m * cosAlpha,
-          msinAlpha = m * sinAlpha,
-          dAlphadPhi = lambda / pi$1 * (1 / sqrt$1(1 - xB2 / m2)) * (dxBdPhi * m - xB * dmdPhi) / m2,
-          fx = msinAlpha - x,
-          fy = phi * (1 + phi2 * h) + m - mcosAlpha - y,
-          deltaxDeltaPhi = dmdPhi * sinAlpha + mcosAlpha * dAlphadPhi,
-          deltaxDeltaLambda = mcosAlpha * dAlphadLambda,
-          deltayDeltaPhi = 1 + dmdPhi - (dmdPhi * cosAlpha - msinAlpha * dAlphadPhi),
-          deltayDeltaLambda = msinAlpha * dAlphadLambda,
-          denominator = deltaxDeltaPhi * deltayDeltaLambda - deltayDeltaPhi * deltaxDeltaLambda;
-      if (!denominator) break;
-      lambda -= deltaLambda = (fy * deltaxDeltaPhi - fx * deltayDeltaPhi) / denominator;
-      phi -= deltaPhi = (fx * deltayDeltaLambda - fy * deltaxDeltaLambda) / denominator;
-    } while ((abs$1(deltaLambda) > epsilon$1 || abs$1(deltaPhi) > epsilon$1) && --i > 0);
-    return [lambda, phi];
-  };
-
-  return forward;
-};
-
-var ginzburg4Raw = ginzburgPolyconicRaw(2.8284, -1.6988, 0.75432, -0.18071, 1.76003, -0.38914, 0.042555);
-
-var ginzburg5Raw = ginzburgPolyconicRaw(2.583819, -0.835827, 0.170354, -0.038094, 1.543313, -0.411435, 0.082742);
-
-var ginzburg6Raw = ginzburgPolyconicRaw(5 / 6 * pi$1, -0.62636, -0.0344, 0, 1.3493, -0.05524, 0, 0.045);
-
-var ginzburg9Raw = ginzburgPolyconicRaw(2.6516, -0.76534, 0.19123, -0.047094, 1.36289, -0.13965, 0.031762);
-
-// Returns [sn, cn, dn](u + iv|m).
-
 
 // Returns [sn, cn, dn, ph](u|m).
 
@@ -20454,65 +19875,16 @@ var geoHammer = function () {
   return p.scale(169.529);
 };
 
-function interpolateLine(coordinates, m) {
-  var i = -1,
-      n = coordinates.length,
-      p0 = coordinates[0],
-      p1,
-      dx,
-      dy,
-      resampled = [];
-  while (++i < n) {
-    p1 = coordinates[i];
-    dx = (p1[0] - p0[0]) / m;
-    dy = (p1[1] - p0[1]) / m;
-    for (var j = 0; j < m; ++j) {
-      resampled.push([p0[0] + j * dx, p0[1] + j * dy]);
-    }p0 = p1;
-  }
-  resampled.push(p1);
-  return resampled;
-}
+// Latitudinal rotation by phi0.
+// Temporary hack until D3 supports arbitrary small-circle clipping origins.
 
-// Inverts a transform matrix.
-
+var sqrt6 = sqrt$1(6);
+var sqrt7 = sqrt$1(7);
 
 // Multiplies two 3x2 matrices.
 
-function outline(stream, node, parent) {
-  var point,
-      edges = node.edges,
-      n = edges.length,
-      edge,
-      multiPoint = { type: "MultiPoint", coordinates: node.face },
-      notPoles = node.face.filter(function (d) {
-    return abs$1(d[1]) !== 90;
-  }),
-      b = bounds({ type: "MultiPoint", coordinates: notPoles }),
-      inside = false,
-      j = -1,
-      dx = b[1][0] - b[0][0];
-  // TODO
-  var c = dx === 180 || dx === 360 ? [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2] : centroid(multiPoint);
-  // First find the shared edge…
-  if (parent) while (++j < n) {
-    if (edges[j] === parent) break;
-  }
-  ++j;
-  for (var i = 0; i < n; ++i) {
-    edge = edges[(i + j) % n];
-    if (Array.isArray(edge)) {
-      if (!inside) {
-        stream.point((point = geoInterpolate(edge[0], c)(epsilon$1))[0], point[1]);
-        inside = true;
-      }
-      stream.point((point = geoInterpolate(edge[1], c)(epsilon$1))[0], point[1]);
-    } else {
-      inside = false;
-      if (edge !== parent) outline(stream, edge, node);
-    }
-  }
-}
+
+// Subtracts 2D vectors.
 
 // TODO generate on-the-fly to avoid external modification.
 var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
@@ -20523,8 +19895,7 @@ var octahedron = [[0, 90], [-90, 0], [0, 0], [90, 0], [180, 0], [0, -90]];
   });
 });
 
-var points = [];
-var lines = [];
+var kx = 2 / sqrt$1(3);
 
 var K = [[0.9986, -0.062], [1.0000, 0.0000], [0.9986, 0.0620], [0.9954, 0.1240], [0.9900, 0.1860], [0.9822, 0.2480], [0.9730, 0.3100], [0.9600, 0.3720], [0.9427, 0.4340], [0.9216, 0.4958], [0.8962, 0.5571], [0.8679, 0.6176], [0.8350, 0.6769], [0.7986, 0.7346], [0.7597, 0.7903], [0.7186, 0.8435], [0.6732, 0.8936], [0.6213, 0.9394], [0.5722, 0.9761], [0.5322, 1.0000]];
 
@@ -20532,215 +19903,10 @@ K.forEach(function (d) {
   d[1] *= 1.0144;
 });
 
-var epsilon$2 = 1e-4;
-var epsilonInverse = 1e4;
-var x0$5 = -180;
-var x0e = x0$5 + epsilon$2;
-var x1$1 = 180;
-var x1e = x1$1 - epsilon$2;
-var y0$5 = -90;
-var y0e = y0$5 + epsilon$2;
-var y1$1 = 90;
-var y1e = y1$1 - epsilon$2;
+var A = 4 * pi$1 + 3 * sqrt$1(3);
+var B = 2 * sqrt$1(2 * pi$1 * sqrt$1(3) / A);
 
-function nonempty(coordinates) {
-  return coordinates.length > 0;
-}
-
-function quantize$1(x) {
-  return Math.floor(x * epsilonInverse) / epsilonInverse;
-}
-
-function normalizePoint(y) {
-  return y === y0$5 || y === y1$1 ? [0, y] : [x0$5, quantize$1(y)]; // pole or antimeridian?
-}
-
-function clampPoint(p) {
-  var x = p[0],
-      y = p[1],
-      clamped = false;
-  if (x <= x0e) x = x0$5, clamped = true;else if (x >= x1e) x = x1$1, clamped = true;
-  if (y <= y0e) y = y0$5, clamped = true;else if (y >= y1e) y = y1$1, clamped = true;
-  return clamped ? [x, y] : p;
-}
-
-function clampPoints(points) {
-  return points.map(clampPoint);
-}
-
-// For each ring, detect where it crosses the antimeridian or pole.
-function extractFragments(rings, polygon, fragments) {
-  for (var j = 0, m = rings.length; j < m; ++j) {
-    var ring = rings[j].slice();
-
-    // By default, assume that this ring doesn’t need any stitching.
-    fragments.push({ index: -1, polygon: polygon, ring: ring });
-
-    for (var i = 0, n = ring.length; i < n; ++i) {
-      var point = ring[i],
-          x = point[0],
-          y = point[1];
-
-      // If this is an antimeridian or polar point…
-      if (x <= x0e || x >= x1e || y <= y0e || y >= y1e) {
-        ring[i] = clampPoint(point);
-
-        // Advance through any antimeridian or polar points…
-        for (var k = i + 1; k < n; ++k) {
-          var pointk = ring[k],
-              xk = pointk[0],
-              yk = pointk[1];
-          if (xk > x0e && xk < x1e && yk > y0e && yk < y1e) break;
-        }
-
-        // If this was just a single antimeridian or polar point,
-        // we don’t need to cut this ring into a fragment;
-        // we can just leave it as-is.
-        if (k === i + 1) continue;
-
-        // Otherwise, if this is not the first point in the ring,
-        // cut the current fragment so that it ends at the current point.
-        // The current point is also normalized for later joining.
-        if (i) {
-          var fragmentBefore = { index: -1, polygon: polygon, ring: ring.slice(0, i + 1) };
-          fragmentBefore.ring[fragmentBefore.ring.length - 1] = normalizePoint(y);
-          fragments[fragments.length - 1] = fragmentBefore;
-        }
-
-        // If the ring started with an antimeridian fragment,
-        // we can ignore that fragment entirely.
-        else fragments.pop();
-
-        // If the remainder of the ring is an antimeridian fragment,
-        // move on to the next ring.
-        if (k >= n) break;
-
-        // Otherwise, add the remaining ring fragment and continue.
-        fragments.push({ index: -1, polygon: polygon, ring: ring = ring.slice(k - 1) });
-        ring[0] = normalizePoint(ring[0][1]);
-        i = -1;
-        n = ring.length;
-      }
-    }
-  }
-}
-
-// Now stitch the fragments back together into rings.
-function stitchFragments(fragments) {
-  var i,
-      n = fragments.length;
-
-  // To connect the fragments start-to-end, create a simple index by end.
-  var fragmentByStart = {},
-      fragmentByEnd = {},
-      fragment,
-      start,
-      startFragment,
-      end,
-      endFragment;
-
-  // For each fragment…
-  for (i = 0; i < n; ++i) {
-    fragment = fragments[i];
-    start = fragment.ring[0];
-    end = fragment.ring[fragment.ring.length - 1];
-
-    // If this fragment is closed, add it as a standalone ring.
-    if (start[0] === end[0] && start[1] === end[1]) {
-      fragment.polygon.push(fragment.ring);
-      fragments[i] = null;
-      continue;
-    }
-
-    fragment.index = i;
-    fragmentByStart[start] = fragmentByEnd[end] = fragment;
-  }
-
-  // For each open fragment…
-  for (i = 0; i < n; ++i) {
-    fragment = fragments[i];
-    if (fragment) {
-      start = fragment.ring[0];
-      end = fragment.ring[fragment.ring.length - 1];
-      startFragment = fragmentByEnd[start];
-      endFragment = fragmentByStart[end];
-
-      delete fragmentByStart[start];
-      delete fragmentByEnd[end];
-
-      // If this fragment is closed, add it as a standalone ring.
-      if (start[0] === end[0] && start[1] === end[1]) {
-        fragment.polygon.push(fragment.ring);
-        continue;
-      }
-
-      if (startFragment) {
-        delete fragmentByEnd[start];
-        delete fragmentByStart[startFragment.ring[0]];
-        startFragment.ring.pop(); // drop the shared coordinate
-        fragments[startFragment.index] = null;
-        fragment = { index: -1, polygon: startFragment.polygon, ring: startFragment.ring.concat(fragment.ring) };
-
-        if (startFragment === endFragment) {
-          // Connect both ends to this single fragment to create a ring.
-          fragment.polygon.push(fragment.ring);
-        } else {
-          fragment.index = n++;
-          fragments.push(fragmentByStart[fragment.ring[0]] = fragmentByEnd[fragment.ring[fragment.ring.length - 1]] = fragment);
-        }
-      } else if (endFragment) {
-        delete fragmentByStart[end];
-        delete fragmentByEnd[endFragment.ring[endFragment.ring.length - 1]];
-        fragment.ring.pop(); // drop the shared coordinate
-        fragment = { index: n++, polygon: endFragment.polygon, ring: fragment.ring.concat(endFragment.ring) };
-        fragments[endFragment.index] = null;
-        fragments.push(fragmentByStart[fragment.ring[0]] = fragmentByEnd[fragment.ring[fragment.ring.length - 1]] = fragment);
-      } else {
-        fragment.ring.push(fragment.ring[0]); // close ring
-        fragment.polygon.push(fragment.ring);
-      }
-    }
-  }
-}
-
-function stitchGeometry(input) {
-  if (input == null) return input;
-  var output, fragments, i, n;
-  switch (input.type) {
-    case "GeometryCollection":
-      output = { type: "GeometryCollection", geometries: input.geometries.map(stitchGeometry) };break;
-    case "Point":
-      output = { type: "Point", coordinates: clampPoint(input.coordinates) };break;
-    case "MultiPoint":case "LineString":
-      output = { type: input.type, coordinates: clampPoints(input.coordinates) };break;
-    case "MultiLineString":
-      output = { type: "MultiLineString", coordinates: input.coordinates.map(clampPoints) };break;
-    case "Polygon":
-      {
-        var polygon = [];
-        extractFragments(input.coordinates, polygon, fragments = []);
-        stitchFragments(fragments);
-        output = { type: "Polygon", coordinates: polygon };
-        break;
-      }
-    case "MultiPolygon":
-      {
-        fragments = [], i = -1, n = input.coordinates.length;
-        var polygons = new Array(n);
-        while (++i < n) {
-          extractFragments(input.coordinates[i], polygons[i] = [], fragments);
-        }stitchFragments(fragments);
-        output = { type: "MultiPolygon", coordinates: polygons.filter(nonempty) };
-        break;
-      }
-    default:
-      return input;
-  }
-  if (input.bbox != null) output.bbox = input.bbox;
-  return output;
-}
-
-// TODO clip to ellipse
+var wagner4Raw = mollweideBromleyRaw(B * sqrt$1(3) / pi$1, B, A / 6);
 
 var _class$40;
 var _descriptor$18;
@@ -21504,12 +20670,27 @@ var FeaturePath = (_dec$20 = registerStyle(FeatureStyle), _dec$20(_class3$13 = f
             return hashToColor(id);
         }
     }, {
+        key: "getMap",
+        value: function getMap() {
+            return this.options.map;
+        }
+    }, {
+        key: "dispatchFeatureToMap",
+        value: function dispatchFeatureToMap(type) {
+            var map = this.getMap();
+            map && map.dispatch(type, this.options.feature, this);
+        }
+    }, {
         key: "onMount",
         value: function onMount() {
             var _this3 = this;
 
             this.addNodeListener("mouseenter", function () {
-                return _this3.toFront();
+                _this3.toFront();
+                _this3.dispatchFeatureToMap("mouseEnterFeature");
+            });
+            this.addNodeListener("mouseleave", function () {
+                _this3.dispatchFeatureToMap("mouseLeaveFeature");
             });
         }
     }]);
@@ -21517,15 +20698,15 @@ var FeaturePath = (_dec$20 = registerStyle(FeatureStyle), _dec$20(_class3$13 = f
 }(SVG.Path)) || _class3$13);
 
 
-var HistoricalMap = function (_Zoomable) {
-    inherits(HistoricalMap, _Zoomable);
+var SVGMap = function (_Zoomable) {
+    inherits(SVGMap, _Zoomable);
 
-    function HistoricalMap() {
-        classCallCheck(this, HistoricalMap);
-        return possibleConstructorReturn(this, (HistoricalMap.__proto__ || Object.getPrototypeOf(HistoricalMap)).apply(this, arguments));
+    function SVGMap() {
+        classCallCheck(this, SVGMap);
+        return possibleConstructorReturn(this, (SVGMap.__proto__ || Object.getPrototypeOf(SVGMap)).apply(this, arguments));
     }
 
-    createClass(HistoricalMap, [{
+    createClass(SVGMap, [{
         key: "getDefaultOptions",
         value: function getDefaultOptions(options) {
             options = Object.assign({
@@ -21637,7 +20818,7 @@ var HistoricalMap = function (_Zoomable) {
                     return null;
                 }
 
-                return UI.createElement(FeaturePath, { feature: feature, d: path });
+                return UI.createElement(FeaturePath, { feature: feature, d: path, map: _this5 });
             });
 
             return [UI.createElement(
@@ -21732,7 +20913,7 @@ var HistoricalMap = function (_Zoomable) {
         // rotate();
 
     }]);
-    return HistoricalMap;
+    return SVGMap;
 }(Zoomable(Draggable(SVG.SVGRoot)));
 
 var _class$39;
@@ -21746,8 +20927,15 @@ var _descriptor7$6;
 var _descriptor8$5;
 var _descriptor9$5;
 var _descriptor10$3;
-var _dec$18;
 var _class3$11;
+var _descriptor11$3;
+var _descriptor12$2;
+var _descriptor13$2;
+var _descriptor14$2;
+var _dec$18;
+var _class5$4;
+var _dec2$5;
+var _class6$1;
 
 function _initDefineProp$18(target, property, descriptor, context) {
     if (!descriptor) return;
@@ -21847,6 +21035,9 @@ var HistoricalWorldMapStyle = (_class$39 = function (_StyleSheet) {
         _this2.menuExtraPaddingVertical = 10;
         _this2.menuExtraPaddingHorizontal = 20;
         _this2.toggleOptionsHeight = 50;
+        _this2.toggleOptionsMobileHeight = 35;
+        _this2.toggleOptionsFontSize = 22;
+        _this2.toggleOptionsMobileFontSize = 18;
         _this2.boxShadowWidth = 5;
 
         _initDefineProp$18(_this2, "container", _descriptor$17, _this2);
@@ -21886,7 +21077,15 @@ var HistoricalWorldMapStyle = (_class$39 = function (_StyleSheet) {
             if (window.innerWidth >= this.resizeWidthLimit) {
                 return 5;
             }
-            return this.toggleOptionsHeight + "px";
+            return this.getToggleOptionsHeight() + "px";
+        }
+    }, {
+        key: "getYearSelectContainerMarginBottom",
+        value: function getYearSelectContainerMarginBottom() {
+            if (window.innerWidth >= this.resizeWidthLimit) {
+                return 15;
+            }
+            return 0;
         }
     }, {
         key: "getYearSelectContainerPaddingLeft",
@@ -21895,6 +21094,22 @@ var HistoricalWorldMapStyle = (_class$39 = function (_StyleSheet) {
                 return this.menuWidth;
             }
             return this.menuExtraPaddingHorizontal;
+        }
+    }, {
+        key: "getToggleOptionsHeight",
+        value: function getToggleOptionsHeight() {
+            if (window.innerWidth >= this.resizeWidthLimit) {
+                return this.toggleOptionsHeight;
+            }
+            return this.toggleOptionsMobileHeight;
+        }
+    }, {
+        key: "getToggleOptionsFontSize",
+        value: function getToggleOptionsFontSize() {
+            if (window.innerWidth >= this.resizeWidthLimit) {
+                return this.toggleOptionsFontSize;
+            }
+            return this.toggleOptionsMobileFontSize;
         }
     }]);
     return HistoricalWorldMapStyle;
@@ -21909,23 +21124,15 @@ var HistoricalWorldMapStyle = (_class$39 = function (_StyleSheet) {
 }), _descriptor2$15 = _applyDecoratedDescriptor$19(_class$39.prototype, "yearSelectContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
-        var _this3 = this;
-
         return {
-            width: function width() {
-                return _this3.getYearSelectContainerWidth();
-            },
-            marginTop: function marginTop() {
-                return _this3.getYearSelectContainerMarginTop();
-            },
-            paddingLeft: function paddingLeft() {
-                return _this3.getYearSelectContainerPaddingLeft();
-            },
+            width: "100%",
+            marginTop: this.getYearSelectContainerMarginTop(),
+            paddingLeft: this.getYearSelectContainerPaddingLeft(),
             paddingRight: this.menuExtraPaddingHorizontal,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "15px",
+            marginBottom: this.getYearSelectContainerMarginBottom(),
             flexDirection: "row"
         };
     }
@@ -21976,10 +21183,10 @@ var HistoricalWorldMapStyle = (_class$39 = function (_StyleSheet) {
     enumerable: true,
     initializer: function initializer() {
         return {
-            height: this.toggleOptionsHeight,
+            height: this.getToggleOptionsHeight(),
             padding: "0 " + this.menuExtraPaddingHorizontal + "px",
             backgroundColor: enhance(this.themeProperties.COLOR_PRIMARY, 0.3),
-            fontSize: "22px !important",
+            fontSize: this.getToggleOptionsFontSize() + "px !important",
             transition: "0.2s",
             cursor: "pointer",
             color: "#fff",
@@ -22051,20 +21258,154 @@ function getPreferredDimensions() {
     };
 }
 
-var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec$18(_class3$11 = function (_UI$Element2) {
-    inherits(HistoricalWorldMap, _UI$Element2);
+var FeatureAreaStyle = (_class3$11 = function (_StyleSheet2) {
+    inherits(FeatureAreaStyle, _StyleSheet2);
 
+    function FeatureAreaStyle() {
+        classCallCheck(this, FeatureAreaStyle);
+
+        var _this3 = possibleConstructorReturn(this, (FeatureAreaStyle.__proto__ || Object.getPrototypeOf(FeatureAreaStyle)).call(this, {
+            updateOnResize: true
+        }));
+
+        _this3.height = 45;
+        _this3.items = 2;
+
+        _initDefineProp$18(_this3, "featureArea", _descriptor11$3, _this3);
+
+        _initDefineProp$18(_this3, "container", _descriptor12$2, _this3);
+
+        _initDefineProp$18(_this3, "title", _descriptor13$2, _this3);
+
+        _initDefineProp$18(_this3, "row", _descriptor14$2, _this3);
+
+        return _this3;
+    }
+
+    createClass(FeatureAreaStyle, [{
+        key: "getDisplay",
+        value: function getDisplay() {
+            if (window.innerWidth >= 500) {
+                return "block";
+            }
+            return "none";
+        }
+    }]);
+    return FeatureAreaStyle;
+}(StyleSheet), (_descriptor11$3 = _applyDecoratedDescriptor$19(_class3$11.prototype, "featureArea", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            display: this.getDisplay(),
+            borderRadius: "3px",
+            position: "absolute",
+            backgroundColor: "rgba(40, 70, 90, 0.7)",
+            color: "#fff",
+            top: 110,
+            right: 0,
+            width: 240,
+            pointerEvents: "none"
+        };
+    }
+}), _descriptor12$2 = _applyDecoratedDescriptor$19(_class3$11.prototype, "container", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            height: this.height * this.items
+        };
+    }
+}), _descriptor13$2 = _applyDecoratedDescriptor$19(_class3$11.prototype, "title", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            justifyContent: "center"
+        };
+    }
+}), _descriptor14$2 = _applyDecoratedDescriptor$19(_class3$11.prototype, "row", [styleRule], {
+    enumerable: true,
+    initializer: function initializer() {
+        return {
+            height: this.height,
+            width: "100%",
+            padding: "0 10px",
+            display: "flex",
+            alignItems: "center"
+        };
+    }
+})), _class3$11);
+var FeatureArea = (_dec$18 = registerStyle(FeatureAreaStyle), _dec$18(_class5$4 = function (_UI$Element2) {
+    inherits(FeatureArea, _UI$Element2);
+
+    function FeatureArea() {
+        classCallCheck(this, FeatureArea);
+        return possibleConstructorReturn(this, (FeatureArea.__proto__ || Object.getPrototypeOf(FeatureArea)).apply(this, arguments));
+    }
+
+    createClass(FeatureArea, [{
+        key: "extraNodeAttributes",
+        value: function extraNodeAttributes(attr) {
+            attr.addClass(this.styleSheet.featureArea);
+        }
+    }, {
+        key: "setFeature",
+        value: function setFeature(feature) {
+            this.setOptions({
+                feature: feature
+            });
+            this.redraw();
+        }
+    }, {
+        key: "render",
+        value: function render() {
+            var feature = this.options.feature;
+            var styleSheet = this.styleSheet;
+
+
+            if (!feature || !feature.properties) {
+                return null;
+            }
+
+            var _feature$properties = feature.properties,
+                name = _feature$properties.name,
+                currency = _feature$properties.currency;
+
+
+            return UI.createElement(
+                "div",
+                { className: styleSheet.container },
+                UI.createElement(
+                    "div",
+                    { className: styleSheet.row + styleSheet.title },
+                    name
+                ),
+                currency && UI.createElement(
+                    "div",
+                    { className: styleSheet.row },
+                    "Currency: ",
+                    currency
+                )
+            );
+        }
+    }]);
+    return FeatureArea;
+}(UI.Element)) || _class5$4);
+
+var HistoricalWorldMap = (_dec2$5 = registerStyle(HistoricalWorldMapStyle), _dec2$5(_class6$1 = function (_UI$Element3) {
+    inherits(HistoricalWorldMap, _UI$Element3);
+
+    // TODO: cache which years were loaded, to not request a second time
     function HistoricalWorldMap(options) {
         classCallCheck(this, HistoricalWorldMap);
 
-        var _this4 = possibleConstructorReturn(this, (HistoricalWorldMap.__proto__ || Object.getPrototypeOf(HistoricalWorldMap)).call(this, options));
+        var _this5 = possibleConstructorReturn(this, (HistoricalWorldMap.__proto__ || Object.getPrototypeOf(HistoricalWorldMap)).call(this, options));
 
-        _this4.requestedYears = new Set();
-        _this4.geometries = new Map();
+        _this5.requestedYears = new Set();
+        _this5.geometries = new Map();
+        _this5.redrawDropper = UnorderedCallDropper.newInstance();
 
-        _this4.menuIsToggled = false;
-        _this4.graticuleIsToggled = true;
-        return _this4;
+        _this5.menuIsToggled = false;
+        _this5.graticuleIsToggled = true;
+        return _this5;
     }
 
     createClass(HistoricalWorldMap, [{
@@ -22161,9 +21502,10 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
     }, {
         key: "render",
         value: function render() {
-            var _this5 = this;
+            var _this6 = this;
 
-            var currentYear = this.options.currentYear;
+            var _options = this.options,
+                currentYear = _options.currentYear;
 
 
             return [UI.createElement(
@@ -22172,14 +21514,14 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
                 UI.createElement(Select, { options: this.getAvailableProjections(),
                     ref: "projectionSelect",
                     onChange: function onChange(obj) {
-                        return _this5.setProjection(obj.get());
+                        return _this6.setProjection(obj.get());
                     },
                     className: this.styleSheet.select
                 }),
                 UI.createElement(
                     "div",
                     { className: this.styleSheet.button, onClick: function onClick() {
-                            return _this5.map.resetProjection();
+                            return _this6.map.resetProjection();
                         } },
                     "Reset projection"
                 ),
@@ -22200,10 +21542,10 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
                     years: self.WORLD_MAP_YEARS,
                     currentYear: currentYear,
                     className: this.styleSheet.historyWorldMapTitle })
-            ), UI.createElement(HistoricalMap, _extends({
+            ), UI.createElement(SVGMap, _extends({
                 ref: "map",
                 geometryGetter: this.getGeometry.bind(this)
-            }, getPreferredDimensions()))];
+            }, getPreferredDimensions())), UI.createElement(FeatureArea, { ref: "featureArea", feature: this.options.feature })];
         }
     }, {
         key: "setProjection",
@@ -22224,15 +21566,11 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
     }, {
         key: "loadCurrentYearData",
         value: function loadCurrentYearData() {
-            var _this6 = this;
+            var _this7 = this;
 
             var year = this.yearSelect.getCurrentValue();
-            if (this.requestedYears.has(year)) {
-                return;
-            }
-            this.requestedYears.add(year);
             var prefix = "/static/json/world/" + year;
-            var modes = ["", "-sm"];
+            var modes = ["-sm", ""];
             var _iteratorNormalCompletion2 = true;
             var _didIteratorError2 = false;
             var _iteratorError2 = undefined;
@@ -22241,9 +21579,11 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
                 var _loop = function _loop() {
                     var mode = _step2.value;
 
+                    var updateMap = _this7.redrawDropper(function (data) {
+                        _this7.setCurrentYear(year);
+                        _this7.map.setData(data);
+                    });
                     Ajax.getJSON(prefix + mode + ".json").then(function (data) {
-                        _this6.setCurrentYear(year);
-                        _this6.map.setData(data);
                         var _iteratorNormalCompletion3 = true;
                         var _didIteratorError3 = false;
                         var _iteratorError3 = undefined;
@@ -22253,7 +21593,7 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
                                 var feature = _step3.value;
 
                                 var key = year + mode + feature.properties.entity_id;
-                                _this6.geometries.set(key, feature.geometry);
+                                _this7.geometries.set(key, feature.geometry);
                             }
                         } catch (err) {
                             _didIteratorError3 = true;
@@ -22269,6 +21609,8 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
                                 }
                             }
                         }
+
+                        updateMap(data);
                     });
                 };
 
@@ -22293,13 +21635,13 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
     }, {
         key: "onMount",
         value: function onMount() {
-            var _this7 = this;
+            var _this8 = this;
 
             this.loadCurrentYearData();
 
             this.menuIcon.addClickListener(function (event) {
                 event.stopPropagation();
-                _this7.toggleMenu();
+                _this8.toggleMenu();
             });
 
             this.menu.addClickListener(function (event) {
@@ -22307,18 +21649,28 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
             });
 
             this.yearSelect.addChangeListener(function () {
-                _this7.loadCurrentYearData();
+                _this8.loadCurrentYearData();
             });
 
             this.drawGraticuleContainer.addClickListener(function () {
-                _this7.graticuleIsToggled = !_this7.graticuleIsToggled;
-                _this7.map.setShowGraticule(_this7.graticuleIsToggled);
-                _this7.drawGraticuleContainer.setChildren([_this7.getGraticuleLabel()]);
+                _this8.graticuleIsToggled = !_this8.graticuleIsToggled;
+                _this8.map.setShowGraticule(_this8.graticuleIsToggled);
+                _this8.drawGraticuleContainer.setChildren([_this8.getGraticuleLabel()]);
+            });
+
+            this.map.addListener("mouseEnterFeature", function (feature) {
+                console.log("entering", feature);
+                _this8.featureArea.setFeature(feature);
+            });
+
+            this.map.addListener("mouseLeaveFeature", function (feature) {
+                console.log("leaving", feature);
+                _this8.featureArea.setFeature(null);
             });
 
             document.body.addEventListener("click", function () {
-                if (_this7.menuIsToggled) {
-                    _this7.toggleMenu();
+                if (_this8.menuIsToggled) {
+                    _this8.toggleMenu();
                 }
             });
 
@@ -22328,7 +21680,7 @@ var HistoricalWorldMap = (_dec$18 = registerStyle(HistoricalWorldMapStyle), _dec
         }
     }]);
     return HistoricalWorldMap;
-}(UI.Element)) || _class3$11);
+}(UI.Element)) || _class6$1);
 
 var _dec$17;
 var _class$37;
@@ -22550,7 +21902,6 @@ var DefaultState = GlobalState;
 
 self.GlobalState = GlobalState;
 
-// The store information is kept in a symbol, to not interfere with serialization/deserialization
 var StoreSymbol = Symbol("Store");
 
 var StoreObject = function (_Dispatchable) {
@@ -22694,8 +22045,6 @@ var GenericObjectStore = function (_BaseStore) {
     inherits(GenericObjectStore, _BaseStore);
 
     function GenericObjectStore(objectType) {
-        var ObjectWrapper = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : StoreObject;
-        var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
         classCallCheck(this, GenericObjectStore);
 
         var _this4 = possibleConstructorReturn(this, (GenericObjectStore.__proto__ || Object.getPrototypeOf(GenericObjectStore)).apply(this, arguments));
@@ -23267,8 +22616,6 @@ var VirtualStoreMixin = function VirtualStoreMixin(BaseStoreClass) {
         }, {
             key: "applyCreateEvent",
             value: function applyCreateEvent(event) {
-                var sendDispatch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
                 if (event.virtualId) {
                     var existingVirtualObject = this.getVirtualObject(event);
                     if (existingVirtualObject) {
@@ -24830,13 +24177,9 @@ var MarkupParser = function () {
     }, {
         key: "parseTextLine",
         value: function parseTextLine(stream) {
-            var lastModifier = new Map();
-
             var capturedContent = [];
 
             // This will always be set to the last closed modifier
-            var capturedEnd = -1;
-
             var textStart = stream.pointer;
             var contentStart = stream.pointer;
 
@@ -25479,10 +24822,6 @@ MarkupParser.parseJSON5 = function () {
         }({ '': result }, '') : result;
     };
 }();
-
-// TODO: these should be in a unit test file, not here
-
-// Class that for every markup tag returns the UI class to instantiate for that element
 
 var MarkupClassMap = function () {
     function MarkupClassMap(fallback) {
@@ -26612,7 +25951,7 @@ var BlogArticleRendererStyle = (_class3$14 = function (_StyleSheet2) {
 
 var _dec$21;
 var _class$42;
-var _dec2$5;
+var _dec2$6;
 var _class2$4;
 
 var BlogArticleRenderer = (_dec$21 = registerStyle(BlogArticleRendererStyle), _dec$21(_class$42 = function (_ArticleRenderer) {
@@ -26632,7 +25971,7 @@ var BlogArticleRenderer = (_dec$21 = registerStyle(BlogArticleRendererStyle), _d
     }]);
     return BlogArticleRenderer;
 }(ArticleRenderer)) || _class$42);
-var BlogQuote = (_dec2$5 = registerStyle(BlogArticleRendererStyle), _dec2$5(_class2$4 = function (_UI$Primitive) {
+var BlogQuote = (_dec2$6 = registerStyle(BlogArticleRendererStyle), _dec2$6(_class2$4 = function (_UI$Primitive) {
     inherits(BlogQuote, _UI$Primitive);
 
     function BlogQuote() {
@@ -28730,9 +28069,6 @@ var Popup = function (_BasePopup) {
     return Popup;
 }(BasePopup);
 
-// import {Emoji as EmojiMini} from "EmojiMini";
-// import "EmojiUI";
-
 UI.Emoji = UI.Emoji || UI.Element;
 
 var ClickableEmote = function (_UI$Emoji) {
@@ -29721,10 +29057,10 @@ var _descriptor7$8;
 var _descriptor8$7;
 var _descriptor9$6;
 var _descriptor10$4;
-var _descriptor11$3;
-var _descriptor12$2;
-var _descriptor13$2;
-var _descriptor14$2;
+var _descriptor11$4;
+var _descriptor12$3;
+var _descriptor13$3;
+var _descriptor14$3;
 var _descriptor15$2;
 var _descriptor16$2;
 var _descriptor17$1;
@@ -29819,7 +29155,7 @@ var LoginStyle = (_class$48 = function (_StyleSheet) {
             borderBottomLeftRadius: "5px",
             borderRight: "0px solid white",
             marginTop: "20px"
-        }, _initDefineProp$22(_this, "input", _descriptor9$6, _this), _initDefineProp$22(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$22(_this, "badLogin", _descriptor11$3, _this), _initDefineProp$22(_this, "rememberMe", _descriptor12$2, _this), _initDefineProp$22(_this, "forgotPassword", _descriptor13$2, _this), _initDefineProp$22(_this, "signInButtonContainer", _descriptor14$2, _this), _initDefineProp$22(_this, "signInButton", _descriptor15$2, _this), _initDefineProp$22(_this, "horizontalLine", _descriptor16$2, _this), _this.connectWith = {
+        }, _initDefineProp$22(_this, "input", _descriptor9$6, _this), _initDefineProp$22(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$22(_this, "badLogin", _descriptor11$4, _this), _initDefineProp$22(_this, "rememberMe", _descriptor12$3, _this), _initDefineProp$22(_this, "forgotPassword", _descriptor13$3, _this), _initDefineProp$22(_this, "signInButtonContainer", _descriptor14$3, _this), _initDefineProp$22(_this, "signInButton", _descriptor15$2, _this), _initDefineProp$22(_this, "horizontalLine", _descriptor16$2, _this), _this.connectWith = {
             width: "100%",
             textAlign: "center",
             fontFamily: _this.fontFamily,
@@ -30000,7 +29336,7 @@ var LoginStyle = (_class$48 = function (_StyleSheet) {
             marginBottom: "10px"
         };
     }
-}), _descriptor11$3 = _applyDecoratedDescriptor$23(_class$48.prototype, "badLogin", [styleRule], {
+}), _descriptor11$4 = _applyDecoratedDescriptor$23(_class$48.prototype, "badLogin", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30012,7 +29348,7 @@ var LoginStyle = (_class$48 = function (_StyleSheet) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor12$2 = _applyDecoratedDescriptor$23(_class$48.prototype, "rememberMe", [styleRule], {
+}), _descriptor12$3 = _applyDecoratedDescriptor$23(_class$48.prototype, "rememberMe", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30022,7 +29358,7 @@ var LoginStyle = (_class$48 = function (_StyleSheet) {
             fontFamily: this.fontFamily
         };
     }
-}), _descriptor13$2 = _applyDecoratedDescriptor$23(_class$48.prototype, "forgotPassword", [styleRule], {
+}), _descriptor13$3 = _applyDecoratedDescriptor$23(_class$48.prototype, "forgotPassword", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30032,7 +29368,7 @@ var LoginStyle = (_class$48 = function (_StyleSheet) {
             paddingRight: "5px"
         };
     }
-}), _descriptor14$2 = _applyDecoratedDescriptor$23(_class$48.prototype, "signInButtonContainer", [styleRule], {
+}), _descriptor14$3 = _applyDecoratedDescriptor$23(_class$48.prototype, "signInButtonContainer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -30168,16 +29504,16 @@ var LoginStyle = (_class$48 = function (_StyleSheet) {
 
 var _dec$25;
 var _class$47;
-var _dec2$8;
+var _dec2$9;
 var _class2$7;
 var _dec3$1;
 var _class3$15;
 var _dec4;
 var _class4$1;
 var _dec5;
-var _class5$4;
+var _class5$5;
 var _dec6;
-var _class6$1;
+var _class6$2;
 var _dec7;
 var _class7$2;
 
@@ -30263,7 +29599,7 @@ var SocialConnectButton = (_dec$25 = registerStyle(LoginStyle), _dec$25(_class$4
     }]);
     return SocialConnectButton;
 }(UI.Primitive("button"))) || _class$47);
-var ThirdPartyLogin = (_dec2$8 = registerStyle(LoginStyle), _dec2$8(_class2$7 = function (_UI$Element) {
+var ThirdPartyLogin = (_dec2$9 = registerStyle(LoginStyle), _dec2$9(_class2$7 = function (_UI$Element) {
     inherits(ThirdPartyLogin, _UI$Element);
 
     function ThirdPartyLogin() {
@@ -30626,7 +29962,7 @@ RegisterWidget.prototype.getPasswordInput = LoginWidget.prototype.getPasswordInp
 RegisterWidget.prototype.getHorizontalLine = LoginWidget.prototype.getHorizontalLine;
 
 // original name: LoginRegisterSystem
-var NormalLogin = (_dec5 = registerStyle(LoginStyle), _dec5(_class5$4 = function (_UI$Element5) {
+var NormalLogin = (_dec5 = registerStyle(LoginStyle), _dec5(_class5$5 = function (_UI$Element5) {
     inherits(NormalLogin, _UI$Element5);
 
     function NormalLogin() {
@@ -30713,8 +30049,8 @@ var NormalLogin = (_dec5 = registerStyle(LoginStyle), _dec5(_class5$4 = function
         }
     }]);
     return NormalLogin;
-}(UI.Element)) || _class5$4);
-var LoginTabButton = (_dec6 = registerStyle(LoginStyle), _dec6(_class6$1 = function (_UI$Primitive2) {
+}(UI.Element)) || _class5$5);
+var LoginTabButton = (_dec6 = registerStyle(LoginStyle), _dec6(_class6$2 = function (_UI$Primitive2) {
     inherits(LoginTabButton, _UI$Primitive2);
 
     function LoginTabButton() {
@@ -30739,7 +30075,7 @@ var LoginTabButton = (_dec6 = registerStyle(LoginStyle), _dec6(_class6$1 = funct
         }
     }]);
     return LoginTabButton;
-}(UI.Primitive(BasicTabTitle, "div"))) || _class6$1);
+}(UI.Primitive(BasicTabTitle, "div"))) || _class6$2);
 var RegisterTabButton = (_dec7 = registerStyle(LoginStyle), _dec7(_class7$2 = function (_UI$Primitive3) {
     inherits(RegisterTabButton, _UI$Primitive3);
 
@@ -31243,7 +30579,7 @@ var _descriptor7$9;
 var _descriptor8$8;
 var _descriptor9$7;
 var _descriptor10$5;
-var _descriptor11$4;
+var _descriptor11$5;
 
 function _initDefineProp$24(target, property, descriptor, context) {
     if (!descriptor) return;
@@ -31315,7 +30651,7 @@ var ChatStyle = (_class$50 = function (_StyleSheet) {
             padding: "5px 10px",
             textTransform: "uppercase",
             marginTop: "15px"
-        }, _initDefineProp$24(_this, "messageTimeStampHr", _descriptor5$14, _this), _initDefineProp$24(_this, "messageTimeStamp", _descriptor6$11, _this), _initDefineProp$24(_this, "groupChatMessage", _descriptor7$9, _this), _initDefineProp$24(_this, "comment", _descriptor8$8, _this), _initDefineProp$24(_this, "userHandle", _descriptor9$7, _this), _initDefineProp$24(_this, "commentContent", _descriptor10$5, _this), _initDefineProp$24(_this, "timestamp", _descriptor11$4, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$24(_this, "messageTimeStampHr", _descriptor5$14, _this), _initDefineProp$24(_this, "messageTimeStamp", _descriptor6$11, _this), _initDefineProp$24(_this, "groupChatMessage", _descriptor7$9, _this), _initDefineProp$24(_this, "comment", _descriptor8$8, _this), _initDefineProp$24(_this, "userHandle", _descriptor9$7, _this), _initDefineProp$24(_this, "commentContent", _descriptor10$5, _this), _initDefineProp$24(_this, "timestamp", _descriptor11$5, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return ChatStyle;
@@ -31482,7 +30818,7 @@ var ChatStyle = (_class$50 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor11$4 = _applyDecoratedDescriptor$25(_class$50.prototype, "timestamp", [styleRule], {
+}), _descriptor11$5 = _applyDecoratedDescriptor$25(_class$50.prototype, "timestamp", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -31586,7 +30922,7 @@ var Pluginable = function Pluginable(BaseClass) {
 
 var _dec$23;
 var _class$45;
-var _dec2$7;
+var _dec2$8;
 var _class2$6;
 
 ButtonStyle.getInstance().ensureFirstUpdate();
@@ -31888,7 +31224,7 @@ var GroupChatMessage = (_dec$23 = registerStyle(ChatStyle), _dec$23(_class$45 = 
     }]);
     return GroupChatMessage;
 }(EditableMessage)) || _class$45);
-var PrivateChatMessage = (_dec2$7 = registerStyle(ChatStyle), _dec2$7(_class2$6 = function (_Panel) {
+var PrivateChatMessage = (_dec2$8 = registerStyle(ChatStyle), _dec2$8(_class2$6 = function (_Panel) {
     inherits(PrivateChatMessage, _Panel);
 
     function PrivateChatMessage() {
@@ -32706,7 +32042,7 @@ var CommentWidgetStyle = (_class$51 = function (_StyleSheet) {
 
 var _dec$22;
 var _class$44;
-var _dec2$6;
+var _dec2$7;
 var _class2$5;
 
 var ThreadMessage = function (_EditableMessage) {
@@ -32917,7 +32253,7 @@ var BlogCommentWidget = (_dec$22 = registerStyle(BlogStyle), _dec$22(_class$44 =
     }]);
     return BlogCommentWidget;
 }(ChatWidget(ThreadMessage))) || _class$44);
-var CommentWidget = (_dec2$6 = registerStyle(BlogStyle), _dec2$6(_class2$5 = function (_BlogCommentWidget) {
+var CommentWidget = (_dec2$7 = registerStyle(BlogStyle), _dec2$7(_class2$5 = function (_BlogCommentWidget) {
     inherits(CommentWidget, _BlogCommentWidget);
 
     function CommentWidget() {
@@ -33300,14 +32636,6 @@ var DelayedElement = function DelayedElement(BaseClass) {
         return DelayedElement;
     }(BaseClass);
 };
-
-// You can configure the loading/error states by defining the "renderLoading" and "renderError" attributes of the
-// function somewhere globally in your app.
-// Example:
-// StateDependentElement.renderLoading = "Loading...";
-// or
-// StateDependentElement.renderLoading = () => <MyCustomLoadingAnimation />
-// StateDependentElement.renderError = (error) => <MyCustomErrorMessageClass error={error} />
 
 var StateDependentElement = function StateDependentElement(BaseClass) {
     return function (_DelayedElement) {
@@ -34343,10 +33671,10 @@ var _descriptor7$10;
 var _descriptor8$9;
 var _descriptor9$8;
 var _descriptor10$6;
-var _descriptor11$5;
-var _descriptor12$3;
-var _descriptor13$3;
-var _descriptor14$3;
+var _descriptor11$6;
+var _descriptor12$4;
+var _descriptor13$4;
+var _descriptor14$4;
 var _descriptor15$3;
 var _descriptor16$3;
 var _descriptor17$2;
@@ -34357,7 +33685,7 @@ var _descriptor21$2;
 var _descriptor22$1;
 var _descriptor23;
 var _descriptor24;
-var _class5$5;
+var _class5$6;
 var _descriptor25;
 var _class7$3;
 var _descriptor26;
@@ -34429,8 +33757,6 @@ function _applyDecoratedDescriptor$28(target, property, decorators, descriptor, 
 
     return desc;
 }
-
-//import {CSAStyle} from "CSAStyle";
 
 var colors = {
     // BLUE: "#20232d",
@@ -34528,7 +33854,7 @@ var ForumThreadPanelStyle = (_class3$18 = function (_StyleSheet2) {
             args[_key2] = arguments[_key2];
         }
 
-        return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontFamily = "lato, open sans", _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$27(_this2, "mainClass", _descriptor6$12, _this2), _initDefineProp$27(_this2, "title", _descriptor7$10, _this2), _initDefineProp$27(_this2, "backButton", _descriptor8$9, _this2), _initDefineProp$27(_this2, "replyButtonDiv", _descriptor9$8, _this2), _initDefineProp$27(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$27(_this2, "fullPost", _descriptor11$5, _this2), _initDefineProp$27(_this2, "dislikeButton", _descriptor12$3, _this2), _initDefineProp$27(_this2, "likeButton", _descriptor13$3, _this2), _initDefineProp$27(_this2, "author", _descriptor14$3, _this2), _initDefineProp$27(_this2, "header", _descriptor15$3, _this2), _initDefineProp$27(_this2, "message", _descriptor16$3, _this2), _initDefineProp$27(_this2, "buttons", _descriptor17$2, _this2), _initDefineProp$27(_this2, "bottomPanel", _descriptor18$2, _this2), _initDefineProp$27(_this2, "voting", _descriptor19$2, _this2), _initDefineProp$27(_this2, "numReplies", _descriptor20$2, _this2), _initDefineProp$27(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$27(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$27(_this2, "editButton", _descriptor23, _this2), _initDefineProp$27(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+        return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontFamily = "lato, open sans", _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$27(_this2, "mainClass", _descriptor6$12, _this2), _initDefineProp$27(_this2, "title", _descriptor7$10, _this2), _initDefineProp$27(_this2, "backButton", _descriptor8$9, _this2), _initDefineProp$27(_this2, "replyButtonDiv", _descriptor9$8, _this2), _initDefineProp$27(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$27(_this2, "fullPost", _descriptor11$6, _this2), _initDefineProp$27(_this2, "dislikeButton", _descriptor12$4, _this2), _initDefineProp$27(_this2, "likeButton", _descriptor13$4, _this2), _initDefineProp$27(_this2, "author", _descriptor14$4, _this2), _initDefineProp$27(_this2, "header", _descriptor15$3, _this2), _initDefineProp$27(_this2, "message", _descriptor16$3, _this2), _initDefineProp$27(_this2, "buttons", _descriptor17$2, _this2), _initDefineProp$27(_this2, "bottomPanel", _descriptor18$2, _this2), _initDefineProp$27(_this2, "voting", _descriptor19$2, _this2), _initDefineProp$27(_this2, "numReplies", _descriptor20$2, _this2), _initDefineProp$27(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$27(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$27(_this2, "editButton", _descriptor23, _this2), _initDefineProp$27(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
     }
 
     return ForumThreadPanelStyle;
@@ -34594,7 +33920,7 @@ var ForumThreadPanelStyle = (_class3$18 = function (_StyleSheet2) {
             margin: "0"
         };
     }
-}), _descriptor11$5 = _applyDecoratedDescriptor$28(_class3$18.prototype, "fullPost", [styleRule], {
+}), _descriptor11$6 = _applyDecoratedDescriptor$28(_class3$18.prototype, "fullPost", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34606,7 +33932,7 @@ var ForumThreadPanelStyle = (_class3$18 = function (_StyleSheet2) {
             borderTop: "0"
         };
     }
-}), _descriptor12$3 = _applyDecoratedDescriptor$28(_class3$18.prototype, "dislikeButton", [styleRule], {
+}), _descriptor12$4 = _applyDecoratedDescriptor$28(_class3$18.prototype, "dislikeButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34615,7 +33941,7 @@ var ForumThreadPanelStyle = (_class3$18 = function (_StyleSheet2) {
             marginRight: "16px"
         };
     }
-}), _descriptor13$3 = _applyDecoratedDescriptor$28(_class3$18.prototype, "likeButton", [styleRule], {
+}), _descriptor13$4 = _applyDecoratedDescriptor$28(_class3$18.prototype, "likeButton", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34624,7 +33950,7 @@ var ForumThreadPanelStyle = (_class3$18 = function (_StyleSheet2) {
             marginRight: "8px"
         };
     }
-}), _descriptor14$3 = _applyDecoratedDescriptor$28(_class3$18.prototype, "author", [styleRule], {
+}), _descriptor14$4 = _applyDecoratedDescriptor$28(_class3$18.prototype, "author", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -34764,7 +34090,7 @@ var ForumThreadPanelStyle = (_class3$18 = function (_StyleSheet2) {
         };
     }
 })), _class3$18);
-var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
+var ButtonStyle$1 = (_class5$6 = function (_StyleSheet3) {
     inherits(ButtonStyle, _StyleSheet3);
 
     function ButtonStyle() {
@@ -34782,7 +34108,7 @@ var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
     }
 
     return ButtonStyle;
-}(StyleSheet), (_descriptor25 = _applyDecoratedDescriptor$28(_class5$5.prototype, "button", [styleRule], {
+}(StyleSheet), (_descriptor25 = _applyDecoratedDescriptor$28(_class5$6.prototype, "button", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         var _ref4;
@@ -34812,7 +34138,7 @@ var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
             transition: ".2s"
         }), _ref4;
     }
-})), _class5$5);
+})), _class5$6);
 var ForumThreadHeaderStyle = (_class7$3 = function (_StyleSheet4) {
     inherits(ForumThreadHeaderStyle, _StyleSheet4);
 
@@ -35430,7 +34756,7 @@ var CreateThreadReplyModal = function (_MarkupEditorModal) {
 
 var _dec$28;
 var _class$54;
-var _dec2$10;
+var _dec2$11;
 var _class2$9;
 
 var forumThreadPanelStyle = ForumThreadPanelStyle.getInstance();
@@ -35683,7 +35009,7 @@ var ForumThreadReply = function (_UI$Element) {
     return ForumThreadReply;
 }(UI.Element);
 
-var ForumThreadPanel = (_dec2$10 = registerStyle(ForumThreadPanelStyle), _dec2$10(_class2$9 = function (_Panel) {
+var ForumThreadPanel = (_dec2$11 = registerStyle(ForumThreadPanelStyle), _dec2$11(_class2$9 = function (_Panel) {
     inherits(ForumThreadPanel, _Panel);
 
     function ForumThreadPanel() {
@@ -35955,7 +35281,7 @@ var ForumThreadPanel = (_dec2$10 = registerStyle(ForumThreadPanelStyle), _dec2$1
 
 var _dec$27;
 var _class$53;
-var _dec2$9;
+var _dec2$10;
 var _class2$8;
 var _dec3$2;
 var _class3$17;
@@ -36038,7 +35364,7 @@ var ForumThreadHeader = (_dec$27 = registerStyle(ForumThreadHeaderStyle), _dec$2
     return ForumThreadHeader;
 }(UI.Element)) || _class$53);
 
-var ForumThreadPreview = (_dec2$9 = registerStyle(ForumThreadPreviewStyle), _dec2$9(_class2$8 = function (_ChatMarkupRenderer) {
+var ForumThreadPreview = (_dec2$10 = registerStyle(ForumThreadPreviewStyle), _dec2$10(_class2$8 = function (_ChatMarkupRenderer) {
     inherits(ForumThreadPreview, _ChatMarkupRenderer);
 
     function ForumThreadPreview() {
@@ -36442,7 +35768,7 @@ var ForumRoute = function (_Route) {
     return ForumRoute;
 }(Route);
 
-var d3 = { geo: {} };
+var d3$1 = { geo: {} };
 
 // adapted from d3.geo.voronoi by Jason Davies, http://www.jasondavies.com/
 var π = Math.PI;
@@ -36450,8 +35776,8 @@ var degrees$2 = 180 / π;
 var radians$2 = π / 180;
 var ε = 1e-15;
 
-d3.geo.voronoi = function (points, triangles) {
-    if (arguments.length < 2) triangles = d3.geo.delaunay(points);
+d3$1.geo.voronoi = function (points, triangles) {
+    if (arguments.length < 2) triangles = d3$1.geo.delaunay(points);
     if (!triangles) triangles = [];
 
     var n = points.length;
@@ -36493,8 +35819,8 @@ d3.geo.voronoi = function (points, triangles) {
     };
 };
 
-d3.geo.voronoi.topology = function (points, triangles) {
-    if (arguments.length < 2) triangles = d3.geo.delaunay(points);
+d3$1.geo.voronoi.topology = function (points, triangles) {
+    if (arguments.length < 2) triangles = d3$1.geo.delaunay(points);
     if (!triangles) triangles = [];
 
     var n = points.length,
@@ -36550,10 +35876,10 @@ d3.geo.voronoi.topology = function (points, triangles) {
     };
 };
 
-d3.geo.delaunay = function (points) {
+d3$1.geo.delaunay = function (points) {
     var p = points.map(cartesian$2),
         n = points.length,
-        triangles = d3.convexhull3d(p);
+        triangles = d3$1.convexhull3d(p);
 
     if (triangles.length) return triangles.forEach(function (t) {
         t.coordinates = [points[t.a.p.i], points[t.b.p.i], points[t.c.p.i]];
@@ -36570,7 +35896,7 @@ function hemispheres(a, b) {
     return [{ type: "Polygon", coordinates: [ring] }, { type: "Polygon", coordinates: [ring.slice().reverse()] }];
 }
 
-d3.convexhull3d = function (points) {
+d3$1.convexhull3d = function (points) {
     var n = points.length,
         i = void 0;
 
@@ -36825,7 +36151,7 @@ function neighbors(a, b) {
     (a.neighbor = b).neighbor = a;
 }
 
-var geoVoronoi = d3.geo.voronoi;
+var geoVoronoi = d3$1.geo.voronoi;
 
 var _class$58;
 var _temp$7;
@@ -36956,9 +36282,9 @@ var _descriptor7$12;
 var _descriptor8$11;
 var _descriptor9$10;
 var _descriptor10$8;
-var _descriptor11$7;
-var _descriptor12$5;
-var _descriptor13$5;
+var _descriptor11$8;
+var _descriptor12$6;
+var _descriptor13$6;
 var _dec$31;
 var _class3$20;
 
@@ -37015,7 +36341,7 @@ var FeedbackFormStyle = (_class$59 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FeedbackFormStyle.__proto__ || Object.getPrototypeOf(FeedbackFormStyle)).call.apply(_ref, [this].concat(args))), _this), _this.feedbackFormWidth = 720, _this.marginBottom = 10, _this.padding = 15, _this.width = 300, _this.inputHeight = 35, _initDefineProp$29(_this, "feedbackForm", _descriptor$28, _this), _initDefineProp$29(_this, "container", _descriptor2$25, _this), _initDefineProp$29(_this, "feedback", _descriptor3$23, _this), _initDefineProp$29(_this, "nameAndEmailContainer", _descriptor4$19, _this), _initDefineProp$29(_this, "field", _descriptor5$17, _this), _initDefineProp$29(_this, "textAreaField", _descriptor6$14, _this), _initDefineProp$29(_this, "label", _descriptor7$12, _this), _initDefineProp$29(_this, "input", _descriptor8$11, _this), _initDefineProp$29(_this, "contactTextArea", _descriptor9$10, _this), _initDefineProp$29(_this, "submitInput", _descriptor10$8, _this), _initDefineProp$29(_this, "submitInputSending", _descriptor11$7, _this), _initDefineProp$29(_this, "submitInputSuccess", _descriptor12$5, _this), _initDefineProp$29(_this, "submitInputError", _descriptor13$5, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FeedbackFormStyle.__proto__ || Object.getPrototypeOf(FeedbackFormStyle)).call.apply(_ref, [this].concat(args))), _this), _this.feedbackFormWidth = 720, _this.marginBottom = 10, _this.padding = 15, _this.width = 300, _this.inputHeight = 35, _initDefineProp$29(_this, "feedbackForm", _descriptor$28, _this), _initDefineProp$29(_this, "container", _descriptor2$25, _this), _initDefineProp$29(_this, "feedback", _descriptor3$23, _this), _initDefineProp$29(_this, "nameAndEmailContainer", _descriptor4$19, _this), _initDefineProp$29(_this, "field", _descriptor5$17, _this), _initDefineProp$29(_this, "textAreaField", _descriptor6$14, _this), _initDefineProp$29(_this, "label", _descriptor7$12, _this), _initDefineProp$29(_this, "input", _descriptor8$11, _this), _initDefineProp$29(_this, "contactTextArea", _descriptor9$10, _this), _initDefineProp$29(_this, "submitInput", _descriptor10$8, _this), _initDefineProp$29(_this, "submitInputSending", _descriptor11$8, _this), _initDefineProp$29(_this, "submitInputSuccess", _descriptor12$6, _this), _initDefineProp$29(_this, "submitInputError", _descriptor13$6, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     return FeedbackFormStyle;
@@ -37147,7 +36473,7 @@ var FeedbackFormStyle = (_class$59 = function (_StyleSheet) {
             outline: "0"
         }), _ref4;
     }
-}), _descriptor11$7 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputSending", [styleRule], {
+}), _descriptor11$8 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputSending", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37157,7 +36483,7 @@ var FeedbackFormStyle = (_class$59 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor12$5 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputSuccess", [styleRule], {
+}), _descriptor12$6 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputSuccess", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37167,7 +36493,7 @@ var FeedbackFormStyle = (_class$59 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor13$5 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputError", [styleRule], {
+}), _descriptor13$6 = _applyDecoratedDescriptor$30(_class$59.prototype, "submitInputError", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37328,16 +36654,16 @@ var _descriptor7$11;
 var _descriptor8$10;
 var _descriptor9$9;
 var _descriptor10$7;
-var _descriptor11$6;
-var _descriptor12$4;
-var _descriptor13$4;
+var _descriptor11$7;
+var _descriptor12$5;
+var _descriptor13$5;
 var _dec$30;
 var _class3$19;
 var _class4$3;
-var _descriptor14$4;
+var _descriptor14$5;
 var _descriptor15$4;
-var _dec2$11;
-var _class6$2;
+var _dec2$12;
+var _class6$3;
 var _class7$4;
 var _descriptor16$4;
 var _descriptor17$3;
@@ -37403,7 +36729,7 @@ var TeamCardStyle = (_class$57 = function (_StyleSheet) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerImageDimensions = 160, _this.borderRadius = "50%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _initDefineProp$28(_this, "container", _descriptor$27, _this), _initDefineProp$28(_this, "header", _descriptor2$24, _this), _initDefineProp$28(_this, "circleImage", _descriptor3$22, _this), _initDefineProp$28(_this, "image", _descriptor4$18, _this), _initDefineProp$28(_this, "hr", _descriptor5$16, _this), _initDefineProp$28(_this, "padding", _descriptor6$13, _this), _initDefineProp$28(_this, "body", _descriptor7$11, _this), _initDefineProp$28(_this, "description", _descriptor8$10, _this), _initDefineProp$28(_this, "titleName", _descriptor9$9, _this), _initDefineProp$28(_this, "titleJob", _descriptor10$7, _this), _initDefineProp$28(_this, "footer", _descriptor11$6, _this), _initDefineProp$28(_this, "url", _descriptor12$4, _this), _initDefineProp$28(_this, "socialAccount", _descriptor13$4, _this), _temp), possibleConstructorReturn(_this, _ret);
+        return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = TeamCardStyle.__proto__ || Object.getPrototypeOf(TeamCardStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 350, _this.width = 250, _this.headerImageDimensions = 160, _this.borderRadius = "50%", _this.bodyDescriptionPadding = 20, _this.footerHeight = 40, _this.footerSocialAccountDimensions = 25, _initDefineProp$28(_this, "container", _descriptor$27, _this), _initDefineProp$28(_this, "header", _descriptor2$24, _this), _initDefineProp$28(_this, "circleImage", _descriptor3$22, _this), _initDefineProp$28(_this, "image", _descriptor4$18, _this), _initDefineProp$28(_this, "hr", _descriptor5$16, _this), _initDefineProp$28(_this, "padding", _descriptor6$13, _this), _initDefineProp$28(_this, "body", _descriptor7$11, _this), _initDefineProp$28(_this, "description", _descriptor8$10, _this), _initDefineProp$28(_this, "titleName", _descriptor9$9, _this), _initDefineProp$28(_this, "titleJob", _descriptor10$7, _this), _initDefineProp$28(_this, "footer", _descriptor11$7, _this), _initDefineProp$28(_this, "url", _descriptor12$5, _this), _initDefineProp$28(_this, "socialAccount", _descriptor13$5, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     createClass(TeamCardStyle, [{
@@ -37513,7 +36839,7 @@ var TeamCardStyle = (_class$57 = function (_StyleSheet) {
             fontSize: "14px"
         };
     }
-}), _descriptor11$6 = _applyDecoratedDescriptor$29(_class$57.prototype, "footer", [styleRule], {
+}), _descriptor11$7 = _applyDecoratedDescriptor$29(_class$57.prototype, "footer", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37525,7 +36851,7 @@ var TeamCardStyle = (_class$57 = function (_StyleSheet) {
             flexDirection: "row"
         };
     }
-}), _descriptor12$4 = _applyDecoratedDescriptor$29(_class$57.prototype, "url", [styleRule], {
+}), _descriptor12$5 = _applyDecoratedDescriptor$29(_class$57.prototype, "url", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37534,7 +36860,7 @@ var TeamCardStyle = (_class$57 = function (_StyleSheet) {
             textDecoration: "none"
         };
     }
-}), _descriptor13$4 = _applyDecoratedDescriptor$29(_class$57.prototype, "socialAccount", [styleRule], {
+}), _descriptor13$5 = _applyDecoratedDescriptor$29(_class$57.prototype, "socialAccount", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37650,11 +36976,11 @@ var TeamSectionStyle = (_class4$3 = function (_StyleSheet2) {
             args[_key2] = arguments[_key2];
         }
 
-        return _ret2 = (_temp2 = (_this3 = possibleConstructorReturn(this, (_ref2 = TeamSectionStyle.__proto__ || Object.getPrototypeOf(TeamSectionStyle)).call.apply(_ref2, [this].concat(args))), _this3), _initDefineProp$28(_this3, "container", _descriptor14$4, _this3), _initDefineProp$28(_this3, "teamSectionContainer", _descriptor15$4, _this3), _temp2), possibleConstructorReturn(_this3, _ret2);
+        return _ret2 = (_temp2 = (_this3 = possibleConstructorReturn(this, (_ref2 = TeamSectionStyle.__proto__ || Object.getPrototypeOf(TeamSectionStyle)).call.apply(_ref2, [this].concat(args))), _this3), _initDefineProp$28(_this3, "container", _descriptor14$5, _this3), _initDefineProp$28(_this3, "teamSectionContainer", _descriptor15$4, _this3), _temp2), possibleConstructorReturn(_this3, _ret2);
     }
 
     return TeamSectionStyle;
-}(StyleSheet), (_descriptor14$4 = _applyDecoratedDescriptor$29(_class4$3.prototype, "container", [styleRule], {
+}(StyleSheet), (_descriptor14$5 = _applyDecoratedDescriptor$29(_class4$3.prototype, "container", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -37675,7 +37001,7 @@ var TeamSectionStyle = (_class4$3 = function (_StyleSheet2) {
     }
 })), _class4$3);
 
-var TeamSection = (_dec2$11 = registerStyle(TeamSectionStyle), _dec2$11(_class6$2 = function (_UI$Element2) {
+var TeamSection = (_dec2$12 = registerStyle(TeamSectionStyle), _dec2$12(_class6$3 = function (_UI$Element2) {
     inherits(TeamSection, _UI$Element2);
 
     function TeamSection() {
@@ -37750,7 +37076,7 @@ var TeamSection = (_dec2$11 = registerStyle(TeamSectionStyle), _dec2$11(_class6$
         }
     }]);
     return TeamSection;
-}(UI.Element)) || _class6$2);
+}(UI.Element)) || _class6$3);
 
 var AboutSectionStyle = (_class7$4 = function (_StyleSheet3) {
     inherits(AboutSectionStyle, _StyleSheet3);
@@ -37910,11 +37236,11 @@ var AboutPage = (_dec4$2 = registerStyle(AboutPageStyle), _dec4$2(_class12 = fun
                     message: [UI.createElement(
                         "p",
                         null,
-                        "We\u2019re a non-profit institution with the purpose of collecting, standardizing and visualizing information about the state of the world, currently and historically."
+                        "We\u2019re a non-profit with the purpose of collecting, standardizing and visualizing information about the state of the world, currently and historically."
                     ), UI.createElement(
                         "p",
                         null,
-                        "Mundipedia was born because there was a need fora centralized database for historical information. It\u2019s intended not just as a historical map of the world, where you can just slide to what year you want. It\u2019s intended to show information like historical GDP, populations, the areas where certain languages are spoken."
+                        "Mundipedia was born because there was a need for a centralized database for historical information. It\u2019s intended not just as a historical map of the world, where you can just slide to what year you want. It\u2019s intended to show information like historical GDP, populations, the areas where certain languages are spoken."
                     ), UI.createElement(
                         "p",
                         null,
@@ -37923,41 +37249,53 @@ var AboutPage = (_dec4$2 = registerStyle(AboutPageStyle), _dec4$2(_class12 = fun
                         "p",
                         null,
                         "Everything that we\u2019ll collect will be made freely available to anyone, at first through our website and later on through a standardized API."
+                    ), UI.createElement(
+                        "p",
+                        null,
+                        "This website is built with ",
+                        UI.createElement(
+                            Link,
+                            { href: "https://stemjs.org/" },
+                            "Stem JS"
+                        ),
+                        ". The souce code is available ",
+                        UI.createElement(
+                            Link,
+                            { href: "https://github.com/mciucu/mundipedia", newTab: true },
+                            "on github"
+                        ),
+                        "."
                     )],
                     hasLogo: false }),
                 UI.createElement(AboutSection, { title: "Aren\u2019t there other websites that do this?",
                     message: [UI.createElement(
                         "p",
                         null,
-                        "There\u2019s little information that\u2019s not on the internet somewhere. It\u2019s in a multitude of different formats thought: scanned maps, spreadsheets, yet untranslated cuneiform tablets, you name it. The solution we want to be is a platform that gathers all that data and offers a single format for every type of data."
+                        "There\u2019s little information that\u2019s not on the internet somewhere. It\u2019s in a multitude of different formats thought: scanned maps, spreadsheets, yet untranslated cuneiform tablets, you name it. Mundipedia wants to be is a platform that gathers all that data and offers a single format for every type of data."
                     )]
                     /*hasLogo*/ }),
                 UI.createElement(AboutSection, { title: "We\u2019re not a wiki (yet)",
                     message: [UI.createElement(
                         "p",
                         null,
-                        "We don\u2019t accept user data right now, but that doesn\u2019t mean we don\u2019t want to in the future. One of the main principles of Mundipedia is that the way information is presented can be more important than the actual information. Every single type of data that we\u2019ll store has a different optimal way of presenting it, and that\u2019s why at first we want the people that are inputing the data to be close to the decisions of how it\u2019s displayed."
+                        "We don\u2019t accept user data right now, but we want to in the future. One of the main principles of Mundipedia is that the way information is presented can be more important than the actual information. Every single type of data that we\u2019ll store has a different way of best presenting it, and that\u2019s why at first we want the people that are inputing the data to be close to the decisions of how it\u2019s displayed."
                     ), UI.createElement(
                         "p",
                         null,
-                        "Using crowdsourcing to generate data has become a panacea for many content platforms, many forgetting how important it is to have a system in place that enforces consistency and quality. Don\u2019t misunderstand us, openness to all voices and sources is extremely important, but we first want to set up an infrastructure that will make sure the end-user hears only a single coherent and high quality voice."
-                    ), UI.createElement(
-                        "p",
-                        null,
-                        "Over time our software will mature, and we plan on opening up for contributors, first to accredited users and then hopefully to everyone."
+                        "Using crowdsourcing to generate data has become a panacea for many content platforms, many forgetting how important it is to have a system in place that enforces consistency and quality. Don\u2019t misunderstand us, openness to community efforts is critically important, it's just that at first we want to set up an infrastructure that will make sure the end-user hears only a single coherent and high quality voice. Anyone that's interested in a collaboration is welcomed to contact us using the form bellow or via email."
                     )] }),
                 UI.createElement(AboutSection, { title: "How we\u2019re funded",
                     message: [UI.createElement(
                         "p",
                         null,
-                        "We don\u2019t have any income right now, and we\u2019ll be accepting donations soon. We\u2019re still looking for ways to be funded, but whatever happens though, we will stand by our key principles:"
+                        "We're not right now, and are still looking for ways to be funded, but whatever happens though, we will stand by our key principles:"
                     ), UI.createElement(
                         "p",
                         null,
                         UI.createElement(
                             "li",
                             null,
-                            "All of our information will remain forever free and without copyright limitations to usage."
+                            "All of the information will remain forever free and without copyright limitations to usage."
                         ),
                         UI.createElement(
                             "li",
@@ -37967,10 +37305,10 @@ var AboutPage = (_dec4$2 = registerStyle(AboutPageStyle), _dec4$2(_class12 = fun
                         UI.createElement(
                             "li",
                             null,
-                            "We will not compromise our content or direction for sponsorships."
+                            "We will not compromise our content for sponsorships."
                         )
                     )] }),
-                UI.createElement(AboutSection, { title: "Contact us for more",
+                UI.createElement(AboutSection, { title: "Contact us",
                     message: [UI.createElement(
                         "p",
                         null,
@@ -38055,10 +37393,10 @@ var _descriptor7$13;
 var _descriptor8$12;
 var _descriptor9$11;
 var _descriptor10$9;
-var _descriptor11$8;
-var _descriptor12$6;
-var _descriptor13$6;
-var _descriptor14$5;
+var _descriptor11$9;
+var _descriptor12$7;
+var _descriptor13$7;
+var _descriptor14$6;
 var _descriptor15$5;
 var _descriptor16$5;
 var _descriptor17$4;
@@ -38150,7 +37488,7 @@ var NavStyle = (_class$61 = function (_StyleSheet) {
             transitionDuration: function transitionDuration() {
                 return _this.dimensions.sidepanelTransitionDuration;
             }
-        }, _initDefineProp$30(_this, "leftSidePanel", _descriptor10$9, _this), _initDefineProp$30(_this, "rightSidePanel", _descriptor11$8, _this), _initDefineProp$30(_this, "navElementVertical", _descriptor12$6, _this), _initDefineProp$30(_this, "navElementVerticalArrow", _descriptor13$6, _this), _initDefineProp$30(_this, "navElementValueVertical", _descriptor14$5, _this), _initDefineProp$30(_this, "navSectionVertical", _descriptor15$5, _this), _initDefineProp$30(_this, "navCollapseElement", _descriptor16$5, _this), _initDefineProp$30(_this, "sidePanelGroup", _descriptor17$4, _this), _initDefineProp$30(_this, "hrStyle", _descriptor18$4, _this), _initDefineProp$30(_this, "navVerticalLeftHide", _descriptor19$4, _this), _initDefineProp$30(_this, "navVerticalRightHide", _descriptor20$4, _this), _temp), possibleConstructorReturn(_this, _ret);
+        }, _initDefineProp$30(_this, "leftSidePanel", _descriptor10$9, _this), _initDefineProp$30(_this, "rightSidePanel", _descriptor11$9, _this), _initDefineProp$30(_this, "navElementVertical", _descriptor12$7, _this), _initDefineProp$30(_this, "navElementVerticalArrow", _descriptor13$7, _this), _initDefineProp$30(_this, "navElementValueVertical", _descriptor14$6, _this), _initDefineProp$30(_this, "navSectionVertical", _descriptor15$5, _this), _initDefineProp$30(_this, "navCollapseElement", _descriptor16$5, _this), _initDefineProp$30(_this, "sidePanelGroup", _descriptor17$4, _this), _initDefineProp$30(_this, "hrStyle", _descriptor18$4, _this), _initDefineProp$30(_this, "navVerticalLeftHide", _descriptor19$4, _this), _initDefineProp$30(_this, "navVerticalRightHide", _descriptor20$4, _this), _temp), possibleConstructorReturn(_this, _ret);
     }
 
     createClass(NavStyle, [{
@@ -38328,12 +37666,12 @@ var NavStyle = (_class$61 = function (_StyleSheet) {
             }
         }];
     }
-}), _descriptor11$8 = _applyDecoratedDescriptor$31(_class$61.prototype, "rightSidePanel", [styleRule], {
+}), _descriptor11$9 = _applyDecoratedDescriptor$31(_class$61.prototype, "rightSidePanel", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return this.sidePanel;
     }
-}), _descriptor12$6 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementVertical", [styleRule], {
+}), _descriptor12$7 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementVertical", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -38348,7 +37686,7 @@ var NavStyle = (_class$61 = function (_StyleSheet) {
             }
         };
     }
-}), _descriptor13$6 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementVerticalArrow", [styleRule], {
+}), _descriptor13$7 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementVerticalArrow", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -38356,7 +37694,7 @@ var NavStyle = (_class$61 = function (_StyleSheet) {
             textAlign: "center"
         };
     }
-}), _descriptor14$5 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementValueVertical", [styleRule], {
+}), _descriptor14$6 = _applyDecoratedDescriptor$31(_class$61.prototype, "navElementValueVertical", [styleRule], {
     enumerable: true,
     initializer: function initializer() {
         return [this.navElement, {
@@ -38433,10 +37771,6 @@ var NavStyle = (_class$61 = function (_StyleSheet) {
 var _class$62;
 var _temp$8;
 
-// Class for working with the Window.localStorage and Window.sessionStorage objects
-// All keys are prefixed with our custom name, so we don't have to worry about polluting the global storage namespace
-// Keys must be strings, and values are modified by the serialize/deserialize methods,
-// which by default involve JSON conversion
 var StorageMap = (_temp$8 = _class$62 = function (_Dispatchable) {
     inherits(StorageMap, _Dispatchable);
 
@@ -39220,7 +38554,7 @@ function initializeSwipeEvents(navManager) {
 
 var _dec$32;
 var _class$60;
-var _dec2$12;
+var _dec2$13;
 var _class3$21;
 
 var SidePanelGroup = function (_UI$Element) {
@@ -39375,7 +38709,7 @@ var NavCarouselStyle = function (_CarouselStyle) {
     return NavCarouselStyle;
 }(CarouselStyle);
 
-var NavManager = (_dec2$12 = registerStyle(NavStyle), _dec2$12(_class3$21 = function (_UI$Primitive) {
+var NavManager = (_dec2$13 = registerStyle(NavStyle), _dec2$13(_class3$21 = function (_UI$Primitive) {
     inherits(NavManager, _UI$Primitive);
     createClass(NavManager, [{
         key: "getCarouselStyleSheet",
@@ -39760,11 +39094,6 @@ function logout() {
 }
 
 // UI components
-/*
- * This is the NavManager file of your app.
- * Here's where you can add links in the navigation menu
- */
-
 var AppNavManager = function (_NavManager) {
     inherits(AppNavManager, _NavManager);
 
@@ -40440,7 +39769,7 @@ WebsocketSubscriber.addListener = function (streamName, callback) {
 };
 
 var _dec$33;
-var _dec2$13;
+var _dec2$14;
 var _dec3$4;
 var _dec4$3;
 var _dec5$1;
@@ -40498,7 +39827,7 @@ function _applyDecoratedDescriptor$32(target, property, decorators, descriptor, 
     return desc;
 }
 
-var GlobalStyleSheet = (_dec$33 = styleRuleCustom({ selector: "body" }), _dec2$13 = styleRuleCustom({ selector: ".hidden" }), _dec3$4 = styleRuleCustom({ selector: "*" }), _dec4$3 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$64 = function (_StyleSheet) {
+var GlobalStyleSheet = (_dec$33 = styleRuleCustom({ selector: "body" }), _dec2$14 = styleRuleCustom({ selector: ".hidden" }), _dec3$4 = styleRuleCustom({ selector: "*" }), _dec4$3 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$64 = function (_StyleSheet) {
     inherits(GlobalStyleSheet, _StyleSheet);
 
     function GlobalStyleSheet() {
@@ -40524,7 +39853,7 @@ var GlobalStyleSheet = (_dec$33 = styleRuleCustom({ selector: "body" }), _dec2$1
             fontFamily: this.themeProperties.FONT_FAMILY_SANS_SERIF
         };
     }
-}), _descriptor2$27 = _applyDecoratedDescriptor$32(_class$64.prototype, "hidden", [_dec2$13], {
+}), _descriptor2$27 = _applyDecoratedDescriptor$32(_class$64.prototype, "hidden", [_dec2$14], {
     enumerable: true,
     initializer: function initializer() {
         return {
@@ -40713,7 +40042,6 @@ var EstablishmentApp = (_temp$9 = _class$63 = function (_StemApp) {
     return EstablishmentApp;
 }(StemApp), _class$63.MIN_VIEWPORT_META_WIDTH = 375, _temp$9);
 
-// The default page title
 PageTitleManager.setDefaultTitle("Mundipedia");
 
 var oldThemeProperties = Theme.Global.getProperties();
