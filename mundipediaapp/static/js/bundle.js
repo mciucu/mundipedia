@@ -6953,7 +6953,7 @@ SVG.Element = function (_UI$Element) {
     return SVGElement;
 }(UI.Element);
 
-SVG.Element.domAttributesMap = CreateNodeAttributesMap(UI.Element.domAttributesMap, [["fill"], ["height"], ["opacity"], ["stroke"], ["strokeWidth", { domName: "stroke-width" }], ["clipPath", { domName: "clip-path" }], ["transform"], ["width"], ["cx"], ["cy"], ["rx"], ["ry"], ["x"], ["y"], ["x1"], ["y1"], ["x2"], ["y2"], ["filter"], ["in"], ["stdDeviation"], ["offset"], ["stopColor", { domName: "stop-color" }], ["strokeDasharray", { domName: "stroke-dasharray" }], ["strokeLinecap", { domName: "stroke-linecap" }], ["viewBox", { domName: "viewBox" }]]);
+SVG.Element.domAttributesMap = CreateNodeAttributesMap(UI.Element.domAttributesMap, [["fill"], ["height"], ["opacity"], ["stroke"], ["strokeWidth", { domName: "stroke-width" }], ["clipPath", { domName: "clip-path" }], ["transform"], ["width"], ["cx"], ["cy"], ["rx"], ["ry"], ["x"], ["y"], ["x1"], ["y1"], ["x2"], ["y2"], ["offset"], ["stopColor", { domName: "stop-color" }], ["strokeDasharray", { domName: "stroke-dasharray" }], ["strokeLinecap", { domName: "stroke-linecap" }], ["viewBox", { domName: "viewBox" }]]);
 
 SVG.Text = function (_SVG$Element) {
     inherits(SVGText, _SVG$Element);
@@ -20844,15 +20844,18 @@ var SVGMap = function (_Zoomable) {
         value: function redrawSimplified() {
             var _this6 = this;
 
-            this.options.isDragging = true;
-            this.getProjection().precision(5);
-            this.redraw();
-            clearTimeout(this.fullRedrawTimeout);
-            this.fullRedrawTimeout = setTimeout(function () {
-                _this6.options.isDragging = false;
-                _this6.getProjection().precision(Math.sqrt(0.5));
+            cancelAnimationFrame(this.redrawAnimationFrame);
+            this.redrawAnimationFrame = requestAnimationFrame(function () {
+                _this6.options.isDragging = true;
+                _this6.getProjection().precision(5);
                 _this6.redraw();
-            }, 500);
+                clearTimeout(_this6.fullRedrawTimeout);
+                _this6.fullRedrawTimeout = setTimeout(function () {
+                    _this6.options.isDragging = false;
+                    _this6.getProjection().precision(Math.sqrt(0.5));
+                    _this6.redraw();
+                }, 500);
+            });
         }
     }, {
         key: "handleDragStart",

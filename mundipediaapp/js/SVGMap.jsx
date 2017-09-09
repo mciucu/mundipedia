@@ -190,15 +190,18 @@ export class SVGMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     }
 
     redrawSimplified() {
-        this.options.isDragging = true;
-        this.getProjection().precision(5);
-        this.redraw();
-        clearTimeout(this.fullRedrawTimeout);
-        this.fullRedrawTimeout = setTimeout(() => {
-            this.options.isDragging = false;
-            this.getProjection().precision(Math.sqrt(0.5));
+        cancelAnimationFrame(this.redrawAnimationFrame);
+        this.redrawAnimationFrame = requestAnimationFrame(() => {
+            this.options.isDragging = true;
+            this.getProjection().precision(5);
             this.redraw();
-        }, 500);
+            clearTimeout(this.fullRedrawTimeout);
+            this.fullRedrawTimeout = setTimeout(() => {
+                this.options.isDragging = false;
+                this.getProjection().precision(Math.sqrt(0.5));
+                this.redraw();
+            }, 500);
+        });
     }
 
     handleDragStart(event) {
