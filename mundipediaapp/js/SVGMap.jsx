@@ -146,6 +146,7 @@ export class SVGMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     }
 
     getGraticule() {
+        this.getProjection().precision(Math.sqrt(0.5));
         if (this.options.showGraticule) {
             const graticule = geoGraticule().step([20, 10])();
             return <SVG.Path fill="none" stroke="#aaa" strokeWidth={0.5} d={this.makePath(graticule)} />;
@@ -190,10 +191,12 @@ export class SVGMap extends Zoomable(Draggable(SVG.SVGRoot)) {
 
     redrawSimplified() {
         this.options.isDragging = true;
+        this.getProjection().precision(5);
         this.redraw();
         clearTimeout(this.fullRedrawTimeout);
         this.fullRedrawTimeout = setTimeout(() => {
             this.options.isDragging = false;
+            this.getProjection().precision(Math.sqrt(0.5));
             this.redraw();
         }, 500);
     }

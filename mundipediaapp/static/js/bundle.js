@@ -1,6 +1,7 @@
 var Bundle = (function (exports) {
 'use strict';
 
+var babelHelpers = {};
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {
@@ -307,6 +308,8 @@ var toConsumableArray = function (arr) {
     return Array.from(arr);
   }
 };
+
+babelHelpers;
 
 var _marked = [mapIterator, filterIterator].map(regeneratorRuntime.mark);
 
@@ -6950,7 +6953,7 @@ SVG.Element = function (_UI$Element) {
     return SVGElement;
 }(UI.Element);
 
-SVG.Element.domAttributesMap = CreateNodeAttributesMap(UI.Element.domAttributesMap, [["fill"], ["height"], ["opacity"], ["stroke"], ["strokeWidth", { domName: "stroke-width" }], ["clipPath", { domName: "clip-path" }], ["transform"], ["width"], ["cx"], ["cy"], ["rx"], ["ry"], ["x"], ["y"], ["x1"], ["y1"], ["x2"], ["y2"], ["offset"], ["stopColor", { domName: "stop-color" }], ["strokeDasharray", { domName: "stroke-dasharray" }], ["strokeLinecap", { domName: "stroke-linecap" }], ["viewBox", { domName: "viewBox" }]]);
+SVG.Element.domAttributesMap = CreateNodeAttributesMap(UI.Element.domAttributesMap, [["fill"], ["height"], ["opacity"], ["stroke"], ["strokeWidth", { domName: "stroke-width" }], ["clipPath", { domName: "clip-path" }], ["transform"], ["width"], ["cx"], ["cy"], ["rx"], ["ry"], ["x"], ["y"], ["x1"], ["y1"], ["x2"], ["y2"], ["filter"], ["in"], ["stdDeviation"], ["offset"], ["stopColor", { domName: "stop-color" }], ["strokeDasharray", { domName: "stroke-dasharray" }], ["strokeLinecap", { domName: "stroke-linecap" }], ["viewBox", { domName: "viewBox" }]]);
 
 SVG.Text = function (_SVG$Element) {
     inherits(SVGText, _SVG$Element);
@@ -20787,6 +20790,7 @@ var SVGMap = function (_Zoomable) {
     }, {
         key: "getGraticule",
         value: function getGraticule() {
+            this.getProjection().precision(Math.sqrt(0.5));
             if (this.options.showGraticule) {
                 var graticule$$1 = graticule().step([20, 10])();
                 return UI.createElement(SVG.Path, { fill: "none", stroke: "#aaa", strokeWidth: 0.5, d: this.makePath(graticule$$1) });
@@ -20841,10 +20845,12 @@ var SVGMap = function (_Zoomable) {
             var _this6 = this;
 
             this.options.isDragging = true;
+            this.getProjection().precision(5);
             this.redraw();
             clearTimeout(this.fullRedrawTimeout);
             this.fullRedrawTimeout = setTimeout(function () {
                 _this6.options.isDragging = false;
+                _this6.getProjection().precision(Math.sqrt(0.5));
                 _this6.redraw();
             }, 500);
         }
