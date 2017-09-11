@@ -5,6 +5,7 @@ import {getDragPointRotation} from "./geo/Transform";
 
 import {Draggable} from "ui/Draggable";
 import {Zoomable} from "ui/Zoomable";
+import {CallThrottler} from "../../stemjs/src/base/Utils";
 
 
 class FeatureStyle extends StyleSheet {
@@ -78,6 +79,9 @@ class FeaturePath extends SVG.Path {
 }
 
 export class SVGMap extends Zoomable(Draggable(SVG.SVGRoot)) {
+    simpleRedrawThrottler = new CallThrottler({throttle: CallThrottler.ON_ANIMATION_FRAME});
+    fullRedrawThrottler = new CallThrottler({debounce: 500});
+
     getDefaultOptions(options) {
         options = Object.assign({
             width: 800,
@@ -190,17 +194,15 @@ export class SVGMap extends Zoomable(Draggable(SVG.SVGRoot)) {
     }
 
     redrawSimplified() {
-        cancelAnimationFrame(this.redrawAnimationFrame);
-        this.redrawAnimationFrame = requestAnimationFrame(() => {
+        this.simpleRedrawThrottler.call(() => {
             this.options.isDragging = true;
             this.getProjection().precision(5);
             this.redraw();
-            clearTimeout(this.fullRedrawTimeout);
-            this.fullRedrawTimeout = setTimeout(() => {
-                this.options.isDragging = false;
-                this.getProjection().precision(Math.sqrt(0.5));
-                this.redraw();
-            }, 500);
+        });
+        this.fullRedrawThrottler.call(() => {
+            this.options.isDragging = false;
+            this.getProjection().precision(Math.sqrt(0.5));
+            this.redraw();
         });
     }
 

@@ -7,7 +7,7 @@ YEARS = [
 
 
 def simplify_year(year):
-    command = "-i %s.json -simplify 0.08 rdp stats -o %s-sm.json precision=0.01" % (year, year)
+    command = "-i %s.json -simplify 0.08 -o %s-sm.json precision=0.01" % (year, year)
     print("Command: ", command)
     subprocess.call(["mapshaper"] + command.split(" "), cwd="mundipediaapp/static/json/world")
 

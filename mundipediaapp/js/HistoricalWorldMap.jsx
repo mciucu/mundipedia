@@ -318,7 +318,7 @@ class FeatureArea extends UI.Element {
 export class HistoricalWorldMap extends UI.Element {
     requestedYears = new Set(); // TODO: cache which years were loaded, to not request a second time
     geometries = new Map();
-    redrawDropper = UnorderedCallDropper.newInstance();
+    redrawDropper = new UnorderedCallDropper().toFunction();
 
     constructor(options) {
         super(options);
@@ -488,12 +488,10 @@ export class HistoricalWorldMap extends UI.Element {
         });
 
         this.map.addListener("mouseEnterFeature", (feature) => {
-            console.log("entering", feature);
             this.featureArea.setFeature(feature);
         });
 
         this.map.addListener("mouseLeaveFeature", (feature) => {
-            console.log("leaving", feature);
             this.featureArea.setFeature(null);
         });
 
