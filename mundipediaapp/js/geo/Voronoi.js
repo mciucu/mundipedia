@@ -1,5 +1,5 @@
-import {geoCircle, geoInterpolate} from "d3-geo/index";
-import {shuffle} from "d3-array";
+import {geoCircle, geoInterpolate} from "d3-geo";
+import {shuffle} from "../../../node_modules/d3-array/src/index";
 
 let d3 = {geo: {}};
 

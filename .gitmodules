@@ -1,0 +1,6 @@
+[submodule "establishment"]
+	path = establishment
+	url = https://github.com/establishment/django-establishment
+[submodule "stemjs"]
+	path = stemjs
+	url = https://github.com/mciucu/stemjs

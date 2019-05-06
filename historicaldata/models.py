@@ -8,7 +8,7 @@ class MetaSourceType(StreamObjectMixin):
 
 
 class MetaSource(models.Model):
-    type = models.ForeignKey(MetaSourceType, related_name="+")
+    type = models.ForeignKey(MetaSourceType, related_name="+", on_delete=models.PROTECT)
     name = models.TextField()
 
 
@@ -17,8 +17,8 @@ class SourceType(models.Model):
 
 
 class Source(StreamObjectMixin):
-    type = models.ForeignKey(SourceType, related_name="+")
-    meta_source = models.ForeignKey(MetaSource, related_name="+", null=True, blank=True)
+    type = models.ForeignKey(SourceType, related_name="+", on_delete=models.PROTECT)
+    meta_source = models.ForeignKey(MetaSource, related_name="+", on_delete=models.PROTECT, null=True, blank=True)
     desc = models.TextField()
     url = models.URLField(null=True)
 
@@ -35,7 +35,7 @@ class Entity(StreamObjectMixin):
     Model for storing an entity.
     This is the main data type and it includes all political entities, languages, etc.
     """
-    type = models.ForeignKey(EntityType, related_name="+")
+    type = models.ForeignKey(EntityType, related_name="+", on_delete=models.PROTECT)
     name = models.TextField()
     comment = models.TextField()
     legacy_id = models.IntegerField(unique=True, null=True, blank=True)
@@ -60,8 +60,8 @@ class Event(StreamObjectMixin):
     name = models.TextField()
     date_start = models.TextField()
     date_end = models.TextField(null=True)
-    type = models.ForeignKey(EventType, related_name="+", null=True)
-    entity = models.ForeignKey(Entity, related_name="+", null=True)
+    type = models.ForeignKey(EventType, related_name="+", null=True, on_delete=models.PROTECT)
+    entity = models.ForeignKey(Entity, related_name="+", null=True, on_delete=models.PROTECT)
     comment = models.TextField(null=True)
     legacy_id = models.IntegerField(unique=True, null=True, blank=True)
 
@@ -128,8 +128,8 @@ def first_after(values, date):
 
 
 class EntityProperty(StreamObjectMixin):
-    entity = models.ForeignKey(Entity, related_name="+")
-    event = models.ForeignKey(Event, related_name="+")
+    entity = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
+    event = models.ForeignKey(Event, related_name="+", on_delete=models.PROTECT)
     comment = models.TextField(null=True)
 
     class Meta:
@@ -158,7 +158,7 @@ class EntityProperty(StreamObjectMixin):
 
 
 class EntityPropertySourced(EntityProperty):
-    source = models.ForeignKey(Source, related_name="+")
+    source = models.ForeignKey(Source, related_name="+", on_delete=models.PROTECT)
 
     class Meta(EntityProperty.Meta):
         abstract = True
@@ -172,7 +172,7 @@ class Name(EntityProperty):
 
 
 class EntityLanguage(EntityProperty):
-    language = models.ForeignKey(Entity, related_name="+")
+    language = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
     percent = models.FloatField(null=True)
 
     class Meta:
@@ -180,7 +180,7 @@ class EntityLanguage(EntityProperty):
 
 
 class EntityScript(EntityProperty):
-    script = models.ForeignKey(Entity, related_name="+")
+    script = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
 
 
 class EntityBorder(EntityPropertySourced):
@@ -205,20 +205,20 @@ class EntityDemographics(EntityPropertySourced):
 
 class EntityGDP(EntityPropertySourced):
     value = models.BigIntegerField()
-    currency = models.ForeignKey(Entity, related_name="+")
+    currency = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
 
 
 class GovernmentType(StreamObjectMixin):
     desc = models.TextField(unique=True)
-    parent_type = models.ForeignKey("self", related_name="+", null=True)
+    parent_type = models.ForeignKey("self", related_name="+", on_delete=models.PROTECT, null=True)
 
 
 class EntityGovernment(EntityProperty):
-    type = models.ForeignKey(GovernmentType, related_name="+")
+    type = models.ForeignKey(GovernmentType, related_name="+", on_delete=models.PROTECT)
 
 
 class ReligionDemographic(EntityProperty):
-    religion = models.ForeignKey(Entity, related_name="+")
+    religion = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
     percentage = models.DecimalField(max_digits=7, decimal_places=4)
 
     class Meta:
@@ -226,7 +226,7 @@ class ReligionDemographic(EntityProperty):
 
 
 class EthnicDemographic(EntityPropertySourced):
-    ethnic_group = models.ForeignKey(Entity, related_name="+")
+    ethnic_group = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
     percentage = models.DecimalField(null=False, max_digits=7, decimal_places=4)
 
     class Meta:
@@ -234,7 +234,7 @@ class EthnicDemographic(EntityPropertySourced):
 
 
 class OfficialCurrency(EntityProperty):
-    currency = models.ForeignKey(Entity, related_name="+")
+    currency = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
     symbol = models.CharField(max_length=2, null=True)
 
     def get_name(self):
@@ -242,14 +242,14 @@ class OfficialCurrency(EntityProperty):
 
 
 class CapitalCity(EntityProperty):
-    capital_city = models.ForeignKey(Entity, related_name="+")
+    capital_city = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
 
 
 class EntityWikipedia(StreamObjectMixin):
-    entity = models.ForeignKey(Entity, related_name="+")
+    entity = models.ForeignKey(Entity, related_name="+", on_delete=models.PROTECT)
     url = models.URLField()
 
 
 class EventWikipedia(StreamObjectMixin):
-    event = models.ForeignKey(Event, related_name="+")
+    event = models.ForeignKey(Event, related_name="+", on_delete=models.PROTECT)
     url = models.URLField()

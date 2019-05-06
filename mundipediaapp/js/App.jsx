@@ -1,5 +1,5 @@
-import {UI, ViewportMeta} from "UI";
-import {MAIN_ROUTE} from "./Routes"
+import {UI} from "ui/UI";
+import {MAIN_ROUTE} from "./Routes";
 import {AppNavManager} from "./AppNavManager.jsx";
 import {EstablishmentApp} from "EstablishmentApp";
 
@@ -17,7 +17,7 @@ class MundipediaGlobalStyleSheet extends GlobalStyleSheet {
     }
 }
 
-export class AppClass extends EstablishmentApp {
+class AppClass extends EstablishmentApp {
     getBeforeContainer() {
         return <AppNavManager ref="navManager"/>;
     }
@@ -30,3 +30,5 @@ export class AppClass extends EstablishmentApp {
         return MAIN_ROUTE;
     }
 }
+
+export {AppClass};

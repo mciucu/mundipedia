@@ -1,8 +1,5 @@
-import D3PathString from "d3-geo/src/path/string";
-
 import {PageTitleManager} from "base/PageTitleManager";
 
-import {GlobalState} from "state/State";
 import {Theme} from "style/Theme";
 
 // The default page title
@@ -18,6 +15,9 @@ Theme.Global.setProperties({
     COLOR_TEXT: "#222",
     GLOBAL_YEAR_SELECT_HEIGHT: 60,
 });
+
+
+// import D3PathString from "d3-geo/src/path/string";
 
 // D3PathString.prototype.point = function (x, y) {
 //     switch (this._point) {

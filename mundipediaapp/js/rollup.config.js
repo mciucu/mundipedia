@@ -32,6 +32,9 @@ let modulesDirectories = [
     path.join(rootDir, "stemjs/src/ui"),
     path.join(rootDir, "stemjs/src/time"),
     path.join(rootDir, "node_modules"),
+    path.join(rootDir, "node_modules/d3-array/src"),
+    path.join(rootDir, "node_modules/d3-geo/src"),
+    path.join(rootDir, "node_modules/d3-geo-projection/src"),
 ];
 
 for (let module of modules) {
@@ -45,8 +48,8 @@ modulesDirectories.push(path.join(rootDir, "establishment/content/static/js/mark
 
 let includePathOptions = {
     paths: modulesDirectories,
-    external: ["d3"],
-    extensions: [".es6.js", ".jsx", ".js"],
+    // external: ["d3"],
+    extensions: [".jsx", ".js"],
 };
 
 const argv = require("yargs").argv;
@@ -54,17 +57,49 @@ const argv = require("yargs").argv;
 const isProductionBuild = argv.production;
 const generateSourceMap = argv.sourceMap || isProductionBuild || true; // TODO
 
+const babelOptions = {
+    babelrc: false,
+    plugins: [
+        [
+            "@babel/plugin-transform-react-jsx",
+            {
+                pragma: "UI.createElement"
+            }
+        ],
+        [
+            "@babel/plugin-proposal-decorators",
+            {
+                legacy: true
+            }
+        ],
+        ["@babel/plugin-proposal-class-properties", { loose : true }],
+    ],
+    runtimeHelpers: true,
+    presets: [
+        [
+            "@babel/env",
+            {
+                modules: false,
+                // useBuiltIns: "usage",
+                targets: "> 0.25%, not dead",
+                // debug: true,
+                loose: true, // Make code more compact, is not 100% compatible with ES6 specs
+            }
+        ]
+    ]
+};
+
 export default {
     input: "Bundle.js",
-    name: "Bundle",
     plugins: [
         includePaths(includePathOptions),
-        babel(),
-        // uglify(),
+        babel(babelOptions),
+        uglify(),
     ],
     output: {
         file: "../static/js/bundle.js",
-        format: "iife"
+        format: "iife",
+        name: "Bundle",
+        sourcemap: generateSourceMap,
     },
-    //sourcemap: generateSourceMap,
 };

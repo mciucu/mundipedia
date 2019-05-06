@@ -1,6 +1,5 @@
-import {UI, SVG, Select, Button, StyleSheet, styleRule, Theme, TextInput, registerStyle, CheckboxInput} from "ui/UI";
-import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
-import {FAIcon} from "FontAwesome";
+import {UI, SVG, StyleSheet, styleRule, registerStyle} from "ui/UI";
+import {geoPath, geoOrthographic, geoGraticule} from "d3-geo";
 import {getDragPointRotation} from "./geo/Transform";
 
 import {Draggable} from "ui/Draggable";

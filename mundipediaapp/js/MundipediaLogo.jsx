@@ -1,6 +1,6 @@
 import {UI, SVG} from "ui/UI";
 import {StemDate} from "time/Date";
-import {geoPath, geoOrthographic} from "d3-geo/index";
+import {geoPath, geoOrthographic} from "d3-geo";
 import {geoVoronoi} from "./geo/Voronoi";
 
 export function getPoints(seed, nrPoints=42) {
@@ -27,7 +27,7 @@ export class MundipediaLogo extends UI.Element {
 
     getDefaultOptions() {
         return {
-            framerate: 60,
+            framerate: 30,
             stroke: "white",
             fill: "cornflowerblue",
         }

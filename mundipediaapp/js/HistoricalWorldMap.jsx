@@ -4,8 +4,8 @@ import {Ajax} from "base/Ajax";
 import {enhance} from "Color";
 import {FAIcon} from "FontAwesome";
 
-import {geoPath, geoOrthographic, geoGraticule, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo/index";
-import {geoEckert4, geoHammer} from "d3-geo-projection/index";
+import {geoOrthographic, geoConicEquidistant, geoAzimuthalEqualArea} from "d3-geo";
+import {geoEckert4, geoHammer} from "d3-geo-projection";
 
 import {YearSelect} from "./YearSelect";
 import {SVGMap} from "./SVGMap";
